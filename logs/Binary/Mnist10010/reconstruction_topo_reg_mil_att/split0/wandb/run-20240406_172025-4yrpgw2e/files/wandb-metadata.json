@@ -1,0 +1,148 @@
+{
+    "os": "Linux-6.5.0-17-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "heartbeatAt": "2024-04-06T15:20:26.989322",
+    "startedAt": "2024-04-06T15:20:25.430438",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--config-path",
+        "configs/test/",
+        "--config-name",
+        "topo_test.yaml",
+        "hydra.run.dir=./"
+    ],
+    "state": "running",
+    "program": "/home/milad/Desktop/Master_Thesis/code/my_new_code/train.py",
+    "codePathLocal": "train.py",
+    "codePath": "train.py",
+    "host": "milad-razor",
+    "username": "milad",
+    "executable": "/home/milad/anaconda3/envs/MilSalome/bin/python",
+    "cpu_count": 14,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2.708049999999999,
+        "min": 400.0,
+        "max": 4480.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4.038,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 3.974,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 2.065,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 4.249,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 3.612,
+            "min": 400.0,
+            "max": 5000.0
+        },
+        {
+            "current": 0.589,
+            "min": 400.0,
+            "max": 5000.0
+        },
+        {
+            "current": 1.627,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 4.069,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 1.663,
+            "min": 400.0,
+            "max": 5000.0
+        },
+        {
+            "current": 3.483,
+            "min": 400.0,
+            "max": 5000.0
+        },
+        {
+            "current": 1.383,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 0.4,
+            "min": 400.0,
+            "max": 4900.0
+        },
+        {
+            "current": 1.463,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1.456,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 2.16,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 0.4,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1.291,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1.396,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 1.384,
+            "min": 400.0,
+            "max": 3800.0
+        },
+        {
+            "current": 0.4,
+            "min": 400.0,
+            "max": 3800.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 671.7940979003906,
+            "used": 549.303840637207
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 3080 Ti Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3080 Ti Laptop GPU",
+            "memory_total": 17179869184
+        }
+    ],
+    "memory": {
+        "total": 31.025230407714844
+    }
+}

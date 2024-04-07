@@ -1,0 +1,51 @@
+model_params:
+  name: CV_TopoRegMIL
+  config:
+    pooling: att
+    class_count: 2
+    in_dim: 28
+    in_channel: 1
+    classification_acc: 0.7
+    scheduler_class:
+      name: ConstantScheduler
+      config:
+        lam: 1
+    scheduler_topo:
+      name: ConstantScheduler
+      config:
+        lam: 0.0005
+    distance: reconstruction
+dataset:
+  name: MNIST
+  config:
+    num_workers: 4
+    img_dim: 28
+    synthesizer:
+      name: DoublePresenceSythesizer
+      config:
+        postive_integer:
+        - 9
+        - 8
+        bag_size: 14
+        dataset: MNIST
+exp_type: salome_experiment_MIL_CV
+exp_params:
+  dataset: MNIST
+  num_class: 2
+  optimizer:
+    name: Adam
+    config:
+      LR: 0.0005
+    batch_size: 1
+trainer_params:
+  gpus:
+  - 0
+  max_epochs: 15
+logging_params:
+  save_dir: logs/Binary/Mnist10010/reconstruction_topo_reg_mil_att/
+  name: topo_reg_mil_att
+  manual_seed: 1265
+ES_params:
+  monitor: val_loss
+  min_delta: 0.1
+  patience: 10
