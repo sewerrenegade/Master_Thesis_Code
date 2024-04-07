@@ -1,1 +1,0 @@
-{"train_loss_step": 1.3268606662750244, "train_lam_class_step": 1.0, "train_mil_loss_step": 1.3240348100662231, "train_classification_accuracy_step": 0.0, "train_lam_topo_step": 0.0005000000237487257, "train_topo_loss_step": 5.651819229125977, "epoch": 0, "trainer/global_step": 299, "_timestamp": 1712413826.9238362, "_runtime": 191.59302020072937, "_step": 5}
