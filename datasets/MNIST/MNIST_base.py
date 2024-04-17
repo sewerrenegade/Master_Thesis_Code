@@ -11,18 +11,21 @@ from torchvision import transforms
 
 class baseDataset(Dataset):
 
-    def __init__(self,training, root_dir = "data/", transforms=None):
+    def __init__(self,training, root_dir = "data/", transform=None):
         self.root_dir = root_dir
         self.training = training        
         self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir)
-        self.transforms = transforms,
+        if transform == None:
+            self.transform =transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])
+        else:
+            self.transform = transform
     
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         image_data,image_label = self.data[index]
-        return self.transforms(image_data), image_label
+        return self.transform(image_data), image_label
 #ToDo update the script to be MNIST or dataset agnostic
 
 class baseDatasetMIL(Dataset):

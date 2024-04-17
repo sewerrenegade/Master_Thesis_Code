@@ -28,7 +28,7 @@ dataset:
         - 8
         bag_size: 14
         dataset: MNIST
-exp_type: salome_experiment_MIL_CV
+exp_type: salome_experiment_topo_MIL_CV
 exp_params:
   dataset: MNIST
   num_class: 4
@@ -42,7 +42,7 @@ trainer_params:
   - 0
   max_epochs: 15
 logging_params:
-  save_dir: logs/Binary/Mnist10010/reconstruction_topo_reg_mil_att/
+  save_dir: logs/Binary/Mnist10010/cubical_topo_reg_mil_att/
   name: topo_reg_mil_att
   manual_seed: 1265
 ES_params:

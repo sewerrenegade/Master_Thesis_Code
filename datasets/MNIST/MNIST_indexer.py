@@ -20,7 +20,7 @@ class MNIST_Indexer:
             loaded_dict = json.load(json_file)    
         self.train_indicies = loaded_dict["train"]
         self.test_indicies = loaded_dict["test"]
-        self.classes= loaded_dict["classes"]
+        self.classes= sorted(loaded_dict["classes"])
         self.train_class_count ,self.test_class_count = loaded_dict["class_count"]
         self.train_size,self.test_size = loaded_dict["total_count"]
 

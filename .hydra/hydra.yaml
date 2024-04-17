@@ -119,7 +119,7 @@ hydra:
     override_dirname: ''
     id: ???
     num: ???
-    config_name: topo_test.yaml
+    config_name: topo_test_cubical.yaml
     env_set: {}
     env_copy: []
     config:

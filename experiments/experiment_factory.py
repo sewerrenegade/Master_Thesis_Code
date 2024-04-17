@@ -5,7 +5,7 @@ from experiments.MNIST_salome_mil_experiment import MILEXperiment_CV,TopoRegMILE
 
 MODULES = {
     "salome_experiment_MIL_CV": MILEXperiment_CV,
-    "salome_experiment_MIL_CV": TopoRegMILEXperiment_CV
+    "salome_experiment_topo_MIL_CV": TopoRegMILEXperiment_CV
 }
 
 NAME_KEY: str = "name"

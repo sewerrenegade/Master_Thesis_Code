@@ -41,13 +41,13 @@ def main(cfg: DictConfig) -> None:
     cudnn.deterministic = True
     cudnn.benchmark = False
     data = get_dataset(config["dataset"]["name"], config["dataset"]["config"])
-    for split_index in range(2):
+    for split_index in range(1):
         # tb_logger = TensorBoardLogger(
         #     save_dir=cfg["logging_params"]["save_dir"]+f"split{split_index}/",
         #     name=cfg["logging_params"]["name"],
         # )
         # tb_logger.log_hyperparams(params=cfg)
-        wnb_logger = WandbLogger(log_model="all",save_dir=cfg["logging_params"]["save_dir"]+f"split{split_index}/",name = "testing")
+        wnb_logger = WandbLogger(log_model="all",save_dir=cfg["logging_params"]["save_dir"]+f"split{split_index}/",name = "Cubical Test")
         wnb_logger.log_hyperparams(params=cfg)
 
 
@@ -68,12 +68,8 @@ def main(cfg: DictConfig) -> None:
             every_n_epochs=3,
         )
         model = get_module(cfg["model_params"]["name"], cfg["model_params"]["config"])
-        experiment = get_experiment(cfg["exp_type"],cfg["exp_params"],model)
-        
-        logger.info(f"{wnb_logger.save_dir}")
-        # logger.info(f"{wb_logger.save_dir}")
-
-            
+        experiment = get_experiment(cfg["exp_type"],cfg["exp_params"],model)   
+        logger.info(f"{wnb_logger.save_dir}") 
         runner = Trainer(
             enable_checkpointing=True,
             logger=wnb_logger,
@@ -82,9 +78,6 @@ def main(cfg: DictConfig) -> None:
             
         )
 
-
-
-        
         logger.info(f"======= Training {cfg['model_params']['name']} =======")
         runner.fit(experiment, data)
         global test_result
@@ -94,7 +87,7 @@ def main(cfg: DictConfig) -> None:
 
         print("run is done!")
         
-        print(f"Run #{run}, split {split_index} completed with acc {test_result[-1]['Accuracy']} best acc {experiment.best_acc}")
+        print(f"Run #{run}, split {split_index} completed with acc {test_result[-1]['Accuracy']} ")
 
 
 def set_config_file_environment_variable(folder_path,file_name):
@@ -111,8 +104,10 @@ def initialize_config_env():
      
 if __name__ == "__main__":
     configs = [
-        ["configs/test/","topo_test.yaml"],
-        ["configs/test/","test.yaml"],
+        #["configs/test/","topo_test_reconstruction.yaml"],
+        
+        #["configs/test/","test.yaml"],
+        ["configs/test/","topo_test_cubical.yaml"],
 
         # #Vanilla RGMIL
         
@@ -126,15 +121,12 @@ if __name__ == "__main__":
     for test_index in range(len(configs)):
         set_config_file_environment_variable(configs[test_index][0],configs[test_index][1])
         all_metrics = []
-        all_best_accuracies = [] 
         print(sys.argv)
         for run in range(1):
             print(f"Starting run {run+1}")
             test_result=[]
-            best_accuracies = []
             main()
             all_metrics.extend(test_result)
-            all_best_accuracies.extend(best_accuracies)
 
         mean_metrics = {
             metric: torch.mean(torch.tensor([m[metric] for m in all_metrics]))
@@ -145,16 +137,6 @@ if __name__ == "__main__":
             for metric in all_metrics[0]
         }
         results = []
-        all_best_accuracies = np.array(all_best_accuracies)
-        mean_best_acc = np.mean(all_best_accuracies)
-        std_dev_best_acc = np.std(all_best_accuracies)
-        results.append(
-                [
-                    "Best Acc",
-                    f"{mean_best_acc:.4f}",
-                    f"+/- {std_dev_best_acc:.4f}",
-                ]
-            )
         for metric in mean_metrics:
             results.append(
                 [
@@ -171,7 +153,7 @@ if __name__ == "__main__":
         current_datetime = datetime.datetime.now()
         formatted_datetime = current_datetime.strftime("%H.%M.%d.%m")
         file_name = (
-            f"{configs[test_index][1]}{configs[test_index][0]}_{formatted_datetime}.txt"
+            f"{configs[test_index][0]}{configs[test_index][1]}_{formatted_datetime}.txt"
         )
         with open(file_name, "w") as file:
             file.write(table)

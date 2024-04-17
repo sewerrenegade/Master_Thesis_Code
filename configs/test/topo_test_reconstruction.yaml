@@ -1,9 +1,20 @@
 model_params:
-  name: 'CV_MIL'
+  name: 'CV_TopoRegMIL'
   config:
     pooling: "att"
     class_count: 4
     in_dim: 28
+    in_channel: 1
+    classification_acc: 0.70
+    scheduler_class:
+      name: "ConstantScheduler"
+      config:
+        lam: 1
+    scheduler_topo: 
+      name: "ConstantScheduler"
+      config:
+        lam: 0.0005
+    distance: "reconstruction"
             
 dataset:
   name: 'MNIST'
@@ -17,7 +28,8 @@ dataset:
         bag_size: 14
         dataset: "MNIST"
 
-exp_type: "salome_experiment_MIL_CV"
+
+exp_type: "salome_experiment_topo_MIL_CV"
 
 exp_params:
   dataset: MNIST
@@ -31,11 +43,10 @@ exp_params:
 trainer_params:
   gpus: [0]
   max_epochs: 15
-  accumulate_grad_batches : 5
 
 logging_params:
-  save_dir: "logs/Binary/low_diversity/MNIST2010/mil_att/"
-  name: "mil_att"
+  save_dir: "logs/Binary/Mnist10010/reconstruction_topo_reg_mil_att/"
+  name: "topo_reg_mil_att"
   manual_seed: 1265
 
 ES_params:

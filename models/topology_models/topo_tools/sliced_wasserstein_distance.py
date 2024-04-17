@@ -33,7 +33,7 @@ class SlicedWassersteinDistance(torch.nn.Module):
         # Generates num_directions number of lines with slopes randomly sampled
         # between -pi/2 and pi/2.
         self.num_directions = num_directions
-        self.device = 'cuda:0'
+        self.device='cpu'#self.device = 'cuda:0'
         thetas = torch.linspace(-np.pi/2, np.pi/2, steps=self.num_directions+1)
         thetas = thetas[:-1]
         self.lines = torch.vstack([torch.tensor([torch.cos(i), torch.sin(i)],
@@ -48,7 +48,15 @@ class SlicedWassersteinDistance(torch.nn.Module):
     def _project_diagram(self, D1, L):
         # Project persistence diagram D1 onto a given line L.
         return torch.stack([torch.dot(x, L)/torch.dot(L, L) for x in D1])
+    
 
+    def remove_empty_persistance_diagrams(self,pers_infos):
+        pers_infos = wrap_if_not_iterable(pers_infos)
+        output = []
+        for pers_info in pers_infos:
+            if not pers_info.diagram.shape[0] == 0:
+                output.append(pers_info)
+        return output
     def forward(self, X, Y):
         """Calculate sliced Wasserstein metric based on input tensors.
         Parameters
@@ -68,32 +76,21 @@ class SlicedWassersteinDistance(torch.nn.Module):
         total_cost = 0.0
         diag = torch.tensor([0.5, 0.5], dtype=torch.float32,device=self.device)
 
-        X = wrap_if_not_iterable(X)
-        Y = wrap_if_not_iterable(Y)
+        X = self.remove_empty_persistance_diagrams(X)
+        Y = self.remove_empty_persistance_diagrams(Y)
 
         for pers_info in zip(X, Y):
 
             D1 = pers_info[0].diagram.float()
             D2 = pers_info[1].diagram.float()
-            if not D1.shape[0] == 0:
-                D1_diag = torch.vstack([torch.sum(x) * diag for x in D1])
-            else:
-                shape = D1.shape
-                D1_diag = torch.empty((shape[1],shape[0]))
-            if not D2.shape[0] == 0:
-                D2_diag = torch.vstack([torch.sum(x) * diag for x in D2])
-            else:
-                shape = D2.shape
-                D2_diag = torch.empty((shape[1],shape[0]))
 
-
+            D1_diag = torch.vstack([torch.sum(x) * diag for x in D1])
+            D2_diag = torch.vstack([torch.sum(x) * diag for x in D2])
             # Auxiliary array to project onto diagonal.
             
 
             # Project both the diagrams onto the diagonals.
-            
-            D2_diag = torch.vstack([torch.sum(x) * diag for x in D2])
-            shapes = f"D1 shape {D1.shape};d1 diag {D1_diag.shape}; d2 diage is {D2_diag.shape}  D2 shape {D2.shape}"
+            #shapes = f"D1 shape {D1.shape};d1 diag {D1_diag.shape}; d2 diage is {D2_diag.shape}  D2 shape {D2.shape}"
             cost = 0.0
 
             for line in self.lines:

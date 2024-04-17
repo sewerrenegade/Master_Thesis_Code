@@ -118,7 +118,8 @@ class MILEXperiment_CV(pl.LightningModule):
         plt.figure(figsize = (self.n_c,self.n_c))
         fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
         plt.close(fig_)
-        self.logger.experiment.add_figure("Confusion matrix", fig_)
+
+        #self.logger.experiment.add_figure("Confusion matrix", fig_)
 
         result_dict = {
             "Accuracy": acc,
@@ -257,10 +258,11 @@ class TopoRegMILEXperiment_CV(pl.LightningModule):
         # self.log("Sensitivity", sensitivity)
 
         df_cm = pd.DataFrame(confmat.numpy(), index = range(self.n_c), columns=range(self.n_c))
-        plt.figure(figsize = (self.n_c,self.n_c))
+        fig = plt.figure(figsize = (self.n_c,self.n_c))
         fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
         plt.close(fig_)
-        self.logger.experiment.add_figure("Confusion matrix", fig_)
+        # self.logger.log_image("Confusion matrix" , )
+        # self.log({"Confusion matrix": plt})
 
         result_dict = {
             "Accuracy": acc,

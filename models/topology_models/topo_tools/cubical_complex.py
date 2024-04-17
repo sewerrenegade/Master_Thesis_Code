@@ -51,7 +51,9 @@ class CubicalComplex(nn.Module):
         # TODO: This is handled somewhat inelegantly below. Might be
         # smarter to update.
         self.superlevel = superlevel
-        self.dim = dim
+        self.dim =dim # len(dim)
+        self.instance_dim = dim
+        
 
     def forward(self, x):
         """Implement forward pass for persistence diagram calculation.
@@ -119,7 +121,8 @@ class CubicalComplex(nn.Module):
 
         # No additional dimensions present: a single image
         if dims == 0:
-            return self._forward(x)
+            j = self._forward(x)
+            return j
 
         # Handle image with channels, such as a tensor of the form `(C, H, W)`
         elif dims == 1:
@@ -154,7 +157,7 @@ class CubicalComplex(nn.Module):
         """
         if self.superlevel:
             x = -x
-
+        y = x.flatten()
         cubical_complex = gudhi.CubicalComplex(
             dimensions=x.shape,
             top_dimensional_cells=x.flatten()

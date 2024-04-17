@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import lpips
 import numpy as np
+import json
 
 from models.topology_models.topo_tools.cubical_complex import CubicalComplex
 from models.topology_models.topo_tools.sliced_wasserstein_distance import SlicedWassersteinDistance
@@ -9,15 +10,18 @@ from models.topology_models.topo_tools.sliced_wasserstein_distance import Sliced
 class CubicalComplexImageEncoder(nn.Module):
     def __init__(self, image_dim=[28,28],):
         super(CubicalComplexImageEncoder,self).__init__()
-        self.device='cuda:0'
+        self.device='cpu'#self.device='cuda:0'
         self.image_dim = image_dim
         self.cube_complex_encoder = CubicalComplex(dim = len(image_dim))
-        self.wasserstein_distance = SlicedWassersteinDistance(num_directions= 5)
+        self.wasserstein_distance = SlicedWassersteinDistance(num_directions= 10)
 
     def forward(self, x):
-        cub_complexs = self.cube_complex_encoder(x)
+        input = x.to(self.device)
+        cub_complexs = self.cube_complex_encoder(input)
+        # x = cub_complexs[0][0][0].diagram
+        # string =json.dumps(x) 
         distances = self.calculate_distance_matrix(cub_complexs)
-        return distances
+        return distances.to('cuda:0')
 
 
     def calculate_distance_matrix(self,elements):
@@ -78,22 +82,6 @@ class ReconstructionProjectionModel(nn.Module):
     def get_latent_code_for_input(self,input):
         return self.encoder(input)
     
-    def get_distance_matrix(self,x):
-        #get triangular indices for computing a distance matrix
-        n = x.shape[0]
-        inds = self._get_index_pairs(n)
-        
-        #broadcast data such that each pair of the batch is represented
-        batch0 = x[inds[0]]  
-        batch1 = x[inds[1]]
-
-        #compute loss/distance pair-wise on the batch level
-        loss = self.loss_fn(batch0, batch1) 
-        loss = loss.view(loss.shape[0])
-
-        #reshape output into a proper distance matrix
-        D = self._batch_to_matrix(loss, inds, n)
-        return D 
 
 
 class PerceptualLoss(nn.Module):
