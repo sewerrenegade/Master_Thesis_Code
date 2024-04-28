@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Dataset
+
 from torchvision.datasets import MNIST
 import json
 from collections.abc import Iterable

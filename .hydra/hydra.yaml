@@ -114,12 +114,12 @@ hydra:
     - hydra.mode=RUN
     task: []
   job:
-    name: train
+    name: train_new
     chdir: null
     override_dirname: ''
     id: ???
     num: ???
-    config_name: topo_test_cubical.yaml
+    config_name: SCEMILA_test.yaml
     env_set: {}
     env_copy: []
     config:
@@ -130,18 +130,18 @@ hydra:
   runtime:
     version: 1.3.2
     version_base: '1.1'
-    cwd: /home/milad/Desktop/Master_Thesis/code/my_new_code
+    cwd: /home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code
     config_sources:
     - path: hydra.conf
       schema: pkg
       provider: hydra
-    - path: /home/milad/Desktop/Master_Thesis/code/my_new_code/configs/test
+    - path: /home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code/configs/test
       schema: file
       provider: main
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /home/milad/Desktop/Master_Thesis/code/my_new_code
+    output_dir: /home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code
     choices:
       hydra/env: default
       hydra/callbacks: null

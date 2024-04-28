@@ -2,10 +2,11 @@ import typing
 
 from datasets.data_synthesizers.MNIST_data_sythesizer import SinglePresenceSythesizer, DoublePresenceSythesizer
 from datasets.MNIST.MNIST_dataloader import MNIST
-
+from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
 
 MODULES = {
     "MNIST": MNIST,
+    "SCEMILA" : SCEMILA,
     "SinglePresenceSythesizer" :SinglePresenceSythesizer,
     "DoublePresenceSythesizer" : DoublePresenceSythesizer
 }

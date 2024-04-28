@@ -26,6 +26,8 @@ class AMiL(nn.Module):
         self.class_count = class_count
         self.multicolumn = multicolumn
         self.device = device
+        self.to(device)
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
         # feature extractor before multiple instance learning starts
         self.FT_DIM_IN = 512
@@ -70,10 +72,17 @@ class AMiL(nn.Module):
                 nn.Linear(64, 1)
             ))
 
+    def mil_loss_function(self,prediction,label):
+        loss = self.cross_entropy_loss(prediction,label)
+        label_prediction = torch.argmax(prediction, dim=1).item()
+        label_groundtruth = label
+        return {"loss":loss,"train_loss":loss.data,"correct":label_groundtruth==label_prediction
+                ,"prediction":prediction,"label":label,"prediction_int": label_prediction}
+    
     def forward(self, x):
         '''Forward pass of bag x through network. '''
 
-        ft = x.squeeze(0)
+        ft = x[0].squeeze(0)
         ft = self.ftr_proc(ft)
 
         # switch between multi- and single attention classification

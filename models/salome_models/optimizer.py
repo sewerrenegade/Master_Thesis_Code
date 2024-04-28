@@ -60,6 +60,25 @@ class Ranger:
         )
         return optimizer
 
+class SGD:
+    def __init__(
+        self,
+        LR: float,
+        momentum = 0.9,
+        nestrov = True
+    ):
+        self.lr = LR
+        self.momentum = momentum
+        self.nestrov = nestrov
+
+    def __call__(self, model):
+        optimizer = optim.SGD(
+            model.parameters(),
+            lr=self.lr,
+            momentum= self.momentum,
+            nesterov= self.nestrov
+        )
+        return optimizer
 
 class Adam:
     def __init__(

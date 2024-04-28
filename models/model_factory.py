@@ -1,8 +1,9 @@
 
 from models.salome_models.mil import CV_MIL
 from models.salome_models.topo_reg_mil import CV_TopoRegMIL
-
-from models.salome_models.optimizer import Adam
+from models.SCEMILA.model import AMiL
+from torch.optim import SGD
+from models.salome_models.optimizer import Adam,SGD
 from models.salome_models.scheduler import ConstantScheduler
 
 
@@ -11,6 +12,8 @@ MODULES = {
     "CV_TopoRegMIL": CV_TopoRegMIL,
     "Adam": Adam,
     "ConstantScheduler": ConstantScheduler,
+    "SCEMILA":AMiL,
+    "SGD" : SGD
 }
 
 NAME_KEY: str = "name"

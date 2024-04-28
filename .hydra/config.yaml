@@ -1,49 +1,34 @@
 model_params:
-  name: CV_TopoRegMIL
+  name: SCEMILA
   config:
-    pooling: att
-    class_count: 4
-    in_dim: 28
-    in_channel: 1
-    classification_acc: 0.7
-    scheduler_class:
-      name: ConstantScheduler
-      config:
-        lam: 1
-    scheduler_topo:
-      name: ConstantScheduler
-      config:
-        lam: 0.0005
-    distance: cubical_complex
+    multicolumn: 1
+    class_count: 5
+    device: cuda:0
 dataset:
-  name: MNIST
+  name: SCEMILA
   config:
     num_workers: 4
-    img_dim: 28
-    synthesizer:
-      name: DoublePresenceSythesizer
-      config:
-        postive_integer:
-        - 9
-        - 8
-        bag_size: 14
-        dataset: MNIST
-exp_type: salome_experiment_topo_MIL_CV
+    k_fold: -1
+exp_type: SCEMILA_experiment
 exp_params:
   dataset: MNIST
-  num_class: 4
+  num_class: 5
   optimizer:
-    name: Adam
+    name: SGD
     config:
-      LR: 0.0005
+      LR: 5.0e-05
+      momentum: 0.9
+      nestrov: true
     batch_size: 1
 trainer_params:
   gpus:
   - 0
   max_epochs: 15
+  accumulate_grad_batches: 5
 logging_params:
-  save_dir: logs/Binary/Mnist10010/cubical_topo_reg_mil_att/
-  name: topo_reg_mil_att
+  project_name: my-first-sweep
+  save_dir: logs/Binary/low_diversity/MNIST2010/mil_att/
+  name: mil_att
   manual_seed: 1265
 ES_params:
   monitor: val_loss

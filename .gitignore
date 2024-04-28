@@ -2,8 +2,10 @@ data/
 logs/
 junk/
 results/
+wandb/
 .hydra/
 .vscode/
+
 
 
 

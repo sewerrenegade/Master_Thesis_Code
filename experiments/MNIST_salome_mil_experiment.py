@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import precision_score, recall_score
+from experiments.metrics import calculate_recall,calculate_precision, calculate_sensitivity
 
 from models.model_factory import get_module
 from models.salome_models.mil import CV_MIL
@@ -93,9 +94,9 @@ class MILEXperiment_CV(pl.LightningModule):
         predictions = torch.cat([p["preds"] for p in outputs])
         lebels_oh = torch.cat([l["labels_oh"] for l in outputs])
 
-        # recall = calculate_recall(pred_int, labels, num_classes=self.n_c)
-        # precision = calculate_precision(pred_int, labels, num_classes=self.n_c)
-        # sensitivity = calculate_sensitivity(pred_int, labels, num_classes=self.n_c)
+        recall = calculate_recall(pred_int, labels, num_classes=self.n_c)
+        precision = calculate_precision(pred_int, labels, num_classes=self.n_c)
+        sensitivity = calculate_sensitivity(pred_int, labels, num_classes=self.n_c)
         recall = recall_score(y_true=labels, y_pred=pred_int, average='macro')
         precision = precision_score(y_true=labels, y_pred=pred_int, average='macro')
 

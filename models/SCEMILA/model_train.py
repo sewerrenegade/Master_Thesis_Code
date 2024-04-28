@@ -155,7 +155,7 @@ class ModelTrainer:
             confusion_matrix[label_groundtruth, label_prediction] += int(1)
 
             # print('----- loss: {:.3f}, gt: {} , pred: {}, prob: {}'.format(loss_out, label_groundtruth, label_prediction, prediction.detach().cpu().numpy()))
-
+        #epoch end
         samples = len(self.dataloaders[split])
         train_loss /= samples
 

@@ -22,7 +22,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 # results will be stored here
 TARGET_FOLDER = r'/home/milad/Desktop/scemila_out'
 # path to dataset
-SOURCE_FOLDER = r'/home/milad/Desktop/Master_Thesis/code/my_code/data/AML-Cytomorphol_Helmholtz'
+SOURCE_FOLDER = r'/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code/data/SCEMILA/extracted_features/mll_mil_extracted'
 
 # get arguments from parser, set up folder
 # parse arguments

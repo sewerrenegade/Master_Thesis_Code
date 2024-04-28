@@ -25,7 +25,13 @@ class MNIST(pl.LightningDataModule):
         self.val_split = val_split
         self.k_fold = k_fold
         self.transfroms = transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])#transforms.ToTensor(),
+        self.create_test_dataset()
+        self.create_train_dataset()
 
+    def set_up_kfold(self):
+        if self.k_fold != -1:
+            kf = KFold(n_splits=self.k_fold, shuffle=True)
+            self.all_split =  [k for k in kf.split(self.train_dataloader)]
 
     def setup(self, stage=None):
         if self.k_fold == -1:

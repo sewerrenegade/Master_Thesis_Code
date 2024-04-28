@@ -184,12 +184,12 @@ class MllDataset(Dataset):
 
         # grab images, patient id and label
         path = self.paths[idx]
-
+        added_folder = "processed"
         # only load if object has not yet been loaded
         if (path not in self.features_loaded):
             bag = np.load(
                 os.path.join(
-                    path,
+                    path,added_folder,
                     prefix +
                     'bn_features_layer_7.npy'))
             self.features_loaded[path] = bag
