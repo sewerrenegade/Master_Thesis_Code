@@ -6,6 +6,8 @@ import json
 
 from models.topology_models.topo_tools.cubical_complex import CubicalComplex
 from models.topology_models.topo_tools.sliced_wasserstein_distance import SlicedWassersteinDistance
+from models.topology_models.topo_tools.distances import WassersteinDistance
+
 
 class CubicalComplexImageEncoder(nn.Module):
     def __init__(self, image_dim=[28,28],):
@@ -13,14 +15,16 @@ class CubicalComplexImageEncoder(nn.Module):
         self.device='cpu'#self.device='cuda:0'
         self.image_dim = image_dim
         self.cube_complex_encoder = CubicalComplex(dim = len(image_dim))
-        self.wasserstein_distance = SlicedWassersteinDistance(num_directions= 10)
+        self.wasserstein_distance = WassersteinDistance(q = 2)
+        #self.requires_grad_ = True
 
     def forward(self, x):
         input = x.to(self.device)
+        print(f"Gradient of input {x.grad_fn}")
         cub_complexs = self.cube_complex_encoder(input)
-        # x = cub_complexs[0][0][0].diagram
-        # string =json.dumps(x) 
         distances = self.calculate_distance_matrix(cub_complexs)
+        distances.requires_grad_(True)
+
         return distances.to('cuda:0')
 
 

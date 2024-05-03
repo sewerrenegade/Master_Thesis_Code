@@ -107,10 +107,9 @@ def initialize_config_env():
 
 def setup_and_start_training(number_of_runs = 1):
     configs = [
-        #["configs/test/","topo_test_reconstruction.yaml"],
-        
+        ["configs/test/","topo_test_cubical.yaml"],
         #["configs/test/","test.yaml"],
-        ["configs/test/","SCEMILA_test.yaml"],
+        #["configs/test/","SCEMILA_test.yaml"],
         ]
     
 

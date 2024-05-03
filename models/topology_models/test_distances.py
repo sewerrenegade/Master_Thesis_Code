@@ -1,5 +1,5 @@
 from datasets.MNIST.MNIST_base import baseDataset,MNIST_Dataset_Referencer
-from models.topology_models.distances import PerceptualLoss,CubicalComplexImageEncoder,ReconstructionProjectionModel,RandomProjectionModel
+from models.topology_models.distances.image_space_distances import PerceptualLoss,CubicalComplexImageEncoder,ReconstructionProjectionModel,RandomProjectionModel
 import torch
 import numpy as np
 import random
@@ -16,7 +16,7 @@ cubical_complex_calculator = CubicalComplexImageEncoder()
 random_convolution_distance_calculator = RandomProjectionModel(input_dim=[1,28,28]) #FOR MNIST
 rec_auto_enc = ReconstructionProjectionModel(path_to_model= "models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth")
 
-order_of_distances = ["Euclidean_Distance","Reconstruction_Disance","Cubical_Complex"]
+order_of_distances = ["Euclidean_Distance","Rcntstrct_AE_euclidean_Disance","Cubical_Complex_Distance"]
 
 
 def load_n_samples_from_MNIST(n_samples):

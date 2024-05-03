@@ -5,15 +5,15 @@ import copy
 import torchmetrics.functional as tf
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 from sklearn.metrics import precision_score, recall_score
 import torch.nn.functional as F
+import wandb
+import numpy as np
 
 from models.model_factory import get_module
 from models.SCEMILA.model import AMiL
 from experiments.metrics import calculate_recall,calculate_precision, calculate_sensitivity
-from models.salome_models.topo_reg_mil import CV_TopoRegMIL
 
 
 class SCEMILA_Experiment(pl.LightningModule):
@@ -33,6 +33,8 @@ class SCEMILA_Experiment(pl.LightningModule):
         self.current_data_object =  DataMatrix()        
         self.current_confusion_matrix = torch.zeros(self.n_c, self.n_c)
         self.best_model = copy.deepcopy(self.model.state_dict())
+        self.log = wandb.log
+        self.log_dict = wandb.log
         try:
             self.hold_graph = self.params["retain_first_backpass"]
         except KeyError:
@@ -44,7 +46,7 @@ class SCEMILA_Experiment(pl.LightningModule):
     def convert_matrix_to_str(self,mat):
         return str(mat.tolist())
     def convert_matrix_to_pic(self,mat,name = "Confusion Matrix"):
-        return [pl.Image(mat, caption=name)]
+        return wandb.Image(mat, caption=name)
     
     # def optimizer_step(
     #     self,
@@ -53,7 +55,7 @@ class SCEMILA_Experiment(pl.LightningModule):
     #     optimizer,
     #     optimizer_closure,
     # ):
-    #     optimizer.step(closure=optimizer_closure)
+    #     optimizer.step(closure=optimizer_closure)df_cm
 
 
     def training_step(
@@ -81,6 +83,7 @@ class SCEMILA_Experiment(pl.LightningModule):
                 train_step_output["train_loss"],
                 bag_feature_stack)
         return train_step_output
+    
     def on_epoch_end_custom(self):
         self.current_data_object =  DataMatrix()        
         self.current_confusion_matrix = torch.zeros(self.n_c, self.n_c)
@@ -89,7 +92,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         total_loss,per_sample_avg_loss = self.sum_loss(outputs)
         corrects,accuracy = self.count_corrects(outputs)
         train_loss = per_sample_avg_loss
-        self.log_dict({"train_loss":train_loss,"accuracy": accuracy, "confusion_matrix":self.convert_matrix_to_str(self.current_confusion_matrix),"data_obj":self.current_data_object.return_data()})
+        self.log_dict({"train_loss":train_loss,"accuracy": accuracy, "confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix),"data_obj":self.current_data_object.return_data()})
         self.on_epoch_end_custom()
 
     def count_corrects(self,outputs):
@@ -137,12 +140,17 @@ class SCEMILA_Experiment(pl.LightningModule):
         total_loss,per_sample_avg_loss = self.sum_loss(outputs)
         corrects,accuracy = self.count_corrects(outputs)
         train_loss = per_sample_avg_loss
-        self.log_dict({"train_loss":train_loss,"accuracy": accuracy, "confusion_matrix":self.convert_matrix_to_str(self.current_confusion_matrix),"data_obj":self.current_data_object.return_data()})
+        self.log_dict({"train_loss":train_loss,"accuracy": accuracy, "confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix),"data_obj":self.current_data_object.return_data()})
 
-        pred_int = torch.tensor([p["prediction"] for p in outputs])
+        pred_int = torch.tensor([p["prediction_int"] for p in outputs])
         labels = torch.tensor([l["label"] for l in outputs])
         f1 = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, average='weighted', top_k=1)
-        self.log("val_f1_macro", f1)
+
+        plt.figure(figsize = (self.n_c,self.n_c))
+        df_cm = np.zeros((5,5))
+        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
+        plt.close(fig_)
+        self.log({"val_f1_macro": f1})
         self.on_epoch_end_custom()
 
     def test_step(
@@ -193,14 +201,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         auroc = tf.auroc(predictions.cpu(), labels.cpu(), task='multiclass', num_classes=self.n_c)
         prroc = tf.average_precision(predictions.cpu(), labels.cpu(), task="multiclass", num_classes=self.n_c)
 
-        self.log("Accuracy", acc)
-        self.log("F1_macro_weighted", f1)
-        self.log("AUROC", auroc)
-        self.log("Prroc", prroc)
-        self.log("Recall", recall)
-        self.log("Precision", precision)
-        # self.log("Sensitivity", sensitivity)
-
+        self.log({"Accuracy": acc,"F1_macro_weighted": f1,"AUROC": auroc,"Prroc": prroc,"Recall": recall,"Precision": precision})
         df_cm = pd.DataFrame(confmat.numpy(), index = range(self.n_c), columns=range(self.n_c))
         plt.figure(figsize = (self.n_c,self.n_c))
         fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()

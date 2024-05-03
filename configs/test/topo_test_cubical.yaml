@@ -19,6 +19,7 @@ model_params:
 dataset:
   name: 'MNIST'
   config:
+    k_fold: -1
     num_workers: 4
     img_dim: 28
     synthesizer:
@@ -45,6 +46,7 @@ trainer_params:
   max_epochs: 15
 
 logging_params:
+  project_name: "test_project"
   save_dir: "logs/Binary/Mnist10010/cubical_topo_reg_mil_att/"
   name: "topo_reg_mil_att"
   manual_seed: 1265

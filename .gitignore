@@ -3,8 +3,8 @@ logs/
 junk/
 results/
 wandb/
-.hydra
-.vscode
+.hydra/
+.vscode/
 
 
 

@@ -1,6 +1,6 @@
 """Distance calculation modules between topological descriptors."""
 
-import os
+import ot
 import torch
 
 from ..topo_utils import wrap_if_not_iterable
@@ -106,6 +106,8 @@ class WassersteinDistance(torch.nn.Module):
         X = wrap_if_not_iterable(X)
         Y = wrap_if_not_iterable(Y)
         n = type(X[0])
+        if len(X) != len(Y):
+            print(f" X has len {len(X)} an Y has length  {len(Y)}")
 
         for pers_info in zip(X, Y):
             D1 = pers_info[0].diagram

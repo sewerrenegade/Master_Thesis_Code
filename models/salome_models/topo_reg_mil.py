@@ -8,7 +8,7 @@ from torchmetrics import Accuracy
 from models.salome_models.scheduler import  ConstantScheduler
 from models.topology_models.topo_tools.topology import PersistentHomologyCalculation
 from models.salome_models.mil import CV_MIL,MILOutput
-from models.topology_models.distances import PerceptualLoss, RandomProjectionModel,ReconstructionProjectionModel, CubicalComplexImageEncoder
+from models.topology_models.distances.image_space_distances import PerceptualLoss, RandomProjectionModel,ReconstructionProjectionModel, CubicalComplexImageEncoder
 from models.topology_models.topo_tools import SignatureLoss, VietorisRipsComplex, WassersteinDistance
 
 
@@ -269,11 +269,12 @@ class CV_TopoRegMIL(CV_MIL):
 
         img_distances = self._compute_input_distance_matrix(x)
    
-
-
         latent_distances = self._compute_euclidean_distance(ins_latent)
         latent_distances = latent_distances / self.latent_norm
 
+        print(f"Gradient of CubComplex image side {img_distances.grad_fn}, it requires grad {img_distances.requires_grad}")
+        print(f"Gradient of Euclidean Distance {latent_distances.grad_fn}, it requires grad {latent_distances.requires_grad}")
+        print(f"Gradient of image encoder {ins_latent.grad_fn}, it requires grad {ins_latent.requires_grad}")
         return ToporegMILOutput(
             ins_img = x.squeeze(dim=0),
             ins_latent = ins_latent,

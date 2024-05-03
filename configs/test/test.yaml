@@ -8,6 +8,7 @@ model_params:
 dataset:
   name: 'MNIST'
   config:
+  
     num_workers: 4
     img_dim: 28
     synthesizer:

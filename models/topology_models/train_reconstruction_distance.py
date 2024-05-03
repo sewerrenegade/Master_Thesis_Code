@@ -3,7 +3,7 @@ import torch.nn as nn
 import os
 import torchvision as tv
 import torchvision.transforms as transforms
-from models.topology_models.distances import ReconstructionProjectionModel
+from models.topology_models.distances.image_space_distances import ReconstructionProjectionModel
 import matplotlib.pyplot as plt
 import numpy as np
 from datasets.MNIST.MNIST_base import baseDataset
