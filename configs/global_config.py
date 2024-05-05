@@ -21,3 +21,5 @@ class GlobalConfig:
 
 
     RESULTS_FOLDER_PATH = "results/"
+    NAME_OF_LABELED_EMBEDDED_FEATURES = "labeled_embedded_features"
+    NAME_OF_STATS_OF_EMBEDDED_FEATURES = "stats_of_embedded_features"

@@ -1,5 +1,5 @@
 from datasets.MNIST.MNIST_base import baseDataset,MNIST_Dataset_Referencer
-from models.topology_models.distances.image_space_distances import PerceptualLoss,CubicalComplexImageEncoder,ReconstructionProjectionModel,RandomProjectionModel
+from models.topology_models.distances.live_image_space_distances import PerceptualLoss,CubicalComplexImageEncoder,ReconstructionProjectionModel,RandomProjectionModel
 import torch
 import numpy as np
 import random

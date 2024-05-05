@@ -12,27 +12,52 @@ from torchvision import transforms
 
 class baseDataset(Dataset):
 
-    def __init__(self,training, root_dir = "data/", transform=None):
+    def __init__(self,training, root_dir = "data/", transform=None,dataset_size = None):
         self.root_dir = root_dir
-        self.training = training        
+        self.name = "MNIST"
+        self.training = training
+        self.dataset_size = dataset_size
         self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir)
         if transform == None:
             self.transform =transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])
         else:
             self.transform = transform
+        self.indicies_list = self.build_smaller_dataset()
+
+    def build_smaller_dataset(self):
+        if self.dataset_size:
+            classes = MNIST_Dataset_Referencer.INDEXER.classes
+            class_size = int(self.dataset_size/len(classes))
+            if self.training:
+                full_indicies = MNIST_Dataset_Referencer.INDEXER.train_indicies
+            else:
+                full_indicies = MNIST_Dataset_Referencer.INDEXER.test_indicies
+            indicies = []
+            for mnist_class in classes:
+                indicies.extend(full_indicies[str(mnist_class)][:class_size])
+            return indicies
+
     
     def __len__(self):
-        return len(self.data)
+        if self.dataset_size:
+            return len(self.indicies_list)
+        else:
+            return len(self.data)
 
     def __getitem__(self, index):
-        image_data,image_label = self.data[index]
-        return self.transform(image_data), image_label
+        if self.dataset_size:
+            image_data,image_label = self.data[self.indicies_list[index]]
+            return self.transform(image_data), image_label
+        else:
+            image_data,image_label = self.data[index]
+            return self.transform(image_data), image_label
 #ToDo update the script to be MNIST or dataset agnostic
 
 class baseDatasetMIL(Dataset):
 
     def __init__(self,training, data_synth, root_dir = "data/", transforms=None):
         self.root_dir = root_dir
+        self.name = "MNIST"
         self.training = training        
         self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir)
         self.synth = data_synth
