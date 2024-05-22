@@ -10,19 +10,16 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap,TSNE
 
 
-phate_operator = phate.PHATE(k=15, t=100)
-
-
 DOWN_PROJECTION_DIM = 32
-MNIST_BASE_DS = baseDataset(True,dataset_size= 1000)
-descriptors = [
-    EmbeddingDescriptor("PHATE",MNIST_BASE_DS,phate.PHATE(n_components=DOWN_PROJECTION_DIM).fit_transform),
-    EmbeddingDescriptor("TSNE",MNIST_BASE_DS,TSNE(n_components=DOWN_PROJECTION_DIM,method='exact').fit_transform),
-    EmbeddingDescriptor("ISOMAP",MNIST_BASE_DS,Isomap(n_components=DOWN_PROJECTION_DIM).fit_transform),
-    EmbeddingDescriptor("UMAP",MNIST_BASE_DS,umap.UMAP(n_components=DOWN_PROJECTION_DIM).fit_transform),
-    EmbeddingDescriptor("PCA",MNIST_BASE_DS,PCA(n_components=DOWN_PROJECTION_DIM,).fit_transform),
-    
-]
+SWEEP_PORJECTION_DIM = [2,3,8,16,32,64]
+MNIST_BASE_DS = baseDataset(True,dataset_size= 1000,gpu=False)
+descriptors = []
+for dim in SWEEP_PORJECTION_DIM:
+    descriptors.append(EmbeddingDescriptor(f"PHATE_{dim}",MNIST_BASE_DS,phate.PHATE(n_components=dim).fit_transform))
+    descriptors.append(EmbeddingDescriptor(f"TSNE_{dim}",MNIST_BASE_DS,TSNE(n_components=dim,method='exact').fit_transform))
+    descriptors.append(EmbeddingDescriptor(f"ISOMAP_{dim}",MNIST_BASE_DS,Isomap(n_components=dim).fit_transform))
+    descriptors.append(EmbeddingDescriptor(f"UMAP_{dim}",MNIST_BASE_DS,umap.UMAP(n_components=dim).fit_transform))
+    descriptors.append(EmbeddingDescriptor(f"PCA_{dim}",MNIST_BASE_DS,PCA(n_components=dim).fit_transform))
 
 if __name__ == '__main__':
     for descriptor in descriptors:

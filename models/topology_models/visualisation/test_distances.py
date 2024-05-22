@@ -11,7 +11,7 @@ import os
 from configs.global_config import GlobalConfig
 
 order_of_distances = ["Euclidean_Distance","Rcntstrct_AE_euclidean_Disance","Cubical_Complex_Distance"]
-MSNIT_DATASET= MNISTbase(training= True)
+MSNIT_DATASET= MNISTbase(training= True,gpu=False)
 NUMBER_OF_SAMPLES_PER_CLASS = 100
 
 #perceptual_distance_calculator = PerceptualLoss(device='cpu')
@@ -23,7 +23,7 @@ rec_auto_enc = ReconstructionProjectionModel(path_to_model= "models/topology_mod
 def get_score_of_distances(square_mat):
     dim = square_mat.shape[0]
     assert square_mat.shape[0] == square_mat.shape[1]
-    tst_mat = np.eye(dim) * -2 + np.ones((dim,dim))
+    tst_mat = np.eye(dim) * -4.5 + (np.ones((dim,dim)) - np.eye(dim))
     return np.sum(tst_mat* square_mat)
 
 
@@ -33,7 +33,6 @@ def load_n_samples_from_MNIST(n_samples):
     for class_label in MNIST_Dataset_Referencer.INDEXER.classes:
         indicies = MNIST_Dataset_Referencer.INDEXER.get_random_instance_of_class([class_label]*n_samples,training=True)
         instances_of_class = [MSNIT_DATASET[index][0] for index in indicies]
-
         samples[class_label] = instances_of_class
     return  samples
 

@@ -8,28 +8,22 @@ import torch
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
+from models.topology_models.distances.distance_matrix_metrics import get_score_of_distances
 
 order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP","PHATE"]
-MSNIT_DATASET= MNISTbase(training= True)
 EMBEDDED_MNIST_DATASET = [EMNIST(f"data/MNIST/embeddings/{embeddings}/") for embeddings in order_of_embeddings]
 NUMBER_OF_SAMPLES_PER_CLASS = 100
-
-def _compute_euclidean_distance(x):
-    x_flat = x#x.view(x.size(0), -1)
-    distances =  np.linalg.norm(x_flat[0] - x_flat[1])
-    return distances
-
     
-def compute_all_distances(x):
+def compute_euclidean_distance(x):
     assert len(x)==2
-    out_dic =_compute_euclidean_distance(x)
+    out_dic =np.linalg.norm(x[0] - x[1])
     return out_dic
 
 def compute_mean_var(class1_samples,class2_samples):
     samples = zip(class1_samples,class2_samples)
     distances= []
     for input_pair in samples:
-        distances.append(compute_all_distances(input_pair))
+        distances.append(compute_euclidean_distance(input_pair))
     mean = np.mean(distances,axis=0)
     var = np.var(distances,axis=0)
     return mean,var
@@ -48,7 +42,6 @@ def calculate_class_distance_embedded_MNIST():
     mean_distance_matrix = np.zeros((number_of_embeddings,class_count,class_count))
     var_distance_matrix = np.zeros((number_of_embeddings,class_count,class_count))
     for embedding_index in range(number_of_embeddings):
-
         data = load_n_samples_from_EMNIST(NUMBER_OF_SAMPLES_PER_CLASS,embedding_index)
         for i in range(class_count):
             for j in range(i, class_count):
@@ -59,12 +52,12 @@ def calculate_class_distance_embedded_MNIST():
                     mean_distance_matrix[embedding_index,i,i],var_distance_matrix[embedding_index,i,i]= compute_distance_between_classes(data[classes[i]])
     return mean_distance_matrix,var_distance_matrix
 
+
 def load_n_samples_from_EMNIST(NUMBER_OF_SAMPLES_PER_CLASS,embedding_index):
     samples = {}
     for class_label in MNIST_Dataset_Referencer.INDEXER.classes:
         indicies = EMBEDDED_MNIST_DATASET[embedding_index].class_indicies[class_label][:NUMBER_OF_SAMPLES_PER_CLASS]
         instances_of_class = [EMBEDDED_MNIST_DATASET[embedding_index][index][0] for index in indicies]
-
         samples[class_label] = instances_of_class
     return  samples
 
@@ -74,11 +67,6 @@ def standardize_array(array):
     return (array-avg)/std
 #the input looks like this [d1[mean,var],d2[mean,var]]
 
-def get_score_of_distances(square_mat):
-    dim = square_mat.shape[0]
-    assert square_mat.shape[0] == square_mat.shape[1]
-    tst_mat = np.eye(dim) * -2 + np.ones((dim,dim))
-    return np.sum(tst_mat* square_mat)
 
 
 
@@ -93,7 +81,7 @@ def visualize_array(array):
         normalized_mean = standardize_array(mean)
         normalized_var = standardize_array(var)
         im1 = axs[distance_index,0].imshow(normalized_mean, cmap='viridis')
-        axs[distance_index,0].set_title(f"{order_of_embeddings[distance_index]} score: {get_score_of_distances(normalized_mean):.4g}")
+        axs[distance_index,0].set_title(f"{order_of_embeddings[distance_index]} score: {get_score_of_distances(mean):.4g}")
         im2 = axs[distance_index,1].imshow(normalized_var, cmap='viridis')
         axs[distance_index,1].set_title('Variance')
         fig.colorbar(im1, ax=axs[distance_index,0], fraction=0.046, pad=0.04)
