@@ -73,11 +73,17 @@ class AMiL(nn.Module):
             ))
 
     def mil_loss_function(self,prediction,label):
-        loss = self.cross_entropy_loss(prediction,label)
+        vect= self.vectorise_label(label)
+        loss = self.cross_entropy_loss(prediction,vect)
         label_prediction = torch.argmax(prediction, dim=1).item()
         label_groundtruth = label
-        return {"loss":loss,"train_loss":loss.data,"correct":label_groundtruth==label_prediction
+        return {"loss":loss,"train_loss":loss.data,"correct":int(label_groundtruth==label_prediction)
                 ,"prediction":prediction,"label":label,"prediction_int": label_prediction}
+    
+    def vectorise_label(self,label):
+        vect_label = torch.zeros(self.class_count)
+        vect_label[label.item()] = 1
+        return vect_label.to(self.device).unsqueeze(0)
     
     def forward(self, x):
         '''Forward pass of bag x through network. '''
@@ -90,7 +96,6 @@ class AMiL(nn.Module):
             prediction = []
             bag_feature_stack = []
             attention_stack = []
-            # calculate attention
             att_raw = self.attention_multi_column(ft)
             att_raw = torch.transpose(att_raw, 1, 0)
 

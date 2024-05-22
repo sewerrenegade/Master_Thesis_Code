@@ -9,6 +9,7 @@ from typing import Callable,Union
 from torch.utils.data import Dataset
 from dataclasses import dataclass
 import time
+import random
 
 PATH_TO_MNIST_EMBEDDINGS  = "data/MINST/embeddings/"
 
@@ -20,7 +21,9 @@ class EmbeddingDescriptor:
 
 def save_embeddings(embeddings,labels, stats,base_path):
     assert len(embeddings) == len(labels)
-    to_serialise = zip(embeddings,labels)
+    x = list(zip(embeddings,np.array(labels)))
+    random.shuffle(x)
+    to_serialise = np.array(x)
     save_path = f"{base_path}{GlobalConfig.NAME_OF_LABELED_EMBEDDED_FEATURES}.npy"
     np.save(save_path,to_serialise)
     stats_path = f"{base_path}{GlobalConfig.NAME_OF_STATS_OF_EMBEDDED_FEATURES}.npz"

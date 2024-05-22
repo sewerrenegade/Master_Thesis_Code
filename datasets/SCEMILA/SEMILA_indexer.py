@@ -43,8 +43,7 @@ class SCEMILA_Indexer:
         
         # Split the data based on the selected indices
         list_15 = [data[i] for i in indices_15]
-        list_85 = [data[i] for i in range(len(data)) if i not in indices_15]
-        
+        list_85 = [data[i] for i in range(len(data)) if i not in indices_15]        
         return list_85,list_15
 
     def define_dataset(
@@ -76,25 +75,6 @@ class SCEMILA_Indexer:
                     " with ", annotation_count, " malign cells ")
                 continue
 
-            # # filter if manual assessment revealed major flaws. If this cell
-            # # contains N/A, then we don't exclude
-            # keep_row = pd.isnull(row['examine_exclude'])
-
-            # # filter if the patient has known bad sample quality
-            # if not keep_row and filter_quality_major_assessment:
-            #     print("Major flaws in slide quality, exclude: ", row.name, " ")
-            #     continue
-
-            # # filter if manual assessment revealed *minor* flaws. If this cell
-            # # contains N/A, then we don't exclude
-            # keep_row = pd.isnull(row['examine_optional_exclude'])
-
-            # # filter if the patient has known bad sample quality
-            # if not keep_row and filter_quality_minor_assessment:
-            #     print("Minor flaws in slide quality, exclude: ", row.name, " ")
-            #     continue
-
-            # enter patient into label converter
             label = self.process_label(row)
             if label is None:
                 continue
@@ -121,22 +101,6 @@ class SCEMILA_Indexer:
 
         return lbl_out
 
-    def get_random_instance_of_class(self,target_class_s,training):
-        if training:
-            class_count = self.train_class_count
-            indicies = self.train_indicies
-        else:
-            class_count = self.test_class_count
-            indicies = self.test_indicies
-
-        if not isinstance(target_class_s, Iterable):
-            target_class_s = [target_class_s]
-        instances = []
-        for target_class in target_class_s:
-            x1 = random.randint(0, class_count[str(target_class)] - 1)
-            x2 = str(target_class)
-            instances.append(indicies[x2][x1])
-        return instances
 
     
     def get_class_count(self,classes,train_indicies,test_indicies = []):

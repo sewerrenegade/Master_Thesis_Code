@@ -33,8 +33,9 @@ class SCEMILA_Experiment(pl.LightningModule):
         self.current_data_object =  DataMatrix()        
         self.current_confusion_matrix = torch.zeros(self.n_c, self.n_c)
         self.best_model = copy.deepcopy(self.model.state_dict())
-        self.log = wandb.log
-        self.log_dict = wandb.log
+        #self.log = wandb.log
+        self.log_dictionary = self.log_dict#wandb.log
+
         try:
             self.hold_graph = self.params["retain_first_backpass"]
         except KeyError:
@@ -64,25 +65,37 @@ class SCEMILA_Experiment(pl.LightningModule):
             batch_idx
         ):
         bag, bag_label,path = batch
-        prediction, att_raw, att_softmax, bag_feature_stack  = self.model(batch)
-        train_step_output = self.model.mil_loss_function(prediction,bag_label[0])
-        label_prediction = torch.argmax(prediction, dim=1).item()
-        label_groundtruth = bag_label[0].item()
-        self.current_confusion_matrix[label_groundtruth, label_prediction] += int(1)
-        #self.log_dict({f"train_{train_loss}"}, on_step=True, on_epoch=True)
-        train_step_output["bag_size"] = len(bag)
+        model_output = self.model(batch)
+        train_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
+        self.current_confusion_matrix[ train_step_output["label"].cpu(), train_step_output["prediction_int"]] += int(1)
+        self.log_step(train_step_output,model_output,batch,"train1")
+        return train_step_output
+    
+    
+    def log_step(self,step_loss,model_output,batch,phase):
+        bag, bag_label,path = batch
+        prediction, att_raw, att_softmax, bag_feature_stack  = model_output
+        log_dict = {}
+        log_dict[f"{phase}_loss"] = step_loss["loss"].data
+        log_dict[f"{phase}_correct"] =  step_loss["correct"]
+        log_dict[f"{phase}_label_int"] = step_loss["label"]
+        log_dict[f"{phase}_pred_int"] = step_loss["prediction_int"]
+        log_dict[f"{phase}_bag_size"] = len(bag.squeeze(0))
         self.current_data_object.add_patient(
-                label_groundtruth,
+                step_loss["label"],
                 path[0],
                 att_raw,
                 att_softmax,
-                label_prediction,
+                step_loss["prediction_int"],
                 F.softmax(
                     prediction,
                     dim=1),
-                train_step_output["train_loss"],
+                step_loss["train_loss"],
                 bag_feature_stack)
-        return train_step_output
+        
+        self.log_dictionary(log_dict,on_step=True)
+         
+
     
     def on_epoch_end_custom(self):
         self.current_data_object =  DataMatrix()        
@@ -92,7 +105,9 @@ class SCEMILA_Experiment(pl.LightningModule):
         total_loss,per_sample_avg_loss = self.sum_loss(outputs)
         corrects,accuracy = self.count_corrects(outputs)
         train_loss = per_sample_avg_loss
-        self.log_dict({"train_loss":train_loss,"accuracy": accuracy, "confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix),"data_obj":self.current_data_object.return_data()})
+        self.log_dictionary({"epoch_train_loss":train_loss,"epoch_train_accuracy": accuracy})#,"train_data_obj":self.current_data_object.return_data()
+        wandb.log({"train_confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix,"train_confusion_matrix")})
+        #wandb.log(self.current_data_object.return_data())
         self.on_epoch_end_custom()
 
     def count_corrects(self,outputs):
@@ -116,42 +131,21 @@ class SCEMILA_Experiment(pl.LightningModule):
             batch_idx
         ):
         bag, bag_label,path = batch
-        prediction, att_raw, att_softmax, bag_feature_stack  = self.model(batch)
-        validation_step_output = self.model.mil_loss_function(prediction,bag_label[0])
-        label_prediction = torch.argmax(prediction, dim=1).item()
-        label_groundtruth = bag_label[0].item()
-        self.current_confusion_matrix[label_groundtruth, label_prediction] += int(1)
-        #self.log_dict({f"train_{train_loss}"}, on_step=True, on_epoch=True)
-        validation_step_output["bag_size"] = len(bag)
-        self.current_data_object.add_patient(
-                label_groundtruth,
-                path[0],
-                att_raw,
-                att_softmax,
-                label_prediction,
-                F.softmax(
-                    prediction,
-                    dim=1),
-                validation_step_output["train_loss"],
-                bag_feature_stack)
+        model_output  = self.model(batch)
+        validation_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
+        #self.log_step(validation_step_output,model_output,batch,"valid1")
         return validation_step_output
     
     def validation_epoch_end(self, outputs):
         total_loss,per_sample_avg_loss = self.sum_loss(outputs)
         corrects,accuracy = self.count_corrects(outputs)
-        train_loss = per_sample_avg_loss
-        self.log_dict({"train_loss":train_loss,"accuracy": accuracy, "confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix),"data_obj":self.current_data_object.return_data()})
-
+        validation_loss = per_sample_avg_loss
+        
         pred_int = torch.tensor([p["prediction_int"] for p in outputs])
         labels = torch.tensor([l["label"] for l in outputs])
         f1 = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, average='weighted', top_k=1)
-
-        plt.figure(figsize = (self.n_c,self.n_c))
-        df_cm = np.zeros((5,5))
-        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
-        plt.close(fig_)
-        self.log({"val_f1_macro": f1})
-        self.on_epoch_end_custom()
+        self.log_dictionary({"epoch_validation_loss":validation_loss,"epoch_validation_accuracy": accuracy,"epoch_val_f1_macro": f1})#"validation_data_obj":self.current_data_object.return_data(),
+        
 
     def test_step(
             self, 
@@ -159,24 +153,10 @@ class SCEMILA_Experiment(pl.LightningModule):
             batch_idx
         ):
         bag, bag_label,path = batch
-        prediction, att_raw, att_softmax, bag_feature_stack  = self.model(batch)
-        test_step_output = self.model.mil_loss_function(prediction,bag_label[0])
-        label_prediction = torch.argmax(prediction, dim=1).item()
-        label_groundtruth = bag_label[0].item()
-        self.current_confusion_matrix[label_groundtruth, label_prediction] += int(1)
-        #self.log_dict({f"train_{train_loss}"}, on_step=True, on_epoch=True)
-        test_step_output["bag_size"] = len(bag)
-        self.current_data_object.add_patient(
-                label_groundtruth,
-                path[0],
-                att_raw,
-                att_softmax,
-                label_prediction,
-                F.softmax(
-                    prediction,
-                    dim=1),
-                test_step_output["train_loss"],
-                bag_feature_stack)
+        model_output  = self.model(batch)
+        test_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
+        #self.log_step(test_step_output,model_output,batch,"test1")
+        self.current_confusion_matrix[ test_step_output["label"].cpu(), test_step_output["prediction_int"]] += int(1)
         return test_step_output
     
     def test_epoch_end(
@@ -186,7 +166,6 @@ class SCEMILA_Experiment(pl.LightningModule):
         pred_int = torch.tensor([p["prediction_int"] for p in outputs])
         labels = torch.tensor([l["label"] for l in outputs])
         predictions = torch.cat([p["prediction"] for p in outputs])
-        #lebels_oh = torch.cat([l["labels_oh"] for l in outputs])
 
         recall = calculate_recall(pred_int, labels, num_classes=self.n_c)
         precision = calculate_precision(pred_int, labels, num_classes=self.n_c)
@@ -201,25 +180,26 @@ class SCEMILA_Experiment(pl.LightningModule):
         auroc = tf.auroc(predictions.cpu(), labels.cpu(), task='multiclass', num_classes=self.n_c)
         prroc = tf.average_precision(predictions.cpu(), labels.cpu(), task="multiclass", num_classes=self.n_c)
 
-        self.log({"Accuracy": acc,"F1_macro_weighted": f1,"AUROC": auroc,"Prroc": prroc,"Recall": recall,"Precision": precision})
-        df_cm = pd.DataFrame(confmat.numpy(), index = range(self.n_c), columns=range(self.n_c))
-        plt.figure(figsize = (self.n_c,self.n_c))
-        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
-        plt.close(fig_)
-
-        self.log("Confusion matrix", plt)
-
+        # self.log("Accuracy", acc)
+        # self.log("F1_macro_weighted", f1)
+        # self.log("AUROC", auroc)
+        # self.log("Prroc", prroc)
+        # self.log("Recall", recall)
+        # self.log("Precision", precision)
         result_dict = {
-            "Accuracy": acc,
-            "F1_macro_weighted": f1,
-            "AUROC": auroc,
-            "Prroc": prroc,
-            "Recall": recall,
-            "Precision": precision,
+            "Test_Accuracy": acc.cpu(),
+            "Test_F1_macro_weighted": f1.cpu(),
+            "Test_AUROC": auroc.cpu(),
+            "Test_Prroc": prroc.cpu(),
+            "Test_Recall": recall,
+            "Test_Precision": precision,
+            
             # "Sensitivity": sensitivity,
             }
+        self.log_dictionary(result_dict)
+        
+        wandb.log({"Test_confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix)})
         self.on_epoch_end_custom()
-
         return result_dict
 
     def predict_step(
@@ -240,6 +220,10 @@ class SCEMILA_Experiment(pl.LightningModule):
         )
         optimizer = optimizer_class(self.model)
         return optimizer
+    
+    def append_phase_to_dict(self,dict,phase):
+        return {phase + '_' + key: value for key, value in dict.items()}
+
     
 
 

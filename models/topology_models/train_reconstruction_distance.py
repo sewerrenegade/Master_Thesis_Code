@@ -1,9 +1,10 @@
 import torch
+import torch.utils.data
 import torch.nn as nn
 import os
 import torchvision as tv
 import torchvision.transforms as transforms
-from models.topology_models.distances.live_image_space_distances import ReconstructionProjectionModel
+from models.topology_models.distances.custom_space_distances import ReconstructionProjectionModel
 import matplotlib.pyplot as plt
 import numpy as np
 from datasets.MNIST.MNIST_base import baseDataset
@@ -15,16 +16,16 @@ mp.set_start_method('spawn')
 
 
 
-def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth'):
-    num_epochs = 200
+def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth',device = "cuda"):
+    num_epochs = 150
     batch_size = 64
     transform =transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])
-    device = torch.device("cuda")
-    model_path = 'models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth'
+    device = torch.device(device)
+   
     if not os.path.exists(model_path):
         # trainset = tv.datasets.MNIST(root='./data',  train=True, download=True, transform=transform)
        
-        train_set = baseDataset(True,transforms=transform)
+        train_set = baseDataset(True)
         dataloader = torch.utils.data.DataLoader(train_set.data, batch_size=batch_size, shuffle=True)
         model = ReconstructionProjectionModel().to(device)
         distance_l2 = nn.MSELoss()
@@ -43,7 +44,7 @@ def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstru
         torch.save(model.state_dict(), model_path)
 
     else:
-        train_set = baseDataset(False,transforms=transform)
+        train_set = baseDataset(False)
         dataloader = torch.utils.data.DataLoader(train_set.data, batch_size=batch_size, shuffle=True)
 
         # Define the model architecture

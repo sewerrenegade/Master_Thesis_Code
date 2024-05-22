@@ -28,19 +28,17 @@ class baseSCEMILAdataset(Dataset):
         self.prefix = prefix
         # grab data split for corresponding folds
         self.data = data
-        self.paths, self.labels = data
-        assert len(self.paths) == len(self.labels)
         self.features_loaded = {}
         
     def __len__(self):
         '''returns amount of images contained in object'''
-        return len(self.paths)
+        return len(self.data)
 
     def __getitem__(self, idx):
         '''returns specific item from this dataset'''
 
         # grab images, patient id and label
-        path = self.paths[idx]
+        path = self.data[idx][0]
         added_folder = "processed"
         # only load if object has not yet been loaded
         if (path not in self.features_loaded):
@@ -53,7 +51,7 @@ class baseSCEMILAdataset(Dataset):
         else:
             bag = self.features_loaded[path].copy()
 
-        label = self.labels[idx]
+        label = self.data[idx][1]
         pat_id = path
 
         # shuffle features by image order in bag, if desired

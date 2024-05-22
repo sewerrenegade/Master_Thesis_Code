@@ -75,7 +75,7 @@ class SCEMILA(pl.LightningDataModule):
 
             label =  INDEXER.get_class_int(key)
             labels.extend([label] * len(val))
-        return paths,labels
+        return list(zip(paths,labels))
         
 
     def train_dataloader(self):

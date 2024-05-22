@@ -12,12 +12,12 @@ from torchvision import transforms
 
 class baseDataset(Dataset):
 
-    def __init__(self,training, root_dir = "data/", transform=None,dataset_size = None):
+    def __init__(self,training, root_dir = "data/", transform=None,dataset_size = None,gpu = True):
         self.root_dir = root_dir
         self.name = "MNIST"
         self.training = training
         self.dataset_size = dataset_size
-        self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir)
+        self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir,gpu)
         if transform == None:
             self.transform =transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])
         else:
@@ -53,13 +53,13 @@ class baseDataset(Dataset):
             return self.transform(image_data), image_label
 #ToDo update the script to be MNIST or dataset agnostic
 
-class baseDatasetMIL(Dataset):
+class baseMILDataset(Dataset):
 
-    def __init__(self,training, data_synth, root_dir = "data/", transforms=None):
+    def __init__(self,training, data_synth, root_dir = "data/", transforms=None,gpu = True):
         self.root_dir = root_dir
         self.name = "MNIST"
         self.training = training        
-        self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir)
+        self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir,gpu)
         self.synth = data_synth
         
         if training:
@@ -104,25 +104,45 @@ class ToGPUTrans:
 
 
 #ToDo update the script to be MNIST or dataset agnostic
+#add version on GPU and CPU
 class MNIST_Dataset_Referencer:
     Train_Data = None
     Test_Data = None
+    GPU_Train_Data = None
+    GPU_Test_Data = None
     INDEXER = MNIST_Indexer()
-    transfrom =  transforms.Compose([ToTensor(),])#ToGPUTrans()
+    transfrom =  transforms.Compose([ToTensor()])
+    gpu_transfrom =  transforms.Compose([ToTensor(),ToGPUTrans()])
 
-    def get_or_load_datasets(training,root_dir):
-        if training:
-            if MNIST_Dataset_Referencer.Train_Data:
-                return MNIST_Dataset_Referencer.Train_Data
+    def get_or_load_datasets(training,root_dir,gpu = True):
+        if not gpu:
+            if training:
+                if MNIST_Dataset_Referencer.Train_Data:
+                    return MNIST_Dataset_Referencer.Train_Data
+                else:
+                    MNIST_Dataset_Referencer.Train_Data=MNIST(root_dir, train=True, download=False,transform= MNIST_Dataset_Referencer.transfrom)
+                    return MNIST_Dataset_Referencer.Train_Data
             else:
-                MNIST_Dataset_Referencer.Train_Data=MNIST(root_dir, train=True, download=False,transform= MNIST_Dataset_Referencer.transfrom)
-                return MNIST_Dataset_Referencer.Train_Data
+                if MNIST_Dataset_Referencer.Test_Data:
+                    return MNIST_Dataset_Referencer.Test_Data
+                else:
+                    MNIST_Dataset_Referencer.Test_Data =MNIST(root_dir, train=False, download=False,transform=  MNIST_Dataset_Referencer.transfrom)
+                    return MNIST_Dataset_Referencer.Test_Data
         else:
-            if MNIST_Dataset_Referencer.Test_Data:
-                return MNIST_Dataset_Referencer.Test_Data
+            if training:
+                if MNIST_Dataset_Referencer.GPU_Train_Data:
+                    return MNIST_Dataset_Referencer.GPU_Train_Data
+                else:
+                    MNIST_Dataset_Referencer.GPU_Train_Data=MNIST(root_dir, train=True, download=False,transform= MNIST_Dataset_Referencer.gpu_transfrom)
+                    return MNIST_Dataset_Referencer.GPU_Train_Data
             else:
-                MNIST_Dataset_Referencer.Test_Data =MNIST(root_dir, train=False, download=False,transform=  MNIST_Dataset_Referencer.transfrom)
-                return MNIST_Dataset_Referencer.Test_Data
+                if MNIST_Dataset_Referencer.GPU_Test_Data:
+                    return MNIST_Dataset_Referencer.GPU_Test_Data
+                else:
+                    MNIST_Dataset_Referencer.GPU_Test_Data =MNIST(root_dir, train=False, download=False,transform=  MNIST_Dataset_Referencer.gpu_transfrom)
+                    return MNIST_Dataset_Referencer.GPU_Test_Data
+            
+
             
 
 

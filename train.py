@@ -48,7 +48,7 @@ def main(cfg: DictConfig) -> None:
         #     name=cfg["logging_params"]["name"],
         # )
         # tb_logger.log_hyperparams(params=cfg)
-        wnb_logger = WandbLogger(log_model="all",save_dir=cfg["logging_params"]["save_dir"]+f"split{split_index}/",name = cfg["logging_params"]["name"],project='my-first-sweep')
+        wnb_logger = WandbLogger(log_model=False,save_dir=cfg["logging_params"]["save_dir"]+f"split{split_index}/",name = cfg["logging_params"]["name"],project='my-first-sweep')
         wnb_logger.log_hyperparams(params=cfg)#this addes all my hyperparameters to be tracked by wandb
         early_stopping = EarlyStopping(
         monitor=cfg["ES_params"]["monitor"],

@@ -21,14 +21,13 @@ from models.model_factory import get_module
 
 terminal_logger = logging.getLogger(__name__)
 
-test_result = None
 def set_training_env_settings(consistent = True):
     cudnn.deterministic = consistent
     cudnn.benchmark = not consistent
     os.environ["HYDRA_FULL_ERROR"] = "1"
 
 def initialize_logger(config,split_num = -1):
-    wnb_logger = WandbLogger(log_model="all",save_dir=config["logging_params"]["save_dir"]+f"split{split_num}/",name = config["logging_params"]["name"],project=config["logging_params"]["project_name"])
+    wnb_logger = WandbLogger(log_model=False,save_dir=config["logging_params"]["save_dir"]+f"split{split_num}/",name = config["logging_params"]["name"],project=config["logging_params"]["project_name"])
     wnb_logger.log_hyperparams(params=config)#this addes all my hyperparameters to be tracked by wandb gs
     return wnb_logger
 
@@ -83,16 +82,15 @@ def main(cfg: DictConfig) -> None:
         terminal_logger.info(f"======= Training {config['model_params']['name']} =======")
         
         runner.fit(experiment, data)
-        try:
-            result = runner.test(experiment, data, ckpt_path="best")
-            assert len(result) == 0
-            results.append(result[0])
-        except Exception as e:
-            print(e)
+        
+        result =runner.test(experiment, data, ckpt_path="best")[0]
+        results.append(result)
+
 
         #debug log smthn
         #terminal_logger.info(f"{wnb_logger.save_dir}") 
-    return results #returns the results of every split permutation
+    global output_results
+    output_results= results #returns the results of every split permutation
 
 def set_config_file_environment_variable(folder_path,file_name):
         sys.argv[2] = folder_path
@@ -107,9 +105,9 @@ def initialize_config_env():
 
 def setup_and_start_training(number_of_runs = 1):
     configs = [
-        ["configs/test/","topo_test_cubical.yaml"],
+        #["configs/test/","topo_test_cubical.yaml"],
         #["configs/test/","test.yaml"],
-        #["configs/test/","SCEMILA_test.yaml"],
+        ["configs/test/","SCEMILA_test.yaml"],
         ]
     
 
@@ -120,9 +118,8 @@ def setup_and_start_training(number_of_runs = 1):
         print(f"Running the configuration {configs[test_index][0]}{configs[test_index][1]}")
         for run in range(number_of_runs):
             print(f"Starting run #{run+1}")
-            test_result=[]
             main()
-            all_metrics.extend(test_result)
+            all_metrics.extend(output_results)
 
         mean_metrics = {
             metric: torch.mean(torch.tensor([m[metric] for m in all_metrics]))
@@ -156,7 +153,7 @@ def setup_and_start_training(number_of_runs = 1):
 
      
 if __name__ == "__main__":
-    setup_and_start_training()
+    setup_and_start_training(1)
     
 
 

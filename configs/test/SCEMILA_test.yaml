@@ -14,28 +14,28 @@ dataset:
 exp_type: "SCEMILA_experiment"
 
 exp_params:
-  dataset: MNIST
+  dataset: SCEMILA
   num_class: 5
   optimizer: 
     name: "SGD"
     config:
-      LR: 0.00005
+      LR: 0.005
       momentum: 0.9
       nestrov: True
     batch_size: 1
 
 trainer_params:
   gpus: [0]
-  max_epochs: 15
+  max_epochs: 4
   accumulate_grad_batches : 5
 
 logging_params:
-  project_name: "my-first-sweep"
-  save_dir: "logs/Binary/low_diversity/MNIST2010/mil_att/"
-  name: "mil_att"
+  project_name: "SCEMILA_TEST"
+  save_dir: "logs/SCEMILA/"
+  name: "scemila_test"
   manual_seed: 1265
 
 ES_params:
   monitor: "val_loss"
   min_delta: 0.1
-  patience: 10
+  patience: 2
