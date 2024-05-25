@@ -21,6 +21,7 @@ class GlobalConfig:
 
 
     RESULTS_FOLDER_PATH = "results/"
-    INTER_CLASS_DIST = "MNIST_interinstance_distances/"
+    MNIST_INTER_CLASS_DIST = "MNIST_interinstance_distances/"
+    EMBEDDING_RESULTS = "embedding_results"
     NAME_OF_LABELED_EMBEDDED_FEATURES = "labeled_embedded_features"
     NAME_OF_STATS_OF_EMBEDDED_FEATURES = "stats_of_embedded_features"

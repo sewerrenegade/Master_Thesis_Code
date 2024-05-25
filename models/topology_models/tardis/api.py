@@ -9,8 +9,8 @@ import joblib
 
 import numpy as np
 
-from tardis.euclidicity import Euclidicity
-from tardis.utils import estimate_scales
+from models.topology_models.tardis.euclidicity import Euclidicity
+from models.topology_models.tardis.utils import estimate_scales
 
 
 def calculate_euclidicity(

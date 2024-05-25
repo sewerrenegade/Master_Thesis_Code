@@ -14,13 +14,13 @@ import os
 import numpy as np
 import pandas as pd
 
-from tardis.euclidicity import Euclidicity
+from models.topology_models.tardis.euclidicity import Euclidicity
 
-from tardis.shapes import sample_from_annulus
-from tardis.shapes import sample_from_constant_curvature_annulus
+from models.topology_models.tardis.shapes import sample_from_annulus
+from models.topology_models.tardis.shapes import sample_from_constant_curvature_annulus
 
-from tardis.utils import load_data
-from tardis.utils import estimate_scales
+from models.topology_models.tardis.utils import load_data
+from models.topology_models.tardis.utils import estimate_scales
 
 
 def setup():

@@ -11,7 +11,7 @@ from sklearn.manifold import Isomap,TSNE
 
 
 DOWN_PROJECTION_DIM = 32
-SWEEP_PORJECTION_DIM = [2,3,8,16,32,64]
+SWEEP_PORJECTION_DIM = [1,2,3,8,16,32,64]
 MNIST_BASE_DS = baseDataset(True,dataset_size= 1000,gpu=False)
 descriptors = []
 for dim in SWEEP_PORJECTION_DIM:

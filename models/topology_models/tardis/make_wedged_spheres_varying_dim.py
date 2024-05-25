@@ -9,7 +9,7 @@ import sys
 
 import numpy as np
 
-from tardis.shapes import sample_from_wedged_sphere_varying_dim
+from models.topology_models.tardis.shapes import sample_from_wedged_sphere_varying_dim
 
 
 if __name__ == "__main__":

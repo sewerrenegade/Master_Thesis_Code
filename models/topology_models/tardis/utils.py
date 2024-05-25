@@ -11,7 +11,7 @@ import numpy as np
 
 from sklearn.neighbors import KDTree
 
-from tardis.data import sample_vision_data_set
+from models.topology_models.tardis.data import sample_vision_data_set
 
 
 def load_data(filename, batch_size, n_query_points, seed=None):

@@ -4,8 +4,8 @@ import numpy as np
 
 from sklearn.neighbors import KDTree
 
-from tardis.persistent_homology import GUDHI
-from tardis.persistent_homology import Ripser
+from models.topology_models.tardis.persistent_homology import GUDHI
+from models.topology_models.tardis.persistent_homology import Ripser
 
 
 class Euclidicity:

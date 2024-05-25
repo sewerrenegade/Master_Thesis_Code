@@ -89,6 +89,6 @@ def visualize_array(array):
         #axs[1].axis('off
         distance_index+=1
     
-    save_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.INTER_CLASS_DIST,"interclass_embedded_distances.png")
+    save_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,"interclass_embedded_distances.png")
     plt.savefig(save_path)
 

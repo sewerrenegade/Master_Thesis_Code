@@ -1,19 +1,20 @@
 import numpy as np
 def calculate_linear_affinity(distance_matrix):
-    dim = distance_matrix.shape[0]
+    nb_classes = distance_matrix.shape[0]
+    nb_off_diagonal_to_diag_ratio = nb_classes - 1
     assert distance_matrix.shape[0] == distance_matrix.shape[1]
-    tst_mat = np.eye(dim) * - 4.5 + (np.ones((dim,dim)) - np.eye(dim))
+    tst_mat = - np.eye(nb_classes)  + (np.ones((nb_classes,nb_classes)) - np.eye(nb_classes))/nb_off_diagonal_to_diag_ratio
     soft_max = calculate_softmax(distance_matrix)
-    return np.sum(tst_mat * soft_max)
+    return np.sum(tst_mat * soft_max) + nb_classes
 
 def calculate_crossentropy(distance_matrix):
     soft_max = calculate_softmax(distance_matrix)
-    cross_entropy = np.log(np.prod(np.diag(soft_max)))
+    cross_entropy = -np.log(np.prod(np.diag(soft_max)))
     return cross_entropy
 
 def calculate_variational_ratio(distance_matrix):
     soft_max = calculate_softmax(distance_matrix)
-    variational_ratio = np.sum(np.diag(soft_max))/distance_matrix.shape[0]
+    variational_ratio = np.sum(1-np.diag(soft_max))/distance_matrix.shape[0]
     return variational_ratio
 
 
