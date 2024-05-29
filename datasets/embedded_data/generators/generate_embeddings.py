@@ -4,9 +4,10 @@ sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from configs.global_config import GlobalConfig
 import umap
 import numpy as np
-from datasets.MNIST.MNIST_base import baseDataset
+from datasets.MNIST.MNIST_base import baseDataset as MNIST_baseDataset
 from typing import Callable,Union
 from torch.utils.data import Dataset
+import torch
 from dataclasses import dataclass
 import time
 import random
@@ -21,6 +22,7 @@ class EmbeddingDescriptor:
 
 def save_embeddings(embeddings,labels, stats,base_path):
     assert len(embeddings) == len(labels)
+    os.makedirs(base_path, exist_ok=True)
     x = list(zip(embeddings,np.array(labels)))
     random.shuffle(x)
     to_serialise = np.array(x)
@@ -35,7 +37,11 @@ def generate_embeddings_for_dataset(base_database,transform, name= "tmp_tst"):
     all_data = []
     labels = []
     for data in base_database:
-        all_data.append(data[0].numpy().flatten())
+        tmp_data = data[0]
+        if isinstance(tmp_data, torch.Tensor):
+            tmp_data = tmp_data.numpy()
+        tmp_data = tmp_data.flatten()
+        all_data.append(tmp_data.flatten())
         labels.append(data[1])
     embeddings = transform(np.array(all_data))
     stats_dic = get_stats_from_embedding(embeddings)
@@ -62,8 +68,8 @@ def generate_embedding_from_descriptor(decriptor : EmbeddingDescriptor):
 if __name__ == '__main__':
     #UMAP EXAMPLE
     down_projection_factor = 25
-    dataset = baseDataset(True)
+    dataset = MNIST_baseDataset(True)
     data_dim = np.prod(np.array(dataset[0][0].shape))
     down_proj_dim = int(data_dim/down_projection_factor)
     print(f"downprojecting from {data_dim} to {down_proj_dim} dimensions")
-    embeddings = generate_embeddings_for_dataset(baseDataset(True),umap.UMAP(n_components=down_proj_dim).fit_transform,name = f"PCA_{down_proj_dim}")
+    embeddings = generate_embeddings_for_dataset(dataset,umap.UMAP(n_components=down_proj_dim).fit_transform,name = f"PCA_{down_proj_dim}")

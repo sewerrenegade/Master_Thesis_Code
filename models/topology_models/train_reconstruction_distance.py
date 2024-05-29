@@ -1,7 +1,9 @@
+import sys
+import os
+sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import torch
 import torch.utils.data
 import torch.nn as nn
-import os
 import torchvision as tv
 import torchvision.transforms as transforms
 from models.topology_models.distances.custom_space_distances import ReconstructionProjectionModel
@@ -9,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datasets.MNIST.MNIST_base import baseDataset
 import torch.multiprocessing as mp
+from datasets.embedded_data.generators.generate_embeddings import save_embeddings
 
 mp.set_start_method('spawn')
 
@@ -16,7 +19,7 @@ mp.set_start_method('spawn')
 
 
 
-def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth',device = "cuda"):
+def train_or_show_rec_autoencoder(embeddings_save_path = None,model_path = 'models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth',device = "cuda"):
     num_epochs = 150
     batch_size = 64
     transform =transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])
@@ -45,7 +48,7 @@ def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstru
 
     else:
         train_set = baseDataset(False)
-        dataloader = torch.utils.data.DataLoader(train_set.data, batch_size=batch_size, shuffle=True)
+        dataloader = torch.utils.data.DataLoader(train_set.data, batch_size=1, shuffle=True)
 
         # Define the model architecture
         model = ReconstructionProjectionModel().to(device)
@@ -55,6 +58,16 @@ def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstru
 
         # Set the model to evaluation mode
         model.eval()
+        labels = []
+        latent_code = []
+        if embeddings_save_path is not None:
+            for data in dataloader:
+                img, label = data
+                latent_code.append(model.get_latent_code_for_input(img).detach().cpu().numpy().reshape(-1))
+                labels.append(label.detach().cpu().numpy())
+            save_embeddings(np.array(latent_code),labels,{},embeddings_save_path)
+        
+
 
         # Use the model for inference
         for data in dataloader:
@@ -76,3 +89,6 @@ def train_or_show_rec_autoencoder(model_path = 'models/topology_models/reconstru
 
             # Show the plot
             plt.show()
+
+if __name__ == '__main__':
+    train_or_show_rec_autoencoder(embeddings_save_path = "data/MNIST/embeddings/reconstruction_autoencoder_v1/",model_path="models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model.pth")

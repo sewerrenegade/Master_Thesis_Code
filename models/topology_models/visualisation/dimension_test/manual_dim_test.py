@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
+from datasets.embedded_data.generators.generation_script import SWEEP_PORJECTION_DIM
 
 from models.topology_models.visualisation.distance_performance_test import load_n_samples_from_EMNIST,test_embedding
 
@@ -41,7 +42,7 @@ def save_method_metrics_wrt_downprojection_dim_onsame_fig(metrics,down_dim,order
             axs[i].plot(down_dim, y_values, marker='o', linestyle='-', label=order_of_embeddings[method_index])
             axs[i].set_title(key, fontsize=16)
             axs[i].set_xlabel('Dimension')
-            axs[i].set_ylabel('Metric')
+            axs[i].set_ylabel(f"{key} Metric")
             axs[i].legend()
 
     fig.suptitle(f"Metrics Plots for all embedding Methods", fontsize=20)
@@ -51,8 +52,8 @@ def save_method_metrics_wrt_downprojection_dim_onsame_fig(metrics,down_dim,order
 
 
 if __name__ == '__main__':
-    down_dim = [1,2,3,8,16,32,64]
-    order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP","PHATE"]
+    down_dim = SWEEP_PORJECTION_DIM
+    order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP"]
     joint_metrics= []
     for method in order_of_embeddings:
         metrics = []

@@ -55,10 +55,12 @@ def calculate_euclidicity(
     )
 
     def _process(x, scale=None):
+        print("1 up")
         scores, dimensions = euclidicity(X, x, **scale)
 
         score = np.mean(np.nan_to_num(scores))
         dimension = np.mean(dimensions)
+        print("1 down")
 
         return score, dimension
 
