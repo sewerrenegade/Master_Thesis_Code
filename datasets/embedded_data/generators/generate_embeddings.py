@@ -25,14 +25,14 @@ def save_embeddings(embeddings,labels, stats,base_path):
     os.makedirs(base_path, exist_ok=True)
     x = list(zip(embeddings,np.array(labels)))
     random.shuffle(x)
-    to_serialise = np.array(x)
+    to_serialise = np.array(x,dtype=object)
     save_path = f"{base_path}{GlobalConfig.NAME_OF_LABELED_EMBEDDED_FEATURES}.npy"
     np.save(save_path,to_serialise)
     stats_path = f"{base_path}{GlobalConfig.NAME_OF_STATS_OF_EMBEDDED_FEATURES}.npz"
     np.savez(stats_path, **stats)
 
 
-def generate_embeddings_for_dataset(base_database,transform, name= "tmp_tst"):
+def generate_embeddings_for_dataset(name, base_database,transform):
     start_time = time.time()
     all_data = []
     labels = []
@@ -40,11 +40,11 @@ def generate_embeddings_for_dataset(base_database,transform, name= "tmp_tst"):
         tmp_data = data[0]
         if isinstance(tmp_data, torch.Tensor):
             tmp_data = tmp_data.numpy()
-        tmp_data = tmp_data.flatten()
         all_data.append(tmp_data.flatten())
         labels.append(data[1])
-    embeddings = transform(np.array(all_data))
-    stats_dic = get_stats_from_embedding(embeddings)
+    x = np.array(all_data)
+    embeddings = transform(x)
+    stats_dic = get_stats_from_embedding(name,embeddings,base_database.name)
     folder_path = f"data/{base_database.name}/embeddings/{name}/"
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -54,15 +54,17 @@ def generate_embeddings_for_dataset(base_database,transform, name= "tmp_tst"):
     return folder_path
 
 
-def get_stats_from_embedding(embeddings):#gets stats on each feature
+def get_stats_from_embedding(name,embeddings,generating_data_name):#gets stats on each feature
     return {"min_values" : np.min(embeddings, axis=0),
     "max_values" : np.max(embeddings, axis=0),
     "mean_values" : np.mean(embeddings, axis=0),
-    "std_values" : np.std(embeddings, axis=0)}
+    "std_values" : np.std(embeddings, axis=0),
+    "name": name,
+    "generating_data": generating_data_name}
 
 
 def generate_embedding_from_descriptor(decriptor : EmbeddingDescriptor):
-    return generate_embeddings_for_dataset(decriptor.dataset,decriptor.downprojection_function, name = decriptor.name)
+    return generate_embeddings_for_dataset(decriptor.name,decriptor.dataset,decriptor.downprojection_function)
 
 
 if __name__ == '__main__':

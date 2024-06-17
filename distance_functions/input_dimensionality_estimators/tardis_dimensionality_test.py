@@ -10,8 +10,8 @@ from models.topology_models.tardis.api import calculate_euclidicity
 
 def calculate_class_dim_and_eucl(data,sub_set,max_dim):
     euclidicity,dimesionality = calculate_euclidicity(
-        data, sub_set[0],max_dim= max_dim,return_dimensions=True,k=80,n_jobs=8
-    )
+        data, sub_set[0],max_dim= max_dim,return_dimensions=True,k=110,n_jobs=12
+    )# i have 20 threads
     return euclidicity,dimesionality
     
 def load_n_samples_and_m_subsamples_from_MNIST(per_class_n_samples,per_class_subsamples):
@@ -52,13 +52,14 @@ def produce_box_plot(data_dict, title, path):
     ax.set_ylabel('Values', fontsize=14)
     plt.tight_layout()
     plt.savefig(path)
+    plt.close(fig)
 
 
 def test():
     samples,subsamples = load_n_samples_and_m_subsamples_from_MNIST(100,10)
     eucl,dim = calculate_class_dim_and_eucl(samples,subsamples,10)
     eucl,dim = create_dictionary_from_output(eucl,dim,subsamples[1])
-    produce_box_plot(dim,"TARDIS computed dimensionality","results/MNIST_interinstance_distances/dimensionality_results/TARDIS_100sample_100k_dimensionality_boxplot.png")
-    produce_box_plot(eucl,"TARDIS computed euclidicity","results/MNIST_interinstance_distances/dimensionality_results/TARDIS_100sample_100k_euclidicity_boxplot.png")
+    produce_box_plot(dim,"TARDIS computed dimensionality","results/MNIST_interinstance_distances/dimensionality_results/TARDIS_100sample_110k_dimensionality_boxplot.png")
+    produce_box_plot(eucl,"TARDIS computed euclidicity","results/MNIST_interinstance_distances/dimensionality_results/TARDIS_100sample_110k_euclidicity_boxplot.png")
 if __name__ == '__main__':
     test()

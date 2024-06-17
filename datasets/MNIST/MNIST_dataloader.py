@@ -1,6 +1,6 @@
 import typing
 import pytorch_lightning as pl
-from datasets.MNIST.MNIST_base import baseMILDataset
+from datasets.MNIST.MNIST_base import MNIST_MIL_base
 import torchvision.transforms as transforms
 import os
 from sklearn.model_selection import KFold
@@ -42,14 +42,14 @@ class MNIST(pl.LightningDataModule):
             
 
     def create_train_dataset(self):
-        train_dataset = baseMILDataset(data_synth=self.synth_params, root_dir=self.data_dir, transforms=self.transfroms,training= True)
+        train_dataset = MNIST_MIL_base(data_synth=self.synth_params, root_dir=self.data_dir, transforms=self.transfroms,training= True)
         train_dataset_size = len(train_dataset)
         val_size = int(self.val_split * train_dataset_size)
         train_size = train_dataset_size - val_size
         self.train_dataset, self.val_dataset = random_split(train_dataset, [train_size, val_size])
 
     def create_test_dataset(self):
-        self.test_dataset = baseMILDataset(data_synth=self.synth_params,root_dir=self.data_dir, transforms=self.transfroms,training= False)
+        self.test_dataset = MNIST_MIL_base(data_synth=self.synth_params,root_dir=self.data_dir, transforms=self.transfroms,training= False)
 
 
     def train_dataloader(self):

@@ -8,7 +8,10 @@ from torchmetrics import Accuracy
 from models.salome_models.scheduler import  ConstantScheduler
 from models.topology_models.topo_tools.topology import PersistentHomologyCalculation
 from models.salome_models.mil import CV_MIL,MILOutput
-from models.topology_models.distances.custom_space_distances import PerceptualLoss, RandomProjectionModel,ReconstructionProjectionModel, CubicalComplexImageEncoder
+from distance_functions.functions.perceptual_lpsis_distance import PerceptualLoss
+from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
+from distance_functions.functions.random_convolutions_distance import RandomProjectionModel
+from distance_functions.functions.reconstruction_functions.classic_ae_distance.ae_reconstruction_distance import ReconstructionProjectionModel
 from models.topology_models.topo_tools import SignatureLoss, VietorisRipsComplex, WassersteinDistance
 
 

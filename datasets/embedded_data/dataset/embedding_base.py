@@ -1,39 +1,49 @@
 from torch.utils.data import Dataset, random_split, Subset
 import os
 import numpy as np
+import random
+from datasets.base_dataset_abstraction import baseDataset
 from configs.global_config import GlobalConfig
+from collections.abc import Iterable
 
 
-
-class baseDataset(Dataset):
+class EmbeddingBaseDataset(baseDataset):
     def __init__(self, root_dir,training = True,dataset_size = None):
         self.root_dir = root_dir
-        self.name = "EMBEDDING"
         self.training = training
         self.dataset_size = dataset_size
         self.data,self.stats = self.load_file_data()
+        self.name = str(self.stats["name"])
+        self.data_origin =  str(self.stats["generating_data"])
         self.classes = []
         self.class_indicies = self.get_class_indicies(self.data)
         self.indicies_list = self.build_smaller_dataset()
     
+    def get_n_random_instances_from_class(self, class_name, number_of_instances):
+        indicies = self.class_indicies[class_name]
+        random_indicies = random.sample(indicies,number_of_instances)
+        return self[random_indicies]
+
+    
     def get_class_indicies(self,data):
         class_indicies  = {}
         for data_index in range(len(data)):
-            x=int(data[data_index][1])
+            x = int(data[data_index][1])
             try:
                 class_indicies[x].append(data_index)
             except Exception as e:
                 class_indicies[x] = [data_index]
                 self.classes.append(x)
-
         return class_indicies
     
     def build_smaller_dataset(self):
         if self.dataset_size:
             class_size = int(self.dataset_size/len(self.classes))
             indicies = []
-            for mnist_class in self.classes:
-                indicies.extend(self.class_indicies[mnist_class][:class_size])
+            for class_name in self.classes:
+                indicies = self.class_indicies[class_name][:class_size]
+                indicies.extend(indicies)
+                self.class_indicies[class_name] = indicies
             return indicies
 
     def load_file_data(self):
@@ -48,10 +58,14 @@ class baseDataset(Dataset):
             return len(self.data)
 
     def __getitem__(self, index):
+        if not isinstance(index,Iterable):
+            index = [index]
         if self.dataset_size:
-            image_data,image_label = self.data[self.indicies_list[index]]
-            return image_data, image_label
+            x = self.data[self.indicies_list[index]]
+            embedded_data,image_label = x[:,0],x[:,1]
+            return embedded_data, image_label
         else:
-            data,image_label = self.data[index]
-            return data, image_label
+            x = self.data[index]
+            embedded_data,image_label = x[:,0],x[:,1]
+            return embedded_data, image_label
 

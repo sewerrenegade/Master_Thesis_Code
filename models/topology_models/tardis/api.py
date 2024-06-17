@@ -53,20 +53,23 @@ def calculate_euclidicity(
         method="ripser",
         data=X,
     )
+    def print_progress(job_index):
+        print(f"query # {job_index['completed']} has been computed; total of {job_index['total']} query points")
 
-    def _process(x, scale=None):
-        print("1 up")
+    def _process(x, scale=None,job_index = None):
         scores, dimensions = euclidicity(X, x, **scale)
 
         score = np.mean(np.nan_to_num(scores))
         dimension = np.mean(dimensions)
-        print("1 down")
+        if job_index is not None:
+            print_progress(job_index)
 
         return score, dimension
-
+    
+    job_indexs =[{"completed" :i,"total": len(query_points)} for i in range(len(query_points))]
     output = joblib.Parallel(n_jobs=n_jobs)(
-        joblib.delayed(_process)(x, scale)
-        for x, scale in zip(query_points, scales)
+        joblib.delayed(_process)(x, scale,job_index)
+        for x, scale,job_index in zip(query_points, scales,job_indexs)
     )
 
     euclidicity = np.asarray([e for (e, _) in output])

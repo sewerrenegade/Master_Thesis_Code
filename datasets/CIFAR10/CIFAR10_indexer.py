@@ -1,19 +1,19 @@
-import pytorch_lightning as pl
+import sys
+sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import os
-from sklearn.model_selection import KFold
-
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader
 from datasets.indexer_utils import process_deserialized_json
-from torchvision.datasets import MNIST
+from torchvision.datasets import CIFAR10
 import json
 from collections.abc import Iterable
 import random
 
-class MNIST_Indexer:
-    def __init__(self,MNIST_Path = "data/MNIST/raw/", perform_reindexing = False) -> None:
-        self.path = MNIST_Path
-        self.dict_path = f"{MNIST_Path}/metadata.json"
+class CIFAR10_Indexer:
+    def __init__(self,CIFAR10_Path = "data/cifar-10-batches-py", perform_reindexing = False) -> None:
+        self.path = CIFAR10_Path
+        self.class_names = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+        self.dict_path = f"{CIFAR10_Path}/metadata.json"
         if perform_reindexing or not self.does_if_meta_file_exists():
             self.create_meta_file()
         with open(self.dict_path, 'r') as json_file:
@@ -37,7 +37,7 @@ class MNIST_Indexer:
         instances = []
         for target_class in target_class_s:
             x1 = random.randint(0, class_count[target_class] - 1)
-            x2 =target_class
+            x2 = target_class
             instances.append(indicies[x2][x1])
         return instances
 
@@ -57,8 +57,8 @@ class MNIST_Indexer:
         return os.path.exists(self.dict_path)
     
     def create_meta_file(self):
-        train_data = MNIST("data/", train=True, download=False)
-        test_data= MNIST("data/", train=False, download=False)
+        train_data = CIFAR10("data/", train=True, download=True)
+        test_data= CIFAR10("data/", train=False, download=True)
         train_data_indicies = self.get_indices(train_data)
         test_data_indicies = self.get_indices(test_data)
         classes = self.get_classes(train_data_indicies)
@@ -80,6 +80,6 @@ class MNIST_Indexer:
         return class_indices
 
 if __name__ == "__main__":
-    print(list(MNIST_Indexer().classes)[2])
+    print(list(CIFAR10_Indexer().classes)[2])
 
 

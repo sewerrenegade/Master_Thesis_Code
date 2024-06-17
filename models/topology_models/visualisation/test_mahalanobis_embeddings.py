@@ -1,6 +1,6 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
-from datasets.embedded_data.dataset.embedding_base import baseDataset as EMNIST
+from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 from models.topology_models.mahalanobis import MahalanobisDistanceCalculator
 import numpy as np
 import random
@@ -92,3 +92,4 @@ def visualize_array(array):
     
     save_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,"interclass_mahalanobis_distance.png")
     plt.savefig(save_path)
+    plt.close(fig)

@@ -1,7 +1,10 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
-from datasets.embedded_data.dataset.embedding_base import baseDataset as EMNIST
-from models.topology_models.distances.custom_space_distances import PerceptualLoss,CubicalComplexImageEncoder,ReconstructionProjectionModel,RandomProjectionModel
+from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
+from distance_functions.functions.perceptual_lpsis_distance import PerceptualLoss
+from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
+from distance_functions.functions.random_convolutions_distance import RandomProjectionModel
+from distance_functions.functions.reconstruction_functions.classic_ae_distance.ae_reconstruction_distance import ReconstructionProjectionModel
 import torch
 import numpy as np
 import random
@@ -119,3 +122,4 @@ def visualize_array(array):
     
     save_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,"interclass_distance.png")
     plt.savefig(save_path)
+    plt.close(fig)

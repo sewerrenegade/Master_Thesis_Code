@@ -1,6 +1,6 @@
 import typing
 import pytorch_lightning as pl
-from datasets.SCEMILA.base_SCEMILA import baseSCEMILAdataset,INDEXER
+from datasets.SCEMILA.base_SCEMILA import SCEMILAfeature_MIL_base,INDEXER
 import torchvision.transforms as transforms
 import os
 from sklearn.model_selection import KFold
@@ -46,7 +46,7 @@ class SCEMILA(pl.LightningDataModule):
             
 
     def create_train_dataset(self):
-        train_dataset = baseSCEMILAdataset(self.train_indicies)
+        train_dataset = SCEMILAfeature_MIL_base(self.train_indicies)
         if self.k_fold == -1:
             train_dataset_size = len(train_dataset)
             val_size = int(self.val_split * train_dataset_size)
@@ -56,7 +56,7 @@ class SCEMILA(pl.LightningDataModule):
             self.full_dataset = train_dataset
 
     def create_test_dataset(self):
-        self.test_dataset = baseSCEMILAdataset(self.test_indicies)
+        self.test_dataset = SCEMILAfeature_MIL_base(self.test_indicies)
     
     
     def process_indicies(self,data,patient_bootstrap_exclude):
@@ -73,7 +73,7 @@ class SCEMILA(pl.LightningDataModule):
 
             paths.extend(val)
 
-            label =  INDEXER.get_class_int(key)
+            label =  INDEXER.convert_from_int_to_label_instance_level(key)
             labels.extend([label] * len(val))
         return list(zip(paths,labels))
         

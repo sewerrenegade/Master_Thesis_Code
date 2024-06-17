@@ -6,7 +6,7 @@ import torch.utils.data
 import torch.nn as nn
 import torchvision as tv
 import torchvision.transforms as transforms
-from models.topology_models.distances.custom_space_distances import ReconstructionProjectionModel
+from distance_functions.functions.reconstruction_functions.classic_ae_distance.ae_reconstruction_distance import ReconstructionProjectionModel
 import matplotlib.pyplot as plt
 import numpy as np
 from datasets.MNIST.MNIST_base import baseDataset

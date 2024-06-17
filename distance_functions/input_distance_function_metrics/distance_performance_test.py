@@ -4,21 +4,17 @@ sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import random
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
-from datasets.embedded_data.dataset.embedding_base import baseDataset as EMNIST
+from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
-from models.topology_models.distances.distance_matrix_metrics import get_score_of_distances,calculate_softmax
+from distance_functions.input_distance_function_metrics.distance_matrix_metrics import get_score_of_distances,calculate_softmax
 import json
-
-
-
     
 def compute_euclidean_distance(x):
     assert len(x)==2
     out_dic =np.linalg.norm(x[0] - x[1])
     return out_dic
-
     
 def compute_distance_between_classes(distance_fn,class1,class2=None):
     if class2 is None:
@@ -33,7 +29,6 @@ def compute_distance_between_classes(distance_fn,class1,class2=None):
     return mean,var
 
 
-
 def save_score(mean,path,notes):
     score_dict = get_score_of_distances(mean)
     score_serialize = json.dumps(score_dict)
@@ -44,8 +39,7 @@ def save_score(mean,path,notes):
     return score_dict
 
 
-
-def calculate_class_distance(data,classes,distance_fn):
+def calculate_interclass_distances(data,classes,distance_fn):
     class_count = len(classes)
     mean_distance_matrix = np.zeros((class_count,class_count))
     var_distance_matrix = np.zeros((class_count,class_count))
@@ -86,36 +80,31 @@ def visualize_array(mean_distance,variance_of_distance_matrix,name, path,metrics
     plt.gcf().text(0.25, 0.85, metrics_text, fontsize=24, verticalalignment='top')
     save_path = os.path.join(path,"interclass_embedded_distances.png")
     plt.savefig(save_path)
+    plt.close(fig)
 
 def get_directory_path(name):
-    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,GlobalConfig.EMBEDDING_RESULTS,name)
+    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.FMNIST_INTER_CLASS_DIST,GlobalConfig.EMBEDDING_RESULTS,name)
     if not os.path.exists(path):
         os.mkdir(path)
     return path
 
-def test_embedding(name,data,classes,distance_fn = compute_euclidean_distance,notes = ""):
-    path = get_directory_path(name)
-    mean,var = calculate_class_distance(data,classes,distance_fn)
+def test_embedding(embedding_name,database,classes,distance_fn = compute_euclidean_distance,notes = ""):
+    path = get_directory_path(embedding_name)
+    mean,var = calculate_interclass_distances(database,classes,distance_fn)
     metrics  = save_score(mean,path,notes)
-    visualize_array(mean,var,name,path, metrics_dict= metrics)
+    visualize_array(mean,var,embedding_name,path, metrics_dict= metrics)
     return metrics
     
 
-def load_n_samples_from_MNIST(n_samples):
-    samples = {}
-    MSNIT_DATASET= MNISTbase(training= True,gpu=False)
-    for class_label in MNIST_Dataset_Referencer.INDEXER.classes:
-        indicies = MNIST_Dataset_Referencer.INDEXER.get_random_instance_of_class([class_label]*n_samples,training=True)
-        instances_of_class = [MSNIT_DATASET[index][0] for index in indicies]
-        samples[class_label] = instances_of_class
-    return  samples
-
 def load_n_samples_from_EMNIST(NUMBER_OF_SAMPLES_PER_CLASS,embedding_name):
     samples = {}
-    embeddings = EMNIST(f"data/MNIST/embeddings/{embedding_name}/")
+    embeddings = EMNIST(f"data/FMNIST/embeddings/{embedding_name}/")
     for class_label in MNIST_Dataset_Referencer.INDEXER.classes:
         indicies = embeddings.class_indicies[class_label][:NUMBER_OF_SAMPLES_PER_CLASS]
-        instances_of_class = [embeddings[index][0] for index in indicies]
+        instances_of_class = []
+        for index in indicies:
+            instances_of_class.append(embeddings[index][0])
+            assert embeddings[index][1] == class_label
         samples[class_label] = instances_of_class
     return  samples
 
@@ -136,20 +125,21 @@ def save_method_metrics_wrt_downprojection_dim(methode_name,metrics,down_dim):
 
     fig.suptitle(f"Metrics Plots for {methode_name}", fontsize=20)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,f"{methode_name}metrics_plots.png")
+    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.FMNIST_INTER_CLASS_DIST,f"{methode_name}metrics_plots.png")
     plt.savefig(path)
+    plt.close(fig)
 
 
 if __name__ == '__main__':
     down_dim = [1,2,3,8,16,32,64]
-    order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP","PHATE"]
+    order_of_embeddings = ["PHATE","ISOMAP","PCA","TSNE","UMAP"]#
     for method in order_of_embeddings:
         metrics = []
         for dim in down_dim:
             name = f"{method}_{dim}"
             print(f"started metrics calculation for {name}")
             classes  = MNIST_Dataset_Referencer.INDEXER.classes
-            data  = load_n_samples_from_EMNIST(NUMBER_OF_SAMPLES_PER_CLASS=100,name =name)
+            data  = load_n_samples_from_EMNIST(NUMBER_OF_SAMPLES_PER_CLASS=100,embedding_name= name)
             metrics.append(test_embedding(name,data, MNIST_Dataset_Referencer.INDEXER.classes,notes = 'second test'))
             print(f"finished generating embeddings for {name} saved in path ")
         save_method_metrics_wrt_downprojection_dim(methode_name=method,metrics= metrics,down_dim=down_dim)

@@ -1,6 +1,6 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
-from datasets.embedded_data.dataset.embedding_base import baseDataset as EMNIST
+from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 import torch
 import numpy as np
 import random
@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
-from models.topology_models.distances.distance_matrix_metrics import get_score_of_distances
+from distance_functions.input_distance_function_metrics.distance_matrix_metrics import get_score_of_distances
 
 order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP","PHATE"]
 EMBEDDED_MNIST_DATASET = [EMNIST(f"data/MNIST/embeddings/{embeddings}/") for embeddings in order_of_embeddings]
@@ -91,4 +91,5 @@ def visualize_array(array):
     
     save_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,"interclass_embedded_distances.png")
     plt.savefig(save_path)
+    plt.close(fig)
 
