@@ -4,8 +4,10 @@ def calculate_linear_affinity(distance_matrix):
     nb_off_diagonal_to_diag_ratio = nb_classes - 1
     assert distance_matrix.shape[0] == distance_matrix.shape[1]
     tst_mat = - np.eye(nb_classes)  + (np.ones((nb_classes,nb_classes)) - np.eye(nb_classes))/nb_off_diagonal_to_diag_ratio
-    soft_max = calculate_softmax(distance_matrix)
-    return np.sum(tst_mat * soft_max) + nb_classes
+    #soft_max = calculate_softmax(distance_matrix)
+    row_means = np.mean(distance_matrix, axis=1)
+    class_distance =1*  distance_matrix / row_means[:, np.newaxis]
+    return np.sum(tst_mat * class_distance) + nb_classes
 
 def calculate_crossentropy(distance_matrix):
     soft_max = calculate_softmax(distance_matrix)

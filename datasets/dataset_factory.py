@@ -19,7 +19,7 @@ BASE_MODULES = {
     "FMNIST": FMNIST_base,
     "MNIST": MNIST_base,
     "CIFAR10": CIFAR10_base,
-    "SCEMILA/feature_data": SCEMILA_fnl34_feature_base,
+    "SCEMILA/fnl34_feature_data": SCEMILA_fnl34_feature_base,
     "SCEMILA/image_data": SCEMILAimage_base,
     "SCEMILA/dinobloom_feature_data": SCEMILA_DinoBloom_feature_base
 }

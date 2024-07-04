@@ -7,14 +7,21 @@ import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
 from distance_functions.input_distance_function_metrics.distance_matrix_metrics import get_score_of_distances,calculate_softmax,standardize_array_mean
+from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
 import json
 from datasets.dataset_factory import BASE_MODULES
 
-def compute_euclidean_distance(x):
+cubical_complex_calculator = CubicalComplexImageEncoder()
+
+def euclidean_distance_function(x):
     assert len(x)==2
     out_dic =np.linalg.norm(x[0] - x[1])
     return out_dic
-    
+
+
+def image_cubical_complex_distance_function(x):
+    return cubical_complex_calculator(x)[0,1].cpu()
+
 def compute_distance_between_classes(distance_fn,class1,class2=None):
     if class2 is None:
         class2=class1.copy()#SHALLOW COPY
@@ -27,20 +34,20 @@ def compute_distance_between_classes(distance_fn,class1,class2=None):
     var = np.var(distances)
     return mean,var
 
-def test_baseline_on_dataset_origin(database):
+def test_baseline_on_dataset_origin(database,distance_function = euclidean_distance_function,flatten = True):
     if hasattr(database, 'data_origin'): 
         og_db = BASE_MODULES.get(database.data_origin,None)
         assert og_db is not None
-        database = og_db(training = True,gpu= False,numpy = True,flatten = True)
+        database = og_db(training = True,gpu= False,numpy = True,flatten = flatten)
         database.data_origin = database.name
-        metrics = test_embedding(database)
+        metrics = test_embedding(database,distance_fn=distance_function)
         return metrics
     elif type(database) is str:
         og_db = BASE_MODULES.get(database,None)
         assert og_db is not None
-        database = og_db(training = True,gpu= False,numpy = True,flatten = True)
+        database = og_db(training = True,gpu= False,numpy = True,flatten = flatten)
         database.data_origin = database.name
-        metrics = test_embedding(database)
+        metrics = test_embedding(database,distance_fn=distance_function)
         return metrics
     else:
         return {}
@@ -104,7 +111,7 @@ def get_directory_path(database):
         os.makedirs(path, exist_ok=True)
     return path
 
-def test_embedding(database,per_class_samples = 10,distance_fn = compute_euclidean_distance):
+def test_embedding(database,per_class_samples = 10,distance_fn = euclidean_distance_function):
     path = get_directory_path(database)
     mean,var,data_used = calculate_interclass_distances(database,per_class_samples,distance_fn)
     metrics  = save_score(mean,data_used,path)

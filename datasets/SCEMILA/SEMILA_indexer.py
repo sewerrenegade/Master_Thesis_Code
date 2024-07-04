@@ -22,7 +22,7 @@ class SCEMILA_Indexer:
         self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.read_csv_instance_level_annotations()
         pass
    
-    def get_image_balanced_class_structure_from_indexer_instance_level(self):
+    def get_image_class_structure_from_indexer_instance_level(self):
         paths = []
         labels = []
         dict_struct = {}
@@ -56,7 +56,7 @@ class SCEMILA_Indexer:
         for path in paths:
             match = self.tiff_image_pattern.match(path)
             if match:
-                paths_to_patients.append(match.group(1).replace("image_data", "feature_data"))
+                paths_to_patients.append(match.group(1).replace("image_data", "fnl34_feature_data"))
                 cell_indices.append(int(match.group(2)))
             else:
                 raise ValueError("The provided path does not match the expected pattern.")
@@ -80,7 +80,7 @@ class SCEMILA_Indexer:
             train_data[label] , test_data[label] = self.split_list(self.indicies[label])
         return train_data,test_data
     
-    def read_csv_instance_level_annotations(self,number_of_classes  =10):
+    def read_csv_instance_level_annotations(self,number_of_classes  =10,include_other = False):
         df = pd.read_csv(self.image_level_annotations_file)
         labels = df["mll_annotation"] 
         patient_ids = df["ID"]
@@ -95,7 +95,7 @@ class SCEMILA_Indexer:
             except KeyError:
                 class_paths[label]=[path]
         length_dict = {key: len(value) for key, value in class_paths.items()}
-        class_paths,length_dict,class_order = self.reformulate_dataset_k_class_including_other(class_paths,length_dict,number_of_classes)
+        class_paths,length_dict,class_order = self.reformulate_dataset_k_class_including_other(class_paths,length_dict,number_of_classes,include_other)
 
         return class_paths,length_dict,class_order
 
@@ -178,19 +178,31 @@ class SCEMILA_Indexer:
         
         return top_k_keys
     
-    def reformulate_dataset_k_class_including_other(self,class_paths,length_dict,number_of_classes):
+    def reformulate_dataset_k_class_including_other(self,class_paths,length_dict,number_of_classes,include_other_class):
         sorted_classes = sorted(length_dict.items(), key=lambda item: item[1], reverse=True)
         sorted_classes = [item[0] for item in sorted_classes]
         other_classes = ["other"]
-        other_classes.extend(sorted_classes[number_of_classes+1:])
-        included_classes = sorted_classes[:number_of_classes]
-        new_class_paths = {"other":[]}
-        for _class in sorted_classes:
-            if _class in included_classes:
-                new_class_paths[_class] = class_paths[_class]
-            else:
-                new_class_paths["other"].extend(class_paths[_class])
-        length_dict = {key: len(value) for key, value in class_paths.items()}
+        if include_other_class:
+            other_classes.extend(sorted_classes[number_of_classes+1:])
+            included_classes = sorted_classes[:number_of_classes]
+            new_class_paths = {"other":[]}
+            for _class in sorted_classes:
+                if _class in included_classes:
+                    new_class_paths[_class] = class_paths[_class]
+                else:
+                    new_class_paths["other"].extend(class_paths[_class])
+            length_dict = {key: len(value) for key, value in new_class_paths.items()}
+        else:
+            other_classes.extend(sorted_classes[number_of_classes+2:])
+            included_classes = sorted_classes[1:number_of_classes+1]
+            new_class_paths = {"other":[]}
+            for _class in sorted_classes:
+                if _class in included_classes:
+                    new_class_paths[_class] = class_paths[_class]
+                else:
+                    new_class_paths["other"].extend(class_paths[_class])
+            del new_class_paths["other"]
+            length_dict = {key: len(value) for key, value in new_class_paths.items()}
         return new_class_paths,length_dict,included_classes
 
 
@@ -210,7 +222,7 @@ class SCEMILA_Indexer:
 
 if __name__ == "__main__":
     x = SCEMILA_Indexer()
-    a = x.get_image_balanced_class_structure_from_indexer_instance_level(7,10)
+    a = x.get_image_class_structure_from_indexer_instance_level()
     print(list(x.classes)[2])
 
 

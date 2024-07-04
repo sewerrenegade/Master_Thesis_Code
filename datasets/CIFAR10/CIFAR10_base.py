@@ -12,13 +12,13 @@ import numpy as np
 
 class CIFAR10_base(baseDataset):
 
-    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True):
+    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_data = True):
         self.root_dir = root_dir
         self.name = "CIFAR10"
         self.training = training
         self.dataset_size = dataset_size
         self.classes = CIFAR10_Dataset_Referencer.INDEXER.classes
-        self.preload_transforms,self.transform = self.get_transform_function(grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])],)
+        self.preload_transforms,self.transform = self.get_transform_function(grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augment_image= augment_data,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])],)
         self.data = CIFAR10_Dataset_Referencer.get_or_load_datasets(training,root_dir,self.preload_transforms)
         self.indicies_list = self.build_smaller_dataset()
 

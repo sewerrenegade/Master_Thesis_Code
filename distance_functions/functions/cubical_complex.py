@@ -3,6 +3,7 @@ from models.topology_models.topo_tools.distances import WassersteinDistance
 import torch.nn as nn
 from models.topology_models.topo_tools.cubical_complex import CubicalComplex
 import torch
+import torchvision.transforms as transforms
 
 class CubicalComplexImageEncoder(nn.Module):
     def __init__(self, image_dim=[28,28],):
@@ -12,15 +13,18 @@ class CubicalComplexImageEncoder(nn.Module):
         self.cube_complex_encoder = CubicalComplex(dim = len(image_dim))
         self.wasserstein_distance = WassersteinDistance(q = 2)
         #self.requires_grad_ = True
-
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),  # Converts the image to a PyTorch tensor (HWC -> CHW, [0, 255] -> [0, 1])
+        ])
     def forward(self, x):
-        input = x.to(self.device)
+        #input = x.to(self.device)
+        input = torch.stack([self.transform(x[0]),self.transform(x[1])])
         #print(f"Gradient of input {x.grad_fn}")
         cub_complexs = self.cube_complex_encoder(input)
         distances = self.calculate_distance_matrix(cub_complexs)
-        distances.requires_grad_(True)
-
-        return distances.to('cuda:0')
+        #distances.requires_grad_(True)
+        print("computed a water")
+        return distances
 
 
     def calculate_distance_matrix(self,elements):

@@ -12,13 +12,13 @@ import numpy as np
 
 class FMNIST_base(baseDataset):
 
-    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True):
+    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_image = True):
         self.root_dir = root_dir
         self.name = "FMNIST"
         self.training = training
         self.dataset_size = dataset_size
         self.classes = FMNIST_Dataset_Referencer.INDEXER.classes
-        self.preload_transforms,self.transform = self.get_transform_function(grayscale=True,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize((0.5,), (0.5,))],)
+        self.preload_transforms,self.transform = self.get_transform_function(grayscale=True,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize((0.5,), (0.5,))],augment_image=augment_image)
         self.data = FMNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir,self.preload_transforms)
         self.indicies_list = self.build_smaller_dataset()
 

@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
 from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
-from distance_functions.input_distance_function_metrics.new_test import visualize_embedding_performance_wrt_dimension, test_baseline_on_dataset_origin, test_embedding
-
+from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
+from distance_functions.input_distance_function_metrics.new_test import visualize_embedding_performance_wrt_dimension, test_baseline_on_dataset_origin, test_embedding,image_cubical_complex_distance_function
+import random
 def visualize_all_embeddings_performance_wrt_dimension(metrics,data_origin,down_dim,order_of_embeddings):
     num_metrics = len(metrics[order_of_embeddings[0]][0])
     fig, axs = plt.subplots(num_metrics, 1, figsize=(15, 5 * num_metrics))
     if not len(metrics) == len(order_of_embeddings):
-        temp = ["baseline"]
+        temp = ["baseline","cubical_complex"]
         temp.extend(order_of_embeddings)
         order_of_embeddings = temp
     assert len(metrics) == len(order_of_embeddings)
@@ -36,7 +37,8 @@ def visualize_all_embeddings_performance_wrt_dimension(metrics,data_origin,down_
 
 def perform_manual_dimensionality_test(original_dataset_name,down_dim = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS,order_of_embeddings = GlobalConfig.EMBEDDING_METHODS,per_class_samples = 10):
     base_metrics = test_baseline_on_dataset_origin(original_dataset_name)
-    joint_metrics = {"baseline": [base_metrics]*len(down_dim)}
+    # cubical_complex_metrics = test_baseline_on_dataset_origin(original_dataset_name,distance_function= image_cubical_complex_distance_function,flatten= False)
+    joint_metrics = {"baseline": [base_metrics]*len(down_dim)}#,"cubical_complex":[cubical_complex_metrics]*len(down_dim)}
     for method in order_of_embeddings:
         metrics = []
         for dim in down_dim:
@@ -50,6 +52,7 @@ def perform_manual_dimensionality_test(original_dataset_name,down_dim = GlobalCo
     visualize_all_embeddings_performance_wrt_dimension(joint_metrics,data_origin=original_dataset_name,down_dim=down_dim,order_of_embeddings=order_of_embeddings)
 
 if __name__ == '__main__':
-    og_datasets = ["MNIST","FMNIST","CIFAR10","SCEMILA/feature_data","SCEMILA/image_data","SCEMILA/dinobloom_feature_data"]
-    original_dataset_name = "SCEMILA/feature_data"
-    perform_manual_dimensionality_test(original_dataset_name)
+    og_datasets = ["MNIST","FMNIST","CIFAR10","SCEMILA/fnl34_feature_data","SCEMILA/image_data","SCEMILA/dinobloom_feature_data"]
+    original_dataset_name = "SCEMILA/image_data"
+    for dataset_name in og_datasets:
+        perform_manual_dimensionality_test(dataset_name)

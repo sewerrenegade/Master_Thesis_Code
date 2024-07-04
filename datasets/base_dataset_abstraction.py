@@ -6,6 +6,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 import tifffile as tiff
 import numpy as np
+from datasets.image_augmentor import IMAGE_AUGMENTATION_TRANSFORM_LIST
 
 class baseDataset(Dataset,ABC):
     def __init__(self, database_name):
@@ -21,14 +22,17 @@ class baseDataset(Dataset,ABC):
             instances_dict[class_name]  = self.get_n_random_instances_from_class(class_name,number_of_instances)[0]
         return instances_dict
     
-    def get_transform_function(self,load_tiff = False,numpy=False,to_gpu = True,flatten = False,grayscale =False,to_tensor = True,extra_transforms = []):
+    def get_transform_function(self,load_tiff = False,augment_image = False,numpy=False,to_gpu = True,flatten = False,grayscale =False,to_tensor = True,extra_transforms = []):
         preload_transforms_list = []
         postload_transforms_list = []
         assert not (numpy and to_gpu)
         assert not (not numpy and flatten)
         assert not (numpy and to_gpu)
+        #assert (not augment_image) or (augment_image and load_tiff)
         if load_tiff:
-            preload_transforms_list.append(TifToArray())
+            preload_transforms_list.append(TifToPILimage())
+        if augment_image:
+            preload_transforms_list.extend(IMAGE_AUGMENTATION_TRANSFORM_LIST)
         if to_tensor:
             preload_transforms_list.append(transforms.ToTensor())
         if to_gpu:
@@ -66,11 +70,12 @@ class ToNPTransform:
     def __call__(self, pic):
         if isinstance(pic,torch.Tensor):
             return pic.numpy()
-        elif type(pic) is list:
+        elif  type(pic) == list or  isinstance(pic,Image.Image):
             return np.array(pic)
         elif isinstance(pic,np.ndarray):
             return pic
         else:
+            print("unsupported to np format")
             raise Exception
 
     def __repr__(self) -> str:
@@ -83,7 +88,7 @@ class FlattenTransform:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
     
-class TifToArray:
+class TifToPILimage:
     def __init__(self,down_sample=False) -> None:
         self.down_sample = down_sample
     def __call__(self, image_path):
