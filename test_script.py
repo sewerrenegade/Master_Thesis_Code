@@ -100,48 +100,52 @@
 # testset = torchvision.datasets.CIFAR10(root='./data', train=False,
 #                                        download=False)
 
-import torch
-import matplotlib.pyplot as plt
-from torchvision import transforms
-import torchvision
-from PIL import Image
-import numpy as np
-from datasets.image_augmentor import IMAGE_AUGMENTATION_TRANSFORM_LIST
+# import torch
+# import matplotlib.pyplot as plt
+# from torchvision import transforms
+# import torchvision
+# from PIL import Image
+# import numpy as np
+# from datasets.image_augmentor import IMAGE_AUGMENTATION_TRANSFORM_LIST
 
-import tifffile as tiff
+# import tifffile as tiff
 
-# Function to add Gaussian noise to an image
-def add_gaussian_noise(image, mean=0, std=0.02):
-    noise = torch.randn(image.size()) * std + mean
-    noisy_image = image + noise
-    noisy_image = torch.clamp(noisy_image, 0, 1)  # Clamping to keep pixel values in [0, 1]
-    return noisy_image
+# # Function to add Gaussian noise to an image
+# def add_gaussian_noise(image, mean=0, std=0.02):
+#     noise = torch.randn(image.size()) * std + mean
+#     noisy_image = image + noise
+#     noisy_image = torch.clamp(noisy_image, 0, 1)  # Clamping to keep pixel values in [0, 1]
+#     return noisy_image
 
-# Define a series of transformations including rotation, shift, and noise addition
-transform = transforms.Compose(IMAGE_AUGMENTATION_TRANSFORM_LIST)
-for i in range(100):
-    # Load an example image
-    image_path = f'data/SCEMILA/image_data/NPM1/ALA/image_{i}.tif'  # Replace with your image path
-    image = tiff.imread(image_path)
-    image = Image.fromarray(image)
-    image = Image.open(image_path).convert('RGB')
-    # Apply the transformation
-    #tensor_image = transforms.ToTensor()(image)
-    augmented_image = transform(image)
+# # Define a series of transformations including rotation, shift, and noise addition
+# transform = transforms.Compose(IMAGE_AUGMENTATION_TRANSFORM_LIST)
+# for i in range(100):
+#     # Load an example image
+#     image_path = f'data/SCEMILA/image_data/NPM1/ALA/image_{i}.tif'  # Replace with your image path
+#     image = tiff.imread(image_path)
+#     image = Image.fromarray(image)
+#     image = Image.open(image_path).convert('RGB')
+#     # Apply the transformation
+#     #tensor_image = transforms.ToTensor()(image)
+#     augmented_image = transform(image)
 
-    # Convert back to PIL Image for display
-    #augmented_image_pil = transforms.ToPILImage()(augmented_image)
+#     # Convert back to PIL Image for display
+#     #augmented_image_pil = transforms.ToPILImage()(augmented_image)
 
-    # Display the original and augmented images
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    plt.title('Original Image')
-    plt.imshow(image)
-    plt.axis('off')
+#     # Display the original and augmented images
+#     plt.figure(figsize=(10, 5))
+#     plt.subplot(1, 2, 1)
+#     plt.title('Original Image')
+#     plt.imshow(image)
+#     plt.axis('off')
 
-    plt.subplot(1, 2, 2)
-    plt.title('Augmented Image')
-    plt.imshow(augmented_image)
-    plt.axis('off')
+#     plt.subplot(1, 2, 2)
+#     plt.title('Augmented Image')
+#     plt.imshow(augmented_image)
+#     plt.axis('off')
 
-    plt.show()
+#     plt.show()
+
+from datasets.SCEMILA import *
+x = SCEMILA_Indexer()
+pass

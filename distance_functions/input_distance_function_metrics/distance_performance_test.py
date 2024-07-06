@@ -83,7 +83,7 @@ def visualize_array(mean_distance,variance_of_distance_matrix,name, path,metrics
     plt.close(fig)
 
 def get_directory_path(name):
-    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.FMNIST_INTER_CLASS_DIST,GlobalConfig.EMBEDDING_RESULTS,name)
+    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.FashionMNIST_INTER_CLASS_DIST,GlobalConfig.EMBEDDING_RESULTS,name)
     if not os.path.exists(path):
         os.mkdir(path)
     return path
@@ -98,7 +98,7 @@ def test_embedding(embedding_name,database,classes,distance_fn = compute_euclide
 
 def load_n_samples_from_EMNIST(NUMBER_OF_SAMPLES_PER_CLASS,embedding_name):
     samples = {}
-    embeddings = EMNIST(f"data/FMNIST/embeddings/{embedding_name}/")
+    embeddings = EMNIST(f"data/FashionMNIST/embeddings/{embedding_name}/")
     for class_label in MNIST_Dataset_Referencer.INDEXER.classes:
         indicies = embeddings.class_indicies[class_label][:NUMBER_OF_SAMPLES_PER_CLASS]
         instances_of_class = []
@@ -125,7 +125,7 @@ def save_method_metrics_wrt_downprojection_dim(methode_name,metrics,down_dim):
 
     fig.suptitle(f"Metrics Plots for {methode_name}", fontsize=20)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.FMNIST_INTER_CLASS_DIST,f"{methode_name}metrics_plots.png")
+    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.FashionMNIST_INTER_CLASS_DIST,f"{methode_name}metrics_plots.png")
     plt.savefig(path)
     plt.close(fig)
 

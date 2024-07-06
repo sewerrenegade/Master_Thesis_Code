@@ -1,13 +1,8 @@
-import typing
 import pytorch_lightning as pl
-from datasets.SCEMILA.base_SCEMILA import SCEMILAfeature_MIL_base,INDEXER
-import torchvision.transforms as transforms
+from datasets.indexer_utils import get_dataset_indexer
 import os
 from sklearn.model_selection import KFold
-
-from  models.SCEMILA import label_converter
-
-from torch.utils.data import Dataset, random_split, Subset
+from torch.utils.data import  random_split
 from torch.utils.data.dataloader import DataLoader
 
 class SCEMILA(pl.LightningDataModule):
@@ -20,13 +15,14 @@ class SCEMILA(pl.LightningDataModule):
             patient_bootstrap_exclude=None
             ):
         super().__init__()
+        self.name = "SCEMILA_lighting"
         self.data_dir = data_path
         self.num_workers = num_workers
         self.val_split = val_split
         self.k_fold = k_fold
-        self.indexer = INDEXER
-        self.train_indicies = self.process_indicies(INDEXER.train_indicies,patient_bootstrap_exclude)
-        self.test_indicies = self.process_indicies(INDEXER.test_indicies,patient_bootstrap_exclude)
+        self.indexer = get_dataset_indexer(self.name)
+        self.train_indicies = self.process_indicies(self.indexer.train_patients_path,patient_bootstrap_exclude)
+        self.test_indicies = self.process_indicies(self.indexer.test_indicies,patient_bootstrap_exclude)
         self.create_train_dataset()
         self.create_test_dataset()
         if self.k_fold != -1:
@@ -73,7 +69,7 @@ class SCEMILA(pl.LightningDataModule):
 
             paths.extend(val)
 
-            label =  INDEXER.convert_from_int_to_label_instance_level(key)
+            label =  self.indexer.convert_from_int_to_label_instance_level(key)
             labels.extend([label] * len(val))
         return list(zip(paths,labels))
         

@@ -1,25 +1,26 @@
-import pytorch_lightning as pl
-import os
-from sklearn.model_selection import KFold
 
-import torchvision.transforms as transforms
-from torch.utils.data.dataloader import DataLoader
-from datasets.indexer_utils import process_deserialized_json
-from torchvision.datasets import FashionMNIST as FMNIST
+import os
+
+from torchvision.datasets import FashionMNIST as FashionMNIST
 import json
 from collections.abc import Iterable
 import random
 
-class FMNIST_Indexer:
-    def __init__(self,FMNIST_Path = "data/FMNIST/raw/", perform_reindexing = False) -> None:
-        self.path = FMNIST_Path
+SINGLETON_INSTANCE  = None
+
+class FashionMNIST_Indexer:
+    
+    
+    def __init__(self,FashionMNIST_Path = "data/FashionMNIST/raw/", perform_reindexing = False) -> None:
+        self.path = FashionMNIST_Path
         self.class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 
                'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
-        self.dict_path = f"{FMNIST_Path}/metadata.json"
+        self.dict_path = f"{FashionMNIST_Path}/metadata.json"
         if perform_reindexing or not self.does_if_meta_file_exists():
             self.create_meta_file()
         with open(self.dict_path, 'r') as json_file:
-            loaded_dict = json.load(json_file)    
+            loaded_dict = json.load(json_file)
+        from datasets.indexer_utils import process_deserialized_json    
         self.train_indicies = process_deserialized_json(loaded_dict["train"])
         self.test_indicies = process_deserialized_json(loaded_dict["test"])
         self.classes= sorted(loaded_dict["classes"])
@@ -42,7 +43,13 @@ class FMNIST_Indexer:
             x2 = target_class
             instances.append(indicies[x2][x1])
         return instances
-
+    
+    @staticmethod
+    def get_indexer():
+        global SINGLETON_INSTANCE
+        if SINGLETON_INSTANCE is None:
+            SINGLETON_INSTANCE = FashionMNIST_Indexer()
+        return SINGLETON_INSTANCE
     
     def get_class_count(self,classes,train_indicies,test_indicies):
         train_class_count={}
@@ -59,8 +66,8 @@ class FMNIST_Indexer:
         return os.path.exists(self.dict_path)
     
     def create_meta_file(self):
-        train_data = FMNIST("data/", train=True, download=True)
-        test_data= FMNIST("data/", train=False, download=True)
+        train_data = FashionMNIST("data/", train=True, download=True)
+        test_data= FashionMNIST("data/", train=False, download=True)
         train_data_indicies = self.get_indices(train_data)
         test_data_indicies = self.get_indices(test_data)
         classes = self.get_classes(train_data_indicies)
@@ -82,6 +89,6 @@ class FMNIST_Indexer:
         return class_indices
 
 if __name__ == "__main__":
-    print(list(FMNIST_Indexer().classes)[2])
+    print(list(FashionMNIST_Indexer().classes)[2])
 
 

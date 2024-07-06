@@ -2,7 +2,7 @@ import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 
 from datasets.MNIST.MNIST_base import MNIST_base
-from datasets.FMNIST.FMNIST_base import FMNIST_base
+from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_base
 from datasets.CIFAR10.CIFAR10_base import CIFAR10_base
 from datasets.embedded_data.generators.generate_embeddings import generate_embedding_from_descriptor, EmbeddingDescriptor
 from configs.global_config import GlobalConfig
@@ -10,13 +10,12 @@ import umap
 import phate
 from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap,TSNE
-from datasets.SCEMILA.base_SCEMILA import SCEMILAimage_base,SCEMILA_fnl34_feature_base,SCEMILA_DinoBloom_feature_base
+#from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base,SCEMILA_fnl34_feature_base,SCEMILA_DinoBloom_feature_base
+from datasets.SCEMILA import *
 
-
-DOWN_PROJECTION_DIM = 32
 SWEEP_PORJECTION_DIM = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS
-FMNIST_BASE_DS = FMNIST_base(True,dataset_size= 1000,gpu=False)
-MNIST_BASE_DS = MNIST_base(True,dataset_size= 1000,gpu=False)
+FMNISTMNIST_BASE_DS = FashionMNIST_base(True,dataset_size= 1000,gpu=False)
+MNIST_BASE_DS = MNIST_base(True,downsample_dataset= 1000,gpu=False)
 CIFAR10_BASE_DS = CIFAR10_base(True,dataset_size= 1000,gpu=False)
 SCEMILA_IMAGE_BASE_DS = SCEMILAimage_base(transforms_list=None,gpu=False, numpy= True,number_of_per_class_instances=100)
 #SCEMILA_FEATURE_BASE_DS = SCEMILA_fnl34_feature_base(transforms_list=None,gpu=False)
@@ -25,7 +24,7 @@ SCEMILA_DINO_BLOOM_BASE_DS = SCEMILA_DinoBloom_feature_base(transforms_list=None
 
 descriptors = []
 #dataset = SCEMILA_DINO_BLOOM_BASE_DS
-for dataset in [MNIST_BASE_DS,FMNIST_BASE_DS,CIFAR10_BASE_DS,SCEMILA_IMAGE_BASE_DS]:
+for dataset in [MNIST_BASE_DS,FMNISTMNIST_BASE_DS,CIFAR10_BASE_DS,SCEMILA_IMAGE_BASE_DS]:
     for dim in SWEEP_PORJECTION_DIM:
         descriptors.append(EmbeddingDescriptor(f"PHATE_{dim}",dataset,phate.PHATE(n_components=dim,knn=10, decay=40, t='auto').fit_transform))#n_components=dim, knn=10, decay=40, t='auto'
         descriptors.append(EmbeddingDescriptor(f"TSNE_{dim}",dataset,TSNE(n_components=dim,method='exact').fit_transform))

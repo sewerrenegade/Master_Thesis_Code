@@ -1,9 +1,9 @@
-import pytorch_lightning as pl
 import os
-from sklearn.model_selection import KFold
 import pandas as pd
 import random
 import re
+
+SINGLETON_INSTANCE  = None
 
 class SCEMILA_Indexer:
     def __init__(self,SCEMILA_Path = "data/SCEMILA/"):
@@ -12,16 +12,23 @@ class SCEMILA_Indexer:
         self.image_level_annotations_file = f"{SCEMILA_Path}meta_files/image_annotation_master.csv"
         self.tiff_image_pattern = re.compile(r"(.*\/)image_(\d+)\.tif$")
         self.indicies, self.bag_meta_df = self.define_dataset()
-        self.classes = list(self.indicies.keys())
+        self.bag_classes = list(self.indicies.keys())
         
         #bag level indexing
-        self.train_indicies,self.test_indicies = self.seperate_test_train_data()
-        self.train_class_count ,self.test_class_count = self.get_class_count(self.classes,self.train_indicies,self.test_indicies)
-
+        self.train_patients_path,self.test_indicies = self.seperate_test_train_data()
+        self.class_sample_counts_in_train_set ,self.class_sample_counts_in_test_set = self.get_per_class_count(self.bag_classes,self.train_patients_path,self.test_indicies)
+        
         #instance level indexing
-        self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.read_csv_instance_level_annotations()
+        self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.read_csv_instance_level_annotations(include_other_and_ambiguous= False)
         pass
-   
+    
+    @staticmethod
+    def get_indexer():
+        global SINGLETON_INSTANCE
+        if SINGLETON_INSTANCE is None:
+            SINGLETON_INSTANCE = SCEMILA_Indexer()
+        return SINGLETON_INSTANCE
+    
     def get_image_class_structure_from_indexer_instance_level(self):
         paths = []
         labels = []
@@ -69,18 +76,18 @@ class SCEMILA_Indexer:
             return self.instance_classes.index(int_or_label)
 
     def get_class_int(self,class_name):
-        return self.classes.index(class_name)
+        return self.bag_classes.index(class_name)
     
 
     def seperate_test_train_data(self):
         random.seed(42)# ensures it is split the same way
         train_data = {}
         test_data = {}
-        for label in self.classes:
-            train_data[label] , test_data[label] = self.split_list(self.indicies[label])
+        for label in self.bag_classes:
+            train_data[label] , test_data[label] = self.split_train_test(self.indicies[label])
         return train_data,test_data
     
-    def read_csv_instance_level_annotations(self,number_of_classes  =10,include_other = False):
+    def read_csv_instance_level_annotations(self,number_of_classes  =10,include_other_and_ambiguous = False):
         df = pd.read_csv(self.image_level_annotations_file)
         labels = df["mll_annotation"] 
         patient_ids = df["ID"]
@@ -95,7 +102,7 @@ class SCEMILA_Indexer:
             except KeyError:
                 class_paths[label]=[path]
         length_dict = {key: len(value) for key, value in class_paths.items()}
-        class_paths,length_dict,class_order = self.reformulate_dataset_k_class_including_other(class_paths,length_dict,number_of_classes,include_other)
+        class_paths,length_dict,class_order = self.reformulate_dataset_k_class_including_other(class_paths,length_dict,number_of_classes,include_other_and_ambiguous)
 
         return class_paths,length_dict,class_order
 
@@ -104,16 +111,16 @@ class SCEMILA_Indexer:
         return os.path.join(self.path_data,"image_data",label_folder_name,ID,f"image_{image_name}")
 
     # Function to split a list into two parts
-    def split_list(self,data, split_ratio=0.15):
+    def split_train_test(self,data, split_ratio=0.20):
         # Determine the number of elements for the 20% portion
-        num_elements_15 = int(len(data) * split_ratio)        
+        num_elements_20 = int(len(data) * split_ratio)        
         # Randomly select indices for the 20% portion
-        indices_15 = random.sample(range(len(data)), num_elements_15)
+        indices_20 = random.sample(range(len(data)), num_elements_20)
         
         # Split the data based on the selected indices
-        list_15 = [data[i] for i in indices_15]
-        list_85 = [data[i] for i in range(len(data)) if i not in indices_15]        
-        return list_85,list_15
+        list_20 = [data[i] for i in indices_20]
+        list_80 = [data[i] for i in range(len(data)) if i not in indices_20]        
+        return list_80,list_20
 
     def define_dataset(
         self,
@@ -125,6 +132,10 @@ class SCEMILA_Indexer:
         print("")
         print("Filtering the dataset...")
         print("")
+        annotations_exclude_by = [
+                'pb_myeloblast',
+                'pb_promyelocyte',
+                'pb_myelocyte']
 
         # iterate over all patients in the df_data_master sheet
         merge_dict_processed = {}
@@ -132,10 +143,7 @@ class SCEMILA_Indexer:
 
             # filter if patient has not enough malign cells (only if an AML patient)
             # define filter criterion by which to filter the patients by annotation
-            annotations_exclude_by = [
-                'pb_myeloblast',
-                'pb_promyelocyte',
-                'pb_myelocyte']
+
             annotation_count = sum(row[annotations_exclude_by])
             if annotation_count < filter_diff_count and (
                     not row['bag_label'] == 'control'):
@@ -178,37 +186,37 @@ class SCEMILA_Indexer:
         
         return top_k_keys
     
-    def reformulate_dataset_k_class_including_other(self,class_paths,length_dict,number_of_classes,include_other_class):
+    def reformulate_dataset_k_class_including_other(self,class_paths,length_dict,number_of_classes,include_other_and_ambiguous):
         sorted_classes = sorted(length_dict.items(), key=lambda item: item[1], reverse=True)
         sorted_classes = [item[0] for item in sorted_classes]
         other_classes = ["other"]
-        if include_other_class:
-            other_classes.extend(sorted_classes[number_of_classes+1:])
-            included_classes = sorted_classes[:number_of_classes]
-            new_class_paths = {"other":[]}
-            for _class in sorted_classes:
-                if _class in included_classes:
-                    new_class_paths[_class] = class_paths[_class]
-                else:
-                    new_class_paths["other"].extend(class_paths[_class])
-            length_dict = {key: len(value) for key, value in new_class_paths.items()}
+        if not include_other_and_ambiguous:
+            sorted_classes.remove("other")
+            sorted_classes.remove("ambiguous")
         else:
-            other_classes.extend(sorted_classes[number_of_classes+2:])
-            included_classes = sorted_classes[1:number_of_classes+1]
-            new_class_paths = {"other":[]}
-            for _class in sorted_classes:
-                if _class in included_classes:
-                    new_class_paths[_class] = class_paths[_class]
-                else:
-                    new_class_paths["other"].extend(class_paths[_class])
-            del new_class_paths["other"]
-            length_dict = {key: len(value) for key, value in new_class_paths.items()}
+            other_classes.extend(sorted_classes[number_of_classes+1:])
+        included_classes = sorted_classes[:number_of_classes]
+        new_class_paths = {}
+        for _class in included_classes:
+            new_class_paths[_class] = class_paths[_class]
+        length_dict = {key: len(value) for key, value in new_class_paths.items()}
+        # else:
+        #     other_classes.extend(sorted_classes[number_of_classes+2:])
+        #     included_classes = sorted_classes[1:number_of_classes+1]
+        #     new_class_paths = {"other":[]}
+        #     for _class in sorted_classes:
+        #         if _class in included_classes:
+        #             new_class_paths[_class] = class_paths[_class]
+        #         else:
+        #             new_class_paths["other"].extend(class_paths[_class])
+        #     del new_class_paths["other"]
+        #     length_dict = {key: len(value) for key, value in new_class_paths.items()}
         return new_class_paths,length_dict,included_classes
 
 
 
     
-    def get_class_count(self,classes,train_indicies,test_indicies = []):
+    def get_per_class_count(self,classes,train_indicies,test_indicies = []):
         train_class_count={}
         test_class_count={}
         for class_name in classes:
@@ -223,6 +231,6 @@ class SCEMILA_Indexer:
 if __name__ == "__main__":
     x = SCEMILA_Indexer()
     a = x.get_image_class_structure_from_indexer_instance_level()
-    print(list(x.classes)[2])
+    print(list(x.bag_classes)[2])
 
 

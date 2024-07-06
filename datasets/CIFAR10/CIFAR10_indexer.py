@@ -3,11 +3,12 @@ sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import os
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader
-from datasets.indexer_utils import process_deserialized_json
 from torchvision.datasets import CIFAR10
 import json
 from collections.abc import Iterable
 import random
+
+SINGLETON_INSTANCE  = None
 
 class CIFAR10_Indexer:
     def __init__(self,CIFAR10_Path = "data/CIFAR10", perform_reindexing = False) -> None:
@@ -18,12 +19,20 @@ class CIFAR10_Indexer:
             self.create_meta_file()
         with open(self.dict_path, 'r') as json_file:
             loaded_dict = json.load(json_file)    
+        from datasets.indexer_utils import process_deserialized_json
         self.train_indicies = process_deserialized_json(loaded_dict["train"])
         self.test_indicies = process_deserialized_json(loaded_dict["test"])
         self.classes= sorted(loaded_dict["classes"])
         self.train_class_count ,self.test_class_count = process_deserialized_json(loaded_dict["class_count"])
         self.train_size,self.test_size = loaded_dict["total_count"]
-
+        
+    @staticmethod
+    def get_indexer():
+        global SINGLETON_INSTANCE
+        if SINGLETON_INSTANCE is None:
+            SINGLETON_INSTANCE = CIFAR10_Indexer()
+        return SINGLETON_INSTANCE
+    
     def get_random_instance_of_class(self,target_class_s,training):
         if training:
             class_count = self.train_class_count

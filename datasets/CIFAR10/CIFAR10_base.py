@@ -12,18 +12,18 @@ import numpy as np
 
 class CIFAR10_base(BaseDataset):
 
-    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_data = True):
+    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
         self.root_dir = root_dir
-        self.name = "CIFAR10"
+        super().__init__("CIFAR10")
         self.training = training
         self.dataset_size = dataset_size
-        self.classes = CIFAR10_Dataset_Referencer.INDEXER.classes
-        self.preload_transforms,self.transform = self.get_transform_function(grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augment_image= augment_data,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])],)
-        self.data = CIFAR10_Dataset_Referencer.get_or_load_datasets(training,root_dir,self.preload_transforms)
+        self.classes = self.indexer.classes
+        self.preload_transforms,self.transform = self.get_transform_function(grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])],)
+        self.data = CIFAR10(train=training,root=root_dir,transform=self.preload_transforms)
         self.indicies_list = self.build_smaller_dataset()
 
 
-    def get_n_random_instances_from_class(self, class_name, number_of_instances):
+    def get_random_samples_from_class(self, class_name, number_of_instances):
         indicies = self.class_indicies[class_name]
         random_indicies = random.sample(indicies,number_of_instances)
         return self[random_indicies]
@@ -31,9 +31,9 @@ class CIFAR10_base(BaseDataset):
 
     def build_smaller_dataset(self):
         if self.training:
-            full_indicies = CIFAR10_Dataset_Referencer.INDEXER.train_indicies
+            full_indicies = self.indexer.train_indicies
         else:
-            full_indicies = CIFAR10_Dataset_Referencer.INDEXER.test_indicies
+            full_indicies = self.indexer.test_indicies
         if self.dataset_size:
             self.class_indicies = {}
             class_size = int(self.dataset_size/len(self.classes))
@@ -68,7 +68,7 @@ class CIFAR10_MIL_base(Dataset):
         self.root_dir = root_dir
         self.name = "CIFAR10"
         self.training = training        
-        self.data = CIFAR10_Dataset_Referencer.get_or_load_datasets(training,root_dir,gpu)
+        self.data = CIFAR10(train=training,root=root_dir,transform=self.preload_transforms,gpu = True)
         self.synth = data_synth
         if training:
             self.data_indicies = self.synth.generate_train_bags(1000)
@@ -97,16 +97,16 @@ class CIFAR10_MIL_base(Dataset):
 
 #ToDo update the script to be MNIST or dataset agnostic
 #add version on GPU and CPU
-class CIFAR10_Dataset_Referencer:
-    Train_Data = None
-    Test_Data = None
-    GPU_Train_Data = None
-    GPU_Test_Data = None
-    INDEXER = CIFAR10_Indexer()
-    transforms_list = []
+# class CIFAR10_Dataset_Referencer:
+#     Train_Data = None
+#     Test_Data = None
+#     GPU_Train_Data = None
+#     GPU_Test_Data = None
+#     INDEXER = CIFAR10_Indexer()
+#     transforms_list = []
 
-    def get_or_load_datasets(training,root_dir,transforms):
-        return CIFAR10(root_dir, train=training, download=False,transform= transforms)
+#     def get_or_load_datasets(training,root_dir,transforms):
+#         return CIFAR10(root_dir, train=training, download=False,transform= transforms)
     
 
 

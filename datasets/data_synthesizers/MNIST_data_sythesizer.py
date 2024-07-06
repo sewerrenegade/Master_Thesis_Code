@@ -1,7 +1,4 @@
-
-import numpy as np
 import random
-from datasets import dataset_factory 
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 import copy
 

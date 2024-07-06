@@ -2,7 +2,7 @@ from torchvision import transforms
 import torch
 from enum import Enum
 from datasets.dataset_factory import BASE_MODULES
-from datasets.base_dataset_abstraction import BaseDataset
+#from datasets.base_dataset_abstraction import BaseDataset
 from typing import Union,Type
 
 class Augmentability(Enum):
@@ -11,7 +11,7 @@ class Augmentability(Enum):
     UNAUGMENTABLE = 3
     
 DATASET_AUGMENTABIBILITY = {
-    "FMNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
+    "FashionMNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "MNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "CIFAR10": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "SCEMILA/fnl34_feature_data": Augmentability.UNAUGMENTABLE,
@@ -19,7 +19,7 @@ DATASET_AUGMENTABIBILITY = {
     "SCEMILA/dinobloom_feature_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT
 }
 DATASET_RGB = {
-    "FMNIST": False,
+    "FashionMNIST": False,
     "MNIST": False,
     "CIFAR10": True,
     "SCEMILA/fnl34_feature_data": False,
@@ -32,7 +32,7 @@ assert DATASET_AUGMENTABIBILITY.keys() == BASE_MODULES.keys()
 class AugmentationSettings:
     def __init__(
         self, 
-        dataset_name: Union[str, Type[BaseDataset]], 
+        dataset_name: str, 
         color_jitter: bool = True, 
         sharpness_aug: bool = True, 
         horizontal_flip_aug: bool = True, 

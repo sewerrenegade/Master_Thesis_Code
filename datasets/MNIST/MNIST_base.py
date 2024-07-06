@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import random
 from torchvision.datasets import MNIST
-from datasets.MNIST.MNIST_indexer import MNIST_Indexer
 from torchvision.transforms import ToTensor
 from torchvision import transforms
 from collections.abc import Iterable
@@ -11,26 +10,23 @@ from collections.abc import Iterable
 
 
 class MNIST_base(BaseDataset):
-    def __init__(self,training, root_dir = "data/",dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_image  = True):
+    def __init__(self,training_mode, root_dir = "data/",downsample_dataset = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
         self.root_dir = root_dir
-        self.name = "MNIST"
-        self.training = training
-        self.dataset_size = dataset_size
-        self.classes = MNIST_Dataset_Referencer.INDEXER.classes
-        self.preload_transforms,self.transform = self.get_transform_function(augment_image= augment_image,grayscale=True,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize((0.1307,), (0.3081,))],)
-        self.data = MNIST_Dataset_Referencer.get_or_load_datasets(training,root_dir,self.preload_transforms)
-        self.indicies_list = self.build_smaller_dataset()
+        super().__init__("MNIST")
+        self.training_mode = training_mode
+        self.dataset_size = downsample_dataset
+        self.classes = self.indexer.classes
+        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=True,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize((0.1307,), (0.3081,))],)
+        self.data = MNIST(train=training_mode,root=root_dir,transform=self.preload_transforms)
+        self.indicies_list = self.downsample_dataset()
         
-    def get_n_random_instances_from_class(self, class_name, number_of_instances):
-        indicies = self.class_indicies[class_name]
-        random_indicies = random.sample(indicies,number_of_instances)
-        return self[random_indicies]
 
-    def build_smaller_dataset(self):
-        if self.training:
-            full_indicies = MNIST_Dataset_Referencer.INDEXER.train_indicies
+
+    def downsample_dataset(self):
+        if self.training_mode:
+            full_indicies = self.indexer.train_indicies
         else:
-            full_indicies = MNIST_Dataset_Referencer.INDEXER.test_indicies
+            full_indicies = self.indexer.test_indicies
         if self.dataset_size:
             self.class_indicies = {}
             class_size = int(self.dataset_size/len(self.classes))
@@ -42,6 +38,10 @@ class MNIST_base(BaseDataset):
             return indicies
         self.class_indicies = full_indicies
 
+    def get_random_samples_from_class(self, class_name, number_of_instances):
+        indicies = self.class_indicies[class_name]
+        random_indicies = random.sample(indicies,number_of_instances)
+        return self[random_indicies]
     
     def __len__(self):
         if self.dataset_size:
@@ -104,7 +104,6 @@ class MNIST_Dataset_Referencer:
     Test_Data = None
     GPU_Train_Data = None
     GPU_Test_Data = None
-    INDEXER = MNIST_Indexer()
     transforms_list = []
 
     def get_or_load_datasets(training,root_dir,transforms):

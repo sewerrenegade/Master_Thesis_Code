@@ -1,28 +1,34 @@
 from torch.utils.data import Dataset
-from configs.global_config import GlobalConfig
 from abc import ABC, abstractmethod
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
 import tifffile as tiff
 import numpy as np
-from datasets.image_augmentor import get_augmentation_function
+
+
 
 class BaseDataset(Dataset,ABC):
     def __init__(self, database_name):
         self.name = database_name
         self.classes = None
+        self.indexer= self.get_indexer()
     @abstractmethod
-    def get_n_random_instances_from_class(self, class_name, number_of_instances):
+    def get_random_samples_from_class(self, class_name, number_of_instances):
         pass
 
-    def get_n_random_instances_from_every_class(self, number_of_instances):
+    def get_random_instances_from_all_classes(self, number_of_instances):
         instances_dict = {}
         for class_name in self.classes:
-            instances_dict[class_name]  = self.get_n_random_instances_from_class(class_name,number_of_instances)[0]
+            instances_dict[class_name]  = self.get_random_samples_from_class(class_name,number_of_instances)[0]
         return instances_dict
     
+    def get_indexer(self):
+        from datasets.indexer_utils import get_dataset_indexer
+        return get_dataset_indexer(self.name)
+        
     def get_transform_function(self,load_tiff = False,augmentation_settings = None,numpy=False,to_gpu = False,flatten = False,grayscale =False,to_tensor = True,extra_transforms = []):
+        from datasets.image_augmentor import get_augmentation_function
         preload_transforms_list = []
         postload_transforms_list = []
         assert not (numpy and to_gpu)

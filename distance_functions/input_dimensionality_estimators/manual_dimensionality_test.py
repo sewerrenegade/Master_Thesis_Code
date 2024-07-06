@@ -52,7 +52,7 @@ def perform_manual_dimensionality_test(original_dataset_name,down_dim = GlobalCo
     visualize_all_embeddings_performance_wrt_dimension(joint_metrics,data_origin=original_dataset_name,down_dim=down_dim,order_of_embeddings=order_of_embeddings)
 
 if __name__ == '__main__':
-    og_datasets = ["MNIST","FMNIST","CIFAR10","SCEMILA/fnl34_feature_data","SCEMILA/image_data","SCEMILA/dinobloom_feature_data"]
+    og_datasets = ["MNIST","FashionMNIST","CIFAR10","SCEMILA/fnl34_feature_data","SCEMILA/image_data","SCEMILA/dinobloom_feature_data"]
     original_dataset_name = "SCEMILA/image_data"
     for dataset_name in og_datasets:
         perform_manual_dimensionality_test(dataset_name)

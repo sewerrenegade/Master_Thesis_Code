@@ -19,7 +19,7 @@ class EmbeddingBaseDataset(BaseDataset):
         self.class_indicies = self.get_class_indicies(self.data)
         self.indicies_list = self.build_smaller_dataset()
     
-    def get_n_random_instances_from_class(self, class_name, number_of_instances):
+    def get_random_samples_from_class(self, class_name, number_of_instances):
         indicies = self.class_indicies[class_name]
         random_indicies = random.sample(indicies,number_of_instances)
         return self[random_indicies]
