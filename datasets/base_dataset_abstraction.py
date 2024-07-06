@@ -6,9 +6,9 @@ import torchvision.transforms as transforms
 from PIL import Image
 import tifffile as tiff
 import numpy as np
-from datasets.image_augmentor import IMAGE_AUGMENTATION_TRANSFORM_LIST
+from datasets.image_augmentor import get_augmentation_function
 
-class baseDataset(Dataset,ABC):
+class BaseDataset(Dataset,ABC):
     def __init__(self, database_name):
         self.name = database_name
         self.classes = None
@@ -22,7 +22,7 @@ class baseDataset(Dataset,ABC):
             instances_dict[class_name]  = self.get_n_random_instances_from_class(class_name,number_of_instances)[0]
         return instances_dict
     
-    def get_transform_function(self,load_tiff = False,augment_image = False,numpy=False,to_gpu = True,flatten = False,grayscale =False,to_tensor = True,extra_transforms = []):
+    def get_transform_function(self,load_tiff = False,augmentation_settings = None,numpy=False,to_gpu = False,flatten = False,grayscale =False,to_tensor = True,extra_transforms = []):
         preload_transforms_list = []
         postload_transforms_list = []
         assert not (numpy and to_gpu)
@@ -31,8 +31,9 @@ class baseDataset(Dataset,ABC):
         #assert (not augment_image) or (augment_image and load_tiff)
         if load_tiff:
             preload_transforms_list.append(TifToPILimage())
-        if augment_image:
-            preload_transforms_list.extend(IMAGE_AUGMENTATION_TRANSFORM_LIST)
+        if augmentation_settings is not None:
+            preload_transforms_list.extend(get_augmentation_function(augmentation_settings))
+            self.augmentaion_settings = augmentation_settings
         if to_tensor:
             preload_transforms_list.append(transforms.ToTensor())
         if to_gpu:

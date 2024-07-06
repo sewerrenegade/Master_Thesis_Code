@@ -1,5 +1,5 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
-from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
+from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase
 from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 import torch
 import numpy as np
@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
-from distance_functions.input_distance_function_metrics.distance_matrix_metrics import get_score_of_distances
+from distance_functions.input_distance_function_metrics.interclass_distance_matrix_metrics import get_score_of_distances
 
 order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP","PHATE"]
 EMBEDDED_MNIST_DATASET = [EMNIST(f"data/MNIST/embeddings/{embeddings}/") for embeddings in order_of_embeddings]

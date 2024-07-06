@@ -2,7 +2,7 @@ import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import numpy as np
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
-from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
+from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase
 import random
 import matplotlib.pyplot as plt
 from models.topology_models.tardis.api import calculate_euclidicity

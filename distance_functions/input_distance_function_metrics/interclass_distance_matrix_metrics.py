@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def calculate_linear_affinity(distance_matrix):
     nb_classes = distance_matrix.shape[0]
     nb_off_diagonal_to_diag_ratio = nb_classes - 1
@@ -18,8 +20,6 @@ def calculate_variational_ratio(distance_matrix):
     soft_max = calculate_softmax(distance_matrix)
     variational_ratio = np.sum(1-np.diag(soft_max))/distance_matrix.shape[0]
     return variational_ratio
-
-
 
 def get_score_of_distances(distance_mat,data_used):
     distance_mat = standardize_array_mean(distance_mat)

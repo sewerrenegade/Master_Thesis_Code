@@ -10,7 +10,7 @@ from collections.abc import Iterable
 import random
 
 class CIFAR10_Indexer:
-    def __init__(self,CIFAR10_Path = "data/cifar-10-batches-py", perform_reindexing = False) -> None:
+    def __init__(self,CIFAR10_Path = "data/CIFAR10", perform_reindexing = False) -> None:
         self.path = CIFAR10_Path
         self.class_names = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
         self.dict_path = f"{CIFAR10_Path}/metadata.json"

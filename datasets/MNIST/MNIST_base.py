@@ -1,4 +1,4 @@
-from datasets.base_dataset_abstraction import baseDataset,ToGPUTransform,ToNPTransform
+from datasets.base_dataset_abstraction import BaseDataset,ToGPUTransform,ToNPTransform
 import numpy as np
 import torch
 import random
@@ -10,7 +10,7 @@ from collections.abc import Iterable
 
 
 
-class MNIST_base(baseDataset):
+class MNIST_base(BaseDataset):
     def __init__(self,training, root_dir = "data/",dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_image  = True):
         self.root_dir = root_dir
         self.name = "MNIST"
@@ -62,7 +62,7 @@ class MNIST_base(baseDataset):
             return image_data, image_label
 #ToDo update the script to be MNIST or dataset agnostic
 
-class MNIST_MIL_base(baseDataset):
+class MNIST_MIL_base(BaseDataset):
 
     def __init__(self,training, data_synth, root_dir = "data/", transforms=None,gpu = True):
         self.root_dir = root_dir

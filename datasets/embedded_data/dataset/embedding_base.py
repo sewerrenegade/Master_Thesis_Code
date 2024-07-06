@@ -2,12 +2,12 @@ from torch.utils.data import Dataset, random_split, Subset
 import os
 import numpy as np
 import random
-from datasets.base_dataset_abstraction import baseDataset
+from datasets.base_dataset_abstraction import BaseDataset
 from configs.global_config import GlobalConfig
 from collections.abc import Iterable
 
 
-class EmbeddingBaseDataset(baseDataset):
+class EmbeddingBaseDataset(BaseDataset):
     def __init__(self, root_dir,training = True,dataset_size = None):
         self.root_dir = root_dir
         self.training = training

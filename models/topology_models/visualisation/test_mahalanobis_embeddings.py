@@ -1,5 +1,5 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
-from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
+from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase
 from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 from models.topology_models.mahalanobis import MahalanobisDistanceCalculator
 import numpy as np

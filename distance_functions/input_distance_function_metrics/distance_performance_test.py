@@ -3,12 +3,12 @@ import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import random
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
-from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
+from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase
 from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
-from distance_functions.input_distance_function_metrics.distance_matrix_metrics import get_score_of_distances,calculate_softmax
+from distance_functions.input_distance_function_metrics.interclass_distance_matrix_metrics import get_score_of_distances,calculate_softmax
 import json
     
 def compute_euclidean_distance(x):

@@ -1,6 +1,6 @@
 import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-from datasets.base_dataset_abstraction import baseDataset
+from datasets.base_dataset_abstraction import BaseDataset
 from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
 import numpy as np
 from PIL import Image
@@ -14,7 +14,7 @@ from torchvision import transforms
 
 INDEXER = SCEMILA_Indexer()
 
-class SCEMILAfeature_MIL_base(baseDataset):
+class SCEMILAfeature_MIL_base(BaseDataset):
 
     '''MLL mil dataset class. Can be used by pytorch DataLoader '''
 
@@ -76,7 +76,7 @@ class SCEMILAfeature_MIL_base(baseDataset):
 
         return bag, label_regular, pat_id
     
-class SCEMILA_fnl34_feature_base(baseDataset):
+class SCEMILA_fnl34_feature_base(BaseDataset):
 
     '''MLL mil dataset class. Can be used by pytorch DataLoader '''
 
@@ -145,7 +145,7 @@ class SCEMILA_fnl34_feature_base(baseDataset):
 
         return bag[cell_index,:], label
     
-class SCEMILA_DinoBloom_feature_base(baseDataset):
+class SCEMILA_DinoBloom_feature_base(BaseDataset):
 
     '''MLL mil dataset class. Can be used by pytorch DataLoader '''
 
@@ -252,7 +252,7 @@ class SCEMILA_DinoBloom_feature_base(baseDataset):
         return self[random_indicies]
 
 
-class SCEMILAimage_base(baseDataset):
+class SCEMILAimage_base(BaseDataset):
 
     '''MLL mil dataset class. Can be used by pytorch DataLoader '''
 

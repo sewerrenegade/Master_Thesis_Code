@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset, random_split, Subset
 import torch
-from datasets.base_dataset_abstraction import baseDataset
+from datasets.base_dataset_abstraction import BaseDataset
 from torchvision.datasets import FashionMNIST as FMNIST
 from datasets.FMNIST.FMNIST_indexer import FMNIST_Indexer
 from torchvision.transforms import ToTensor
@@ -10,8 +10,8 @@ import random
 import numpy as np
 
 
-class FMNIST_base(baseDataset):
-
+class FMNIST_base(BaseDataset):
+    
     def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_image = True):
         self.root_dir = root_dir
         self.name = "FMNIST"

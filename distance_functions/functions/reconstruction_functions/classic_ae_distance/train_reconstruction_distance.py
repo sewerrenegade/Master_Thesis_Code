@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 from distance_functions.functions.reconstruction_functions.classic_ae_distance.ae_reconstruction_distance import ReconstructionProjectionModel
 import matplotlib.pyplot as plt
 import numpy as np
-from datasets.MNIST.MNIST_base import baseDataset
+from datasets.MNIST.MNIST_base import BaseDataset
 import torch.multiprocessing as mp
 from datasets.embedded_data.generators.generate_embeddings import save_embeddings
 
@@ -28,7 +28,7 @@ def train_or_show_rec_autoencoder(embeddings_save_path = None,model_path = 'mode
     if not os.path.exists(model_path):
         # trainset = tv.datasets.MNIST(root='./data',  train=True, download=True, transform=transform)
        
-        train_set = baseDataset(True)
+        train_set = BaseDataset(True)
         dataloader = torch.utils.data.DataLoader(train_set.data, batch_size=batch_size, shuffle=True)
         model = ReconstructionProjectionModel().to(device)
         distance_l2 = nn.MSELoss()
@@ -47,7 +47,7 @@ def train_or_show_rec_autoencoder(embeddings_save_path = None,model_path = 'mode
         torch.save(model.state_dict(), model_path)
 
     else:
-        train_set = baseDataset(False)
+        train_set = BaseDataset(False)
         dataloader = torch.utils.data.DataLoader(train_set.data, batch_size=1, shuffle=True)
 
         # Define the model architecture

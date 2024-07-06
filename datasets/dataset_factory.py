@@ -24,6 +24,7 @@ BASE_MODULES = {
     "SCEMILA/dinobloom_feature_data": SCEMILA_DinoBloom_feature_base
 }
 
+
 NAME_KEY: str = "name"
 CONFIG_KEY: str = "config"
 

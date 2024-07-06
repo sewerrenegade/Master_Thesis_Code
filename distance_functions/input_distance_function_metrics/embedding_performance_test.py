@@ -6,9 +6,10 @@ from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset a
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig
-from distance_functions.input_distance_function_metrics.distance_matrix_metrics import get_score_of_distances,calculate_softmax,standardize_array_mean
+from distance_functions.input_distance_function_metrics.interclass_distance_matrix_metrics import get_score_of_distances,calculate_softmax,standardize_array_mean
 from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
 import json
+from sklearn.metrics import silhouette_score
 from datasets.dataset_factory import BASE_MODULES
 
 cubical_complex_calculator = CubicalComplexImageEncoder()

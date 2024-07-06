@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset, random_split, Subset
 import torch
-from datasets.base_dataset_abstraction import baseDataset
+from datasets.base_dataset_abstraction import BaseDataset
 from torchvision.datasets import CIFAR10
 from datasets.CIFAR10.CIFAR10_indexer import CIFAR10_Indexer
 from torchvision.transforms import ToTensor
@@ -10,7 +10,7 @@ import random
 import numpy as np
 
 
-class CIFAR10_base(baseDataset):
+class CIFAR10_base(BaseDataset):
 
     def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augment_data = True):
         self.root_dir = root_dir

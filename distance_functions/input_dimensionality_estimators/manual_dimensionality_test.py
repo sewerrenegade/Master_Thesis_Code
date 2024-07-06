@@ -5,13 +5,13 @@ import os
 from configs.global_config import GlobalConfig
 from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
-from distance_functions.input_distance_function_metrics.new_test import visualize_embedding_performance_wrt_dimension, test_baseline_on_dataset_origin, test_embedding,image_cubical_complex_distance_function
+from distance_functions.input_distance_function_metrics.embedding_performance_test import visualize_embedding_performance_wrt_dimension, test_baseline_on_dataset_origin, test_embedding,image_cubical_complex_distance_function
 import random
 def visualize_all_embeddings_performance_wrt_dimension(metrics,data_origin,down_dim,order_of_embeddings):
     num_metrics = len(metrics[order_of_embeddings[0]][0])
     fig, axs = plt.subplots(num_metrics, 1, figsize=(15, 5 * num_metrics))
     if not len(metrics) == len(order_of_embeddings):
-        temp = ["baseline","cubical_complex"]
+        temp = ["baseline"]
         temp.extend(order_of_embeddings)
         order_of_embeddings = temp
     assert len(metrics) == len(order_of_embeddings)
@@ -29,7 +29,7 @@ def visualize_all_embeddings_performance_wrt_dimension(metrics,data_origin,down_
     fig.suptitle(f"Metrics Plots for all Embedding Methods originating from {data_origin}", fontsize=20)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,f"{data_origin}_interinstance_distances","dimensionality_results/")
-    os.makedirs(path,exist_ok= True)
+    os.makedirs(path,exist_ok= True) 
     path = os.path.join(path,"joint_metrics_plots.png")
     plt.savefig(path)
     plt.close(fig)

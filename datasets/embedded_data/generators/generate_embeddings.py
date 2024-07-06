@@ -4,7 +4,7 @@ sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from configs.global_config import GlobalConfig
 import umap
 import numpy as np
-from datasets.MNIST.MNIST_base import baseDataset as MNIST_baseDataset
+from datasets.MNIST.MNIST_base import BaseDataset as MNIST_baseDataset
 from typing import Callable,Union
 from torch.utils.data import Dataset
 import torch

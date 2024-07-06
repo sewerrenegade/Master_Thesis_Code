@@ -1,5 +1,5 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
-from datasets.MNIST.MNIST_base import baseDataset as MNISTbase
+from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase
 from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
 from distance_functions.functions.perceptual_lpsis_distance import PerceptualLoss
 from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
