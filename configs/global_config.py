@@ -29,3 +29,13 @@ class GlobalConfig:
 
     DOWNPROJECTION_TEST_DIMENSIONS = [1,2,3,4,6,8,12,16,32]
     EMBEDDING_METHODS = ["PHATE","ISOMAP","PCA","TSNE","UMAP"]
+    
+    
+    LIST_OF_ALL_DATASETS = [
+        "MNSIT",
+        "FMNIST",
+        "CIFAR10",
+        "SCEMILA/image_data",
+        "SCEMILA/fnl34_feature_data",
+        
+    ]

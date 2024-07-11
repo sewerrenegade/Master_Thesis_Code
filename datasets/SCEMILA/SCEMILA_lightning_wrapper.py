@@ -1,5 +1,4 @@
 import pytorch_lightning as pl
-from datasets.indexer_utils import get_dataset_indexer
 import os
 from sklearn.model_selection import KFold
 from torch.utils.data import  random_split
@@ -20,6 +19,7 @@ class SCEMILA(pl.LightningDataModule):
         self.num_workers = num_workers
         self.val_split = val_split
         self.k_fold = k_fold
+        from datasets.indexer_utils import get_dataset_indexer
         self.indexer = get_dataset_indexer(self.name)
         self.train_indicies = self.process_indicies(self.indexer.train_patients_path,patient_bootstrap_exclude)
         self.test_indicies = self.process_indicies(self.indexer.test_indicies,patient_bootstrap_exclude)

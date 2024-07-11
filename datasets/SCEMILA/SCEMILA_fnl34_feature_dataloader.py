@@ -19,7 +19,7 @@ class SCEMILAfeature_MIL_base(BaseDataset):
                 9 for test
         - aug_im_order: if True, images in a bag are shuffled each time during loading
         - split: store information about the split within object'''
-        super().__init__("SCEMILA/feature_data")
+        super().__init__("SCEMILA/fnl34_feature_data")
         self.aug_im_order = aug_im_order
         self.prefix = prefix
         # grab data split for corresponding folds

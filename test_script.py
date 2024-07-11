@@ -146,6 +146,17 @@
 
 #     plt.show()
 
-from datasets.SCEMILA import *
-x = SCEMILA_Indexer()
-pass
+# from datasets.SCEMILA import *
+# x = SCEMILA_Indexer()
+# pass
+
+from datetime import datetime
+
+# Get the current date and time
+current_time = datetime.now()
+
+# Truncate seconds and microseconds to get up to the minute
+current_time_up_to_minute = current_time.replace(microsecond=0)
+
+# Print the current time up to the minute
+print(current_time_up_to_minute)

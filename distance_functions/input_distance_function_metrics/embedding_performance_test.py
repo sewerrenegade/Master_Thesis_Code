@@ -10,7 +10,7 @@ from distance_functions.input_distance_function_metrics.interclass_distance_matr
 from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
 import json
 from sklearn.metrics import silhouette_score
-from datasets.dataset_factory import BASE_MODULES
+from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 cubical_complex_calculator = CubicalComplexImageEncoder()
 
@@ -21,7 +21,7 @@ def euclidean_distance_function(x):
 
 
 def image_cubical_complex_distance_function(x):
-    return cubical_complex_calculator(x)[0,1].cpu()
+    return cubical_complex_calculator(x).cpu()
 
 def compute_distance_between_classes(distance_fn,class1,class2=None):
     if class2 is None:
@@ -37,16 +37,16 @@ def compute_distance_between_classes(distance_fn,class1,class2=None):
 
 def test_baseline_on_dataset_origin(database,distance_function = euclidean_distance_function,flatten = True):
     if hasattr(database, 'data_origin'): 
-        og_db = BASE_MODULES.get(database.data_origin,None)
+        og_db = DATA_SET_MODULES.get(database.data_origin,None)
         assert og_db is not None
-        database = og_db(training = True,gpu= False,numpy = True,flatten = flatten)
+        database = og_db(training_mode = True,gpu= False,numpy = True,flatten = flatten)
         database.data_origin = database.name
         metrics = test_embedding(database,distance_fn=distance_function)
         return metrics
     elif type(database) is str:
-        og_db = BASE_MODULES.get(database,None)
+        og_db = DATA_SET_MODULES.get(database,None)
         assert og_db is not None
-        database = og_db(training = True,gpu= False,numpy = True,flatten = flatten)
+        database = og_db(training_mode = True,gpu= False,numpy = True,flatten = flatten)
         database.data_origin = database.name
         metrics = test_embedding(database,distance_fn=distance_function)
         return metrics
@@ -67,7 +67,7 @@ def calculate_interclass_distances(database ,per_class_nb_samples,distance_fn):
     class_count = len(classes)
     mean_distance_matrix = np.zeros((class_count,class_count))
     var_distance_matrix = np.zeros((class_count,class_count))
-    data = database.get_n_random_instances_from_every_class(per_class_nb_samples)
+    data = database.get_random_instances_from_all_classes(per_class_nb_samples)
     for i in range(class_count):
             for j in range(i, class_count):
                 if i != j:

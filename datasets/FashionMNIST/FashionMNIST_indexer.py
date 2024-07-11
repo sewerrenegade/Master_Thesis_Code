@@ -5,12 +5,10 @@ from torchvision.datasets import FashionMNIST as FashionMNIST
 import json
 from collections.abc import Iterable
 import random
-
+from datasets.indexer_scripts.indexer_abstraction import Indexer
 SINGLETON_INSTANCE  = None
 
-class FashionMNIST_Indexer:
-    
-    
+class FashionMNIST_Indexer(Indexer):
     def __init__(self,FashionMNIST_Path = "data/FashionMNIST/raw/", perform_reindexing = False) -> None:
         self.path = FashionMNIST_Path
         self.class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 
@@ -20,20 +18,37 @@ class FashionMNIST_Indexer:
             self.create_meta_file()
         with open(self.dict_path, 'r') as json_file:
             loaded_dict = json.load(json_file)
-        from datasets.indexer_utils import process_deserialized_json    
-        self.train_indicies = process_deserialized_json(loaded_dict["train"])
-        self.test_indicies = process_deserialized_json(loaded_dict["test"])
+        from datasets.indexer_scripts.indexer_utils import process_deserialized_json    
+        self.train_per_class_indicies = process_deserialized_json(loaded_dict["train"])
+        self.test_per_class_indicies = process_deserialized_json(loaded_dict["test"])
         self.classes= sorted(loaded_dict["classes"])
         self.train_class_count ,self.test_class_count = process_deserialized_json(loaded_dict["class_count"])
         self.train_size,self.test_size = loaded_dict["total_count"]
-
-    def get_random_instance_of_class(self,target_class_s,training):
+        
+    def get_instance_level_indicies(self,training):
+        indicies_list = []
+        labels_list = []
+        if training:
+            indicies = self.train_per_class_indicies
+            class_count = self.train_class_count
+        else:
+            indicies = self.test_per_class_indicies
+            class_count = self.test_class_count
+        for key, value in indicies.items():
+            indicies_list.extend(value)
+            labels_list.extend([key]*len(value))
+                
+        return list(zip(indicies_list,labels_list)),indicies,class_count
+        
+    def get_bag_level_indicies(self):
+        raise NotImplementedError
+    def get_random_samples_of_class(self,target_class_s,training):
         if training:
             class_count = self.train_class_count
-            indicies = self.train_indicies
+            indicies = self.train_per_class_indicies
         else:
             class_count = self.test_class_count
-            indicies = self.test_indicies
+            indicies = self.test_per_class_indicies
 
         if not isinstance(target_class_s, Iterable):
             target_class_s = [target_class_s]
@@ -51,7 +66,7 @@ class FashionMNIST_Indexer:
             SINGLETON_INSTANCE = FashionMNIST_Indexer()
         return SINGLETON_INSTANCE
     
-    def get_class_count(self,classes,train_indicies,test_indicies):
+    def get_per_class_count(self,classes,train_indicies,test_indicies):
         train_class_count={}
         test_class_count={}
         for class_name in classes:
@@ -71,7 +86,7 @@ class FashionMNIST_Indexer:
         train_data_indicies = self.get_indices(train_data)
         test_data_indicies = self.get_indices(test_data)
         classes = self.get_classes(train_data_indicies)
-        class_count = self.get_class_count(classes,train_data_indicies,test_data_indicies)
+        class_count = self.get_per_class_count(classes,train_data_indicies,test_data_indicies)
         train_test_indeices = {'train':train_data_indicies,'test':test_data_indicies,'class_count':class_count,'classes':classes, 'total_count':(len(train_data),len(test_data))}
         with open(self.dict_path, 'w+') as json_file:
             json.dump(train_test_indeices, json_file)

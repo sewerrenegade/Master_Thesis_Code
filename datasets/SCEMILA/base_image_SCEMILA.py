@@ -3,6 +3,7 @@ sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from datasets.base_dataset_abstraction import BaseDataset
 import random
 from collections.abc import Iterable
+import torch
 
 class SCEMILAimage_base(BaseDataset):
 
@@ -10,93 +11,64 @@ class SCEMILAimage_base(BaseDataset):
 
     def __init__(
             self,
-            training=True,#dummy variable
+            training_mode=True,#dummy variable
+            encode_with_dino_bloom = False,
             transforms_list = None,
             numpy = False,
             gpu =True,
             flatten = False,
-            to_tensor = True,
-            number_of_per_class_instances = 100,
+            to_tensor = False,
+            balance_dataset_classes = None,
             augmentation_settings = None
             ):
-        super().__init__("SCEMILA/image_data")
-        if number_of_per_class_instances is None:
-            self.augment_data = False
+        super().__init__("SCEMILA/image_data",augmentation_settings,balance_dataset_classes=balance_dataset_classes)
+        self.encode_with_dino_bloom = encode_with_dino_bloom
+        self.augmentation_settings = augmentation_settings
+        self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings)
+        if self.encode_with_dino_bloom:
+            self.dino_enc = self.get_dino_bloom_transform()
+            self.get_item_function = self.get_and_dino_encoded_tif_image
         else:
-            self.augment_data = True
-            self.augment_all = True
-            self.number_of_per_class_instances = number_of_per_class_instances
-        self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor)
-        self.augmented_preload_transform,_ = self.get_transform_function(load_tiff=True,augmentation_settings= augmentation_settings,extra_transforms=transforms_list,numpy=numpy,to_gpu=False,flatten=False,to_tensor=False)
-        self.data_indicies,self.class_indicies = self.indexer.get_image_class_structure_from_indexer_instance_level()
-        self.classes = list(self.class_indicies.keys())
-        if self.augment_data:
-            self.data_indicies,self.class_indicies, self.augmentation_list  = self.upsample_downsample_to_balance_classes()
-        
-      
-    def upsample_downsample_to_balance_classes(self):
-        if self.augment_data:
-            
-            new_class_indicies = {}
-            paths = []
-            labels = []
-            augmentation_list = []
-            for key,value in self.class_indicies.items():
-                if len(value)>self.number_of_per_class_instances:
-                    paths.extend([self.data_indicies[i][0] for i in value[:self.number_of_per_class_instances]])
-                    augmentation_list.extend([self.augment_data]*self.number_of_per_class_instances)
-                elif len(value)<self.number_of_per_class_instances:
-                    class_list_of_paths = value * (self.number_of_per_class_instances // len(value) + 1)
-                    class_list_of_paths = class_list_of_paths[:self.number_of_per_class_instances]
-                    paths.extend([self.data_indicies[i][0] for i in class_list_of_paths])
-                    augmentation_list.extend([self.augment_data]*len(value))
-                    augmentation_list.extend([True]*(self.number_of_per_class_instances - len(value)))
-                else:
-                    assert len(value) == self.number_of_per_class_instances
-                    paths.extend([self.data_indicies[i][0] for i in value])
-                    augmentation_list.extend([self.augment_data]*self.number_of_per_class_instances)
-                new_class_indicies[key] = list(range(len(labels),len(labels)+self.number_of_per_class_instances))
-                labels.extend([key]*self.number_of_per_class_instances)
-            return list(zip(paths,labels)),new_class_indicies , augmentation_list
+            self.get_item_function = self.get_single_tiff_image
+        self.loaded_data = {}
                 
     def __len__(self):
         '''returns amount of images contained in object'''
-        return len(self.data_indicies)
+        return len(self.indicies_list)
 
     def __getitem__(self, idx):
         '''returns specific item from this dataset'''
         if type(idx) is int:
-            return self.get_single_item(idx)
+            return self.get_item_function(idx)
         elif isinstance(idx,Iterable):
             images = []
             labels = []
             for index in idx:
-                image , label = self.get_single_item(index)
+                image , label = self.get_item_function(index)
                 images.append(self.transforms(image))
                 labels.append(label)
             return images,labels
         
-    def get_single_item(self, idx):
-        image_path = self.data_indicies[idx][0]
-        if not self.augment_data:
+    def get_single_tiff_image(self, idx):
+        if idx not in self.loaded_data:
+            image_path = self.indicies_list[idx][0]
             image = self.transforms(self.preload_transforms(image_path))
-            return image,self.indexer.convert_from_int_to_label_instance_level(self.data_indicies[idx][1])
-        else:
-            if self.augmentation_list[idx]:
-                aug_image= self.augmented_preload_transform(image_path)
-                image = self.transforms(aug_image)
-                return image,self.indexer.convert_from_int_to_label_instance_level(self.data_indicies[idx][1])
-            else:
-                image = self.transforms(self.preload_transforms(image_path))
-                return image,self.indexer.convert_from_int_to_label_instance_level(self.data_indicies[idx][1])
-            
-    def get_random_samples_from_class(self, class_name, number_of_instances):
-        indicies = self.class_indicies[class_name]
-        random_indicies = random.sample(indicies,number_of_instances)
-        return self[random_indicies]
+            self.loaded_data[idx] =  image,self.indexer.convert_from_int_to_label_instance_level(self.indicies_list[idx][1])
+        return self.loaded_data[idx]
+
+    
+    def get_and_dino_encoded_tif_image(self,idx):
+        if idx not in self.loaded_data:
+            image_path = self.indicies_list[idx][0]
+            preload_trans = self.preload_transforms
+            image = preload_trans(image_path)
+            dino_features = self.dino_enc(image)
+            image_feaures = self.transforms(dino_features[0].cpu().detach())
+            self.loaded_data[idx] = image_feaures, self.indexer.convert_from_int_to_label_instance_level(self.indicies_list[idx][1])
+        return self.loaded_data[idx]
     
 if __name__ == '__main__':
-    db = SCEMILAimage_base(number_of_per_class_instances = 100,gpu= False)
+    db = SCEMILAimage_base(balance_dataset_classes = 100,gpu= False)
     x = db[889]
     pass
 

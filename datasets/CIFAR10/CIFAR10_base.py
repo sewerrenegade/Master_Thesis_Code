@@ -1,64 +1,33 @@
-from torch.utils.data import Dataset, random_split, Subset
+from torch.utils.data import Dataset
 import torch
 from datasets.base_dataset_abstraction import BaseDataset
 from torchvision.datasets import CIFAR10
-from datasets.CIFAR10.CIFAR10_indexer import CIFAR10_Indexer
-from torchvision.transforms import ToTensor
 from torchvision import transforms
-from collections.abc import Iterable
 import random
-import numpy as np
 
 
 class CIFAR10_base(BaseDataset):
 
-    def __init__(self,training, root_dir = "data/", dataset_size = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
+    def __init__(self,training_mode, root_dir = "data/",balance_dataset_classes = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
         self.root_dir = root_dir
-        super().__init__("CIFAR10")
-        self.training = training
-        self.dataset_size = dataset_size
-        self.classes = self.indexer.classes
-        self.preload_transforms,self.transform = self.get_transform_function(grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])],)
-        self.data = CIFAR10(train=training,root=root_dir,transform=self.preload_transforms)
-        self.indicies_list = self.build_smaller_dataset()
+        super().__init__("CIFAR10",augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes,training=training_mode)
+        self.training_mode = training_mode
+        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])])
+        self.data = CIFAR10(train=training_mode,root=root_dir,transform=self.preload_transforms)
+        
 
-
-    def get_random_samples_from_class(self, class_name, number_of_instances):
-        indicies = self.class_indicies[class_name]
-        random_indicies = random.sample(indicies,number_of_instances)
-        return self[random_indicies]
-    
-
-    def build_smaller_dataset(self):
-        if self.training:
-            full_indicies = self.indexer.train_indicies
-        else:
-            full_indicies = self.indexer.test_indicies
-        if self.dataset_size:
-            self.class_indicies = {}
-            class_size = int(self.dataset_size/len(self.classes))
-            indicies = []
-            for cifar10_class in self.classes:
-                indicies.extend(full_indicies[cifar10_class][:class_size])
-                self.class_indicies[cifar10_class] = full_indicies[cifar10_class][:class_size]
-            return indicies
-        self.class_indicies = full_indicies
     
     def __len__(self):
-        if self.dataset_size:
-            return len(self.indicies_list)
-        else:
-            return len(self.data)
+        return len(self.indicies_list)
 
     def __getitem__(self, index):
-        if self.dataset_size:
-            index = self.indicies_list[index]
         if isinstance(index,int):
-            image_data,image_label = self.data[index]
+            x = self.indicies_list[index][0]
+            image_data,image_label = self.data[x][0],self.indicies_list[index][1]
             return self.transform(image_data), image_label
         else:
-            image_data = [self.transform(self.data[ind][0]) for ind in index]
-            image_label = [self.data[ind][0] for ind in index]
+            image_data =[self.transform(self.data[self.indicies_list[ind][0]][0]) for ind in index]
+            image_label =[self.indicies_list[ind][1] for ind in index]
             return image_data, image_label
 #ToDo update the script to be CIFAR10 or dataset agnostic
 

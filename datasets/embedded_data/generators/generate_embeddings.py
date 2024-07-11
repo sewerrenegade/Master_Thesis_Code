@@ -5,20 +5,11 @@ from configs.global_config import GlobalConfig
 import umap
 import numpy as np
 from datasets.MNIST.MNIST_base import BaseDataset as MNIST_baseDataset
-from typing import Callable,Union
-from torch.utils.data import Dataset
-import torch
-from dataclasses import dataclass
 import time
 import random
+from datasets.embedded_data.generators.embedding_descriptor import EmbeddingDescriptor
 
-PATH_TO_MNIST_EMBEDDINGS  = "data/MINST/embeddings/"
 
-@dataclass
-class EmbeddingDescriptor:
-    name: str
-    dataset: Dataset
-    downprojection_function: Union[Callable,str]
 
 def save_embeddings(embeddings,labels, stats,base_path):
     assert len(embeddings) == len(labels)
@@ -38,10 +29,13 @@ def generate_embeddings_for_dataset(name, base_database,transform):
     labels = []
     for data in base_database:
         tmp_data = data[0]
-        if isinstance(tmp_data, torch.Tensor):
-            tmp_data = tmp_data.numpy()
-        all_data.append(tmp_data.flatten())
+        all_data.append(tmp_data)
         labels.append(data[1])
+    expected_shape = all_data[0].shape
+    for i, vec in enumerate(all_data):
+        if vec.shape != expected_shape:
+            print(f"Vector at index {i} has shape {vec.shape}, expected {expected_shape}")
+
     x = np.array(all_data)
     embeddings = transform(x)
     stats_dic = get_stats_from_embedding(name,embeddings,base_database.name)
@@ -63,8 +57,8 @@ def get_stats_from_embedding(name,embeddings,generating_data_name):#gets stats o
     "generating_data": generating_data_name}
 
 
-def generate_embedding_from_descriptor(decriptor : EmbeddingDescriptor):
-    return generate_embeddings_for_dataset(decriptor.name,decriptor.dataset,decriptor.downprojection_function)
+def generate_embedding_from_descriptor(descriptor : EmbeddingDescriptor):
+    return generate_embeddings_for_dataset(descriptor.name,descriptor.dataset,descriptor.downprojection_function(**descriptor.downprojection_function_settings).fit_transform)
 
 
 if __name__ == '__main__':

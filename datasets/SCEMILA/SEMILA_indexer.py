@@ -1,11 +1,13 @@
 import os
+import sys
+sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import pandas as pd
 import random
 import re
-
+from datasets.indexer_scripts.indexer_abstraction import Indexer
 SINGLETON_INSTANCE  = None
 
-class SCEMILA_Indexer:
+class SCEMILA_Indexer(Indexer):
     def __init__(self,SCEMILA_Path = "data/SCEMILA/"):
         self.path_data = SCEMILA_Path
         self.dict_path = f"{SCEMILA_Path}meta_files/metadata.csv"
@@ -20,7 +22,22 @@ class SCEMILA_Indexer:
         
         #instance level indexing
         self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.read_csv_instance_level_annotations(include_other_and_ambiguous= False)
-        pass
+        self.instance_level_datset_size = sum([value for _,value in self.instance_level_class_count.items()])
+        
+    def get_instance_level_indicies(self,training):
+        indicies_list = []
+        labels_list = []            
+        for key, value in self.instance_level_annotations_by_class.items():
+            indicies_list.extend(value)
+            labels_list.extend([key]*len(value))
+        return list(zip(indicies_list,labels_list)), self.instance_level_annotations_by_class,self.instance_level_class_count
+    
+    def get_bag_level_indicies(self):
+        raise NotImplementedError  
+      
+    def get_random_samples_of_class(self, class_name, number_of_instances):
+        raise NotImplementedError("Subclass must implement abstract method")
+        return
     
     @staticmethod
     def get_indexer():
@@ -200,17 +217,6 @@ class SCEMILA_Indexer:
         for _class in included_classes:
             new_class_paths[_class] = class_paths[_class]
         length_dict = {key: len(value) for key, value in new_class_paths.items()}
-        # else:
-        #     other_classes.extend(sorted_classes[number_of_classes+2:])
-        #     included_classes = sorted_classes[1:number_of_classes+1]
-        #     new_class_paths = {"other":[]}
-        #     for _class in sorted_classes:
-        #         if _class in included_classes:
-        #             new_class_paths[_class] = class_paths[_class]
-        #         else:
-        #             new_class_paths["other"].extend(class_paths[_class])
-        #     del new_class_paths["other"]
-        #     length_dict = {key: len(value) for key, value in new_class_paths.items()}
         return new_class_paths,length_dict,included_classes
 
 

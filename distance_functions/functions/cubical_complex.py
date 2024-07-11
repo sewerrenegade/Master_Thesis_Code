@@ -6,37 +6,32 @@ import torch
 import torchvision.transforms as transforms
 
 class CubicalComplexImageEncoder(nn.Module):
-    def __init__(self, image_dim=[28,28],):
+    def __init__(self):
         super(CubicalComplexImageEncoder,self).__init__()
-        self.device='cpu'#self.device='cuda:0'
-        self.image_dim = image_dim
-        self.cube_complex_encoder = CubicalComplex(dim = len(image_dim))
-        self.wasserstein_distance = WassersteinDistance(q = 2)
-        #self.requires_grad_ = True
+        self.device='cpu'
+        self.cube_complex_encoder = CubicalComplex()
+        self.wasserstein_distance = WassersteinDistance()
         self.transform = transforms.Compose([
             transforms.ToTensor(),  # Converts the image to a PyTorch tensor (HWC -> CHW, [0, 255] -> [0, 1])
         ])
     def forward(self, x):
-        #input = x.to(self.device)
-        input = torch.stack([self.transform(x[0]),self.transform(x[1])])
-        #print(f"Gradient of input {x.grad_fn}")
-        cub_complexs = self.cube_complex_encoder(input)
-        distances = self.calculate_distance_matrix(cub_complexs)
-        #distances.requires_grad_(True)
-        print("computed a water")
-        return distances
+        a = x[0]#first picture
+        b = x[1]#second picture
+        if not isinstance(x,torch.Tensor):
+            a = torch.Tensor(x[0])
+            b = torch.Tensor(x[1])
+        cub_complexs_0 = self.cube_complex_encoder(a)
+        cub_complexs_1 = self.cube_complex_encoder(b)
+        distance = self.calculate_distance_between_complexes(cub_complexs_0,cub_complexs_1)
+        return distance
 
 
-    def calculate_distance_matrix(self,elements):
-        distance_matrix = torch.zeros(len(elements),len(elements),device=self.device)
-
-        for i in range(len(elements)):
-            for j in range(i + 1, len(elements)):
-                x, y = elements[i][0], elements[j][0]
-                distance = self.wasserstein_distance(x, y)
-                distance_matrix[i, j] = distance
-                distance_matrix[j, i] = distance
-        return distance_matrix
+    def calculate_distance_between_complexes(self,cub0,cub1):
+        nb_channels = len(cub0)
+        distances = []
+        for channel_index in range(nb_channels):
+            distances.append(self.wasserstein_distance(cub0[channel_index],cub1[channel_index]))
+        return torch.sum(torch.stack(distances))
 
 
 

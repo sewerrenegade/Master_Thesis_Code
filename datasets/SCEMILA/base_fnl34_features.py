@@ -1,5 +1,6 @@
+import sys
+sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from datasets.base_dataset_abstraction import BaseDataset
-from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
 import random
 from collections.abc import Iterable
 import numpy as np
@@ -73,3 +74,4 @@ class SCEMILA_fnl34_feature_base(BaseDataset):
 
 
         return bag[cell_index,:], label
+    

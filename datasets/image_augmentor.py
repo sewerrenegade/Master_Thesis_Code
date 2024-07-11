@@ -1,9 +1,10 @@
 from torchvision import transforms
+import numpy as np
 import torch
+from PIL import Image
 from enum import Enum
-from datasets.dataset_factory import BASE_MODULES
-#from datasets.base_dataset_abstraction import BaseDataset
-from typing import Union,Type
+
+
 
 class Augmentability(Enum):
     COMPLETELY_ROTATIONALY_INVARIANT = 1
@@ -16,7 +17,8 @@ DATASET_AUGMENTABIBILITY = {
     "CIFAR10": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "SCEMILA/fnl34_feature_data": Augmentability.UNAUGMENTABLE,
     "SCEMILA/image_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
-    "SCEMILA/dinobloom_feature_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT
+    "SCEMILA/dinobloom_feature_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
+    "Acevedo": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT
 }
 DATASET_RGB = {
     "FashionMNIST": False,
@@ -24,15 +26,16 @@ DATASET_RGB = {
     "CIFAR10": True,
     "SCEMILA/fnl34_feature_data": False,
     "SCEMILA/image_data": True,
-    "SCEMILA/dinobloom_feature_data": True
+    "SCEMILA/dinobloom_feature_data": True,
+    "Acevedo": True
 }
 #make sure I added all included the augmentation settings for all datasets
-assert DATASET_AUGMENTABIBILITY.keys() == BASE_MODULES.keys()
+#assert DATASET_AUGMENTABIBILITY.keys() == BASE_MODULES.keys()
 
 class AugmentationSettings:
     def __init__(
         self, 
-        dataset_name: str, 
+        dataset_name: str ="", 
         color_jitter: bool = True, 
         sharpness_aug: bool = True, 
         horizontal_flip_aug: bool = True, 
@@ -40,7 +43,9 @@ class AugmentationSettings:
         rotation_aug: bool = True, 
         translation_aug: bool = True, 
         gaussian_blur_aug: bool = True, 
-        gaussian_noise_aug: bool = True
+        gaussian_noise_aug: bool = True,
+        auto_generated_notes: str = "", # this input is used only for deserialization process
+        
     ) -> None:
         """
         Initialize the augmentation settings for the dataset.
@@ -65,16 +70,8 @@ class AugmentationSettings:
         self.translation_aug = translation_aug
         self.gaussian_blur_aug = gaussian_blur_aug
         self.gaussian_noise_aug = gaussian_noise_aug
+        self.auto_generated_notes = auto_generated_notes
 
-        self._validate_settings()
-
-    def _validate_settings(self) -> None:
-        """Validate the initialization parameters."""
-        if not isinstance(self.dataset_name, str):
-            raise ValueError("dataset_name must be a string.")
-        for attr, value in vars(self).items():
-            if attr != 'dataset_name' and not isinstance(value, bool):
-                raise ValueError(f"{attr} must be a boolean.")
 
     def __repr__(self) -> str:
         """Provide a string representation of the configuration settings."""
@@ -85,13 +82,15 @@ class AugmentationSettings:
         """Convert the configuration settings to a dictionary."""
         return vars(self)
     
+    
+    #If the input is all, then all possible augmentations will be activated
     @classmethod
-    def all_false_except_one(cls, dataset_name: str, only_enabled: str) -> 'AugmentationSettings':
+    def all_false_except_one(cls, only_enabled: str, dataset_name: str="") -> 'AugmentationSettings':
         """
         Initialize with all augmentations set to False except one specified.
 
         Parameters:
-        - dataset_name (str): The name of the dataset.
+        - dataset_name (str): The name of the dataset. set later
         - only_enabled (str): The only augmentation to be enabled.
 
         Returns:
@@ -100,12 +99,14 @@ class AugmentationSettings:
         valid_augmentations = [
             'color_jitter', 'sharpness_aug', 'horizontal_flip_aug', 
             'vertical_flip_aug', 'rotation_aug', 'translation_aug', 
-            'gaussian_blur_aug', 'gaussian_noise_aug'
+            'gaussian_blur_aug', 'gaussian_noise_aug', 'all'
         ]
+        
         if only_enabled not in valid_augmentations:
             raise ValueError(f"{only_enabled} is not a valid augmentation type.")
-        
-        settings = {aug: False for aug in valid_augmentations}
+        if only_enabled == valid_augmentations[-1]:
+            return AugmentationSettings() #ALL AUGMENTATIONS ACTIVE
+        settings = {aug: False for aug in valid_augmentations[0:-1]}
         settings[only_enabled] = True
         return cls(dataset_name, **settings)
 
@@ -113,17 +114,42 @@ class AugmentationSettings:
 whiteness = 0.98
 
 
-def _add_gaussian_noise(image, mean=0, std=0.02):
-    noise = torch.randn(image.size()) * std + mean
-    noisy_image = image + noise
-    noisy_image = torch.clamp(noisy_image, 0, 1)
-    return noisy_image
+class AddGaussianNoise:
+    def __init__(self, mean=0.0, std=0.2):
+        self.mean = mean
+        self.std = std
 
-def gaussian_noise_transform(mean=0, std=0.02):
-    return transforms.Lambda(lambda x: _add_gaussian_noise(x,mean=mean,std=std))
+    def __call__(self, image):
+        if isinstance(image, Image.Image):
+            # Convert PIL image to NumPy array
+            image_np = np.array(image)
+        elif isinstance(image, np.ndarray):
+            image_np = image
+        elif torch.is_tensor(image):
+            # Convert Torch tensor to NumPy array
+            image_np = image.numpy()
+        else:
+            raise TypeError("Input should be a PIL Image, NumPy array, or Torch tensor")
+        
+        # Add Gaussian noise
+        noise = np.random.normal(self.mean, self.std, image_np.shape).astype(np.float32)
+        image_noisy = image_np + noise
+        
+        # Clip the values to be in the valid range for image data
+        image_noisy = np.clip(image_noisy, 0, 255)
+        
+        # Convert back to the original type
+        if isinstance(image, Image.Image):
+            return Image.fromarray(image_noisy.astype(np.uint8))
+        elif isinstance(image, np.ndarray):
+            return image_noisy
+        elif torch.is_tensor(image):
+            return torch.from_numpy(image_noisy)
+        else:
+            raise TypeError("Unexpected type encountered after processing")
 
-def identity_transform():
-    return transforms.Lambda(lambda x: x)
+    def __repr__(self):
+        return f"{self.__class__.__name__}(mean={self.mean}, std={self.std})"
 
 
 translation_aug = transforms.RandomAffine(
@@ -144,46 +170,42 @@ sharpness_aug = transforms.RandomAdjustSharpness(sharpness_factor=10, p=0.1)
 gaussian_blur_aug = transforms.GaussianBlur(kernel_size=(1, 5), sigma=(0.01, 3))
 
 
-# IMAGE_AUGMENTATION_TRANSFORM_LIST = [
-#     color_jitter_aug,
-#     sharpness_aug,
-#     horizontal_flip_aug,
-#     vertical_flip_aug,
-#     rotation_aug,
-#     translation_aug,
-#     gaussian_blur_aug,
-#     transforms.ToTensor(),
-#     transforms.Lambda(lambda x: add_gaussian_noise(x)),  # Add Gaussian noise
-#     transforms.ToPILImage(),
-# ]
-
-
-def get_augmentation_function(aug_settings: AugmentationSettings):
+def get_dataset_compatible_augmentation_function(aug_settings: AugmentationSettings):
+    from datasets.dataset_transforms import IdentityTransform
     dataset_name = aug_settings.dataset_name
     augmentations = []
     if DATASET_AUGMENTABIBILITY[dataset_name] is not Augmentability.UNAUGMENTABLE:
         if aug_settings.color_jitter and DATASET_RGB[dataset_name]:
             augmentations.append(color_jitter_aug)
+        else:
+            aug_settings.color_jitter = False
         if aug_settings.sharpness_aug:
             augmentations.append(sharpness_aug)
         if aug_settings.horizontal_flip_aug and DATASET_AUGMENTABIBILITY[dataset_name] == Augmentability.COMPLETELY_ROTATIONALY_INVARIANT:
             augmentations.append(horizontal_flip_aug)
+        else:
+            aug_settings.horizontal_flip_aug = False
         if aug_settings.vertical_flip_aug and DATASET_AUGMENTABIBILITY[dataset_name] == Augmentability.COMPLETELY_ROTATIONALY_INVARIANT:
             augmentations.append(vertical_flip_aug)
+        else:
+            aug_settings.vertical_flip_aug = False
         if aug_settings.rotation_aug:
             if DATASET_AUGMENTABIBILITY[dataset_name] is Augmentability.COMPLETELY_ROTATIONALY_INVARIANT:
                 augmentations.append(complete_rotation_aug)
+                aug_settings.auto_generated_notes += "+/-180 degree rotation augmentation applied\n"
+
             if DATASET_AUGMENTABIBILITY[dataset_name] is Augmentability.WEAKLY_ROTATIONALY_INVARIANT:
                 augmentations.append(limited_rotation_aug)
+                aug_settings.auto_generated_notes += "+/-15 degree rotation augmentation applied\n"
         if aug_settings.translation_aug:
             augmentations.append(translation_aug)
         if aug_settings.gaussian_blur_aug:
             augmentations.append(gaussian_blur_aug)
         if aug_settings.gaussian_noise_aug:
-            augmentations.append(gaussian_noise_transform)
+            augmentations.append(AddGaussianNoise())
     if len(augmentations) == 0 or DATASET_AUGMENTABIBILITY[dataset_name] == Augmentability.UNAUGMENTABLE:
-        augmentations.append(identity_transform)
-    return transforms.Compose(augmentations)
+        augmentations.append(IdentityTransform())
+    return augmentations,aug_settings
             
             
             

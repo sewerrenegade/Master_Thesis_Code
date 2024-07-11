@@ -51,8 +51,7 @@ class CubicalComplex(nn.Module):
         # TODO: This is handled somewhat inelegantly below. Might be
         # smarter to update.
         self.superlevel = superlevel
-        self.dim =dim # len(dim)
-        self.instance_dim = dim
+        self.dim =dim
         
 
     def forward(self, x):
@@ -246,7 +245,7 @@ class CubicalComplex(nn.Module):
         ), 1)
 
         return PersistenceInformation(
-                pairing=gens,
-                diagram=persistence_diagram,
-                dimension=dim
+                pairing=gens, # these are the pixels that turn on/off in order to create/destory topo features
+                diagram=persistence_diagram, # these are the persistence values at which the topo features are craeted/destoryed
+                dimension=dim # for a normal image (not volumetric) this is 0 or 1; 0 for connected components and 1 for rings/holes
         )
