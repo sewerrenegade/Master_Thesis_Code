@@ -1,48 +1,64 @@
 import random
-from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
-import copy
 
-class SinglePresenceSythesizer:
-    def __init__(self,postive_integer, bag_size,dataset) -> None:
-        self.positive_integer = postive_integer
+class SinglePresenceMILSynthesizer:
+    def __init__(self,postive_classes, bag_size) -> None:
+        self.positive_classes = postive_classes
         self. bag_size = bag_size
-        self.dataset = MNIST_Dataset_Referencer
-        self.missing_classes = copy.deepcopy(self.dataset.INDEXER.classes)
-        self.missing_classes.remove(self.positive_integer)
         
-
-    def generate_bag_indicies(self,label,bag_size,training):
+        
+    def generate_bag_level_indicies_per_class(self,training,indexer,number_of_bags_per_class):
+        self.indexer = indexer
+        assert all(item in indexer.classes for item in self.positive_classes)
+        self.classes = indexer.classes
+        self.missing_classes = [item for item in indexer.classes if item not in self.positive_classes]
+        per_class_indicies = {1:[self.generate_bag_instance_from_label(1,training) for _ in range(int(number_of_bags_per_class) )],0:[self.generate_bag_instance_from_label(0,training) for _ in range(number_of_bags_per_class)]}    
+        return per_class_indicies
+        
+    def generate_bag_instance_from_label(self,label,training):
+        assert isinstance(self.bag_size,int)
         if label:
-            classes = self.dataset.INDEXER.classes
-            indices = random.choices(classes[label], k=bag_size)
-            forced_index = random.randint(0, bag_size - 1)
-            indices[forced_index] = self.positive_integer
+            instance_labels = random.choices(self.classes, k=self.bag_size)
+            forced_index = random.randint(0, self.bag_size - 1)
+            instance_labels[forced_index] = random.choice(self.positive_classes)
         else:
-            indices = random.choices(self.missing_classes, k=bag_size)
-        return self.get_random_instances(indices,training)
-
-
-    def get_random_instances(self,instance_class,training):
-        return self.dataset.INDEXER.get_random_instance_of_class(instance_class,training)
+            instance_labels = random.choices(self.missing_classes, k=self.bag_size)
+        return self.indexer.get_random_samples_of_class(instance_labels,training)
     
-    def generate_train_bags(self,number_of_train_bags):
-        training_bags = []
-        for bag_index in range(number_of_train_bags):
-            label = SinglePresenceSythesizer.generate_label()
-            training_bags.append((self.generate_bag_indicies(label,self.bag_size,True),label))
-        return training_bags
+class MultiPresenceMILSynthesizer:
+    def __init__(self,classes_of_significance, bag_size) -> None:
+        self.classes_of_significance = classes_of_significance
+        self.bag_size = bag_size
+
     
-    def generate_test_bags(self,number_of_test_bags):
-        test_bags = []
-        for bag_index in range(number_of_test_bags):
-            label = SinglePresenceSythesizer.generate_label()
-            test_bags.append((self.generate_bag_indicies(label,self.bag_size,False),label))
-        return test_bags
+    def generate_bag_level_indicies_per_class(self,training,indexer,number_of_bags):
+        self.indexer = indexer
+        assert all(item in indexer.classes for item in self.classes_of_significance)
+        self.classes = list(range(2**self.classes_of_significance))
+        self.unimportant_classes = [item for item in indexer.classes if item not in self.positive_classes]
+        self.per_class_count = [int(number_of_bags/len(self.classes))]*(len(self.classes)-1) + [number_of_bags -int(number_of_bags/len(self.classes))*(len(self.classes)-1)]
+        per_class_indicies = {}
+        for class_index, class_count in enumerate(self.per_class_count):
+            per_class_indicies[self.classes[class_index]] = [self.generate_bag_instance_from_label(self.classes[class_index],training) for _ in range(class_count)] 
+        return per_class_indicies
+        
+    def generate_bag_instance_from_label(self,label,training):
+        assert isinstance(self.bag_size,int)
+        presence_list = self.integer_to_binary_list(label)
+        raise NotImplementedError()
 
-    def generate_label():
-        return random.choice([1, 0])
-
-
+    def integer_to_binary_list(self,number):
+        # Convert number to binary and remove the '0b' prefix
+        binary_representation = bin(number)[2:]
+        
+        # Pad the binary representation with leading zeros to match the desired length
+        padded_binary_list = [int(digit) for digit in binary_representation.zfill(2**self.classes_of_significance)]
+        
+        # Ensure the list is exactly the desired length
+        if len(padded_binary_list) > 2**self.classes_of_significance:
+            raise ValueError("The length of the binary representation exceeds the specified length")
+        
+        return padded_binary_list[::-1]
+    
 class DoublePresenceSythesizer:
     def __init__(self,postive_integer: tuple[int, int], bag_size,dataset) -> None:
         self.positive_integer = postive_integer

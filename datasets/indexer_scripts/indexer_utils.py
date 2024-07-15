@@ -20,6 +20,7 @@ def get_dataset_indexer(dataset_name):
 
 DATASET_TO_INDEXER_MAPPING ={
    "MNIST": MNIST_Indexer,
+   "MIL_MNIST": MNIST_Indexer,
    "FashionMNIST": FashionMNIST_Indexer,
    "CIFAR10":CIFAR10_Indexer,
    "SCEMILA/image_data":SCEMILA_Indexer,

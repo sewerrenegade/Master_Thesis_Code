@@ -5,14 +5,16 @@ from torchvision.datasets import CIFAR10
 from torchvision import transforms
 import random
 
+from datasets.mil_dataset_abstraction import BaseMILDataset
+
 
 class CIFAR10_base(BaseDataset):
 
-    def __init__(self,training_mode, root_dir = "data/",balance_dataset_classes = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
+    def __init__(self,training_mode, root_dir = "data/",balance_dataset_classes = None,gpu = True, grayscale = False, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
         self.root_dir = root_dir
         super().__init__("CIFAR10",augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes,training=training_mode)
         self.training_mode = training_mode
-        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=False,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])])
+        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=grayscale,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])])
         self.data = CIFAR10(train=training_mode,root=root_dir,transform=self.preload_transforms)
         
 
@@ -31,25 +33,21 @@ class CIFAR10_base(BaseDataset):
             return image_data, image_label
 #ToDo update the script to be CIFAR10 or dataset agnostic
 
-class CIFAR10_MIL_base(Dataset):
+class CIFAR10_MIL_base(BaseMILDataset):
 
-    def __init__(self,training, data_synth, root_dir = "data/", transforms=None,gpu = True):
+    def __init__(self,training_mode,data_synth, root_dir = "data/",balance_dataset_classes = 100,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None,grayscale = False):
         self.root_dir = root_dir
-        self.name = "CIFAR10"
-        self.training = training        
-        self.data = CIFAR10(train=training,root=root_dir,transform=self.preload_transforms,gpu = True)
+        super().__init__("MIL_CIFAR10",data_synth=data_synth,augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes,training=training_mode)
+        self.training = training_mode
         self.synth = data_synth
-        if training:
-            self.data_indicies = self.synth.generate_train_bags(1000)
-        else:
-            self.data_indicies = self.synth.generate_test_bags(100)
-        self.transforms = transforms
+        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=grayscale,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])])
+        self.data = CIFAR10(train=training_mode,root=root_dir,transform=self.preload_transforms)
 
     def __len__(self):
-        return len(self.data_indicies)
+        return len(self.indicies_list)
 
     def __getitem__(self, index):
-        bag_indicies,bag_label = self.data_indicies[index]
+        bag_indicies,bag_label = self.indicies_list[index]
         bag_data = self.get_images_from_indicies(bag_indicies)
         return bag_data, bag_label
     
@@ -57,10 +55,10 @@ class CIFAR10_MIL_base(Dataset):
         data = []
         element_index = 0
         for index in indicies:
-            data.append(self.transforms(self.data[index][0]))
+            data.append(self.transform(self.data[index][0]))
             element_index += 1
         
-        return torch.stack(data, dim=0)
+        return data
     
 
 

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datasets.MNIST.MNIST_base import BaseDataset
 import torch.multiprocessing as mp
-from datasets.embedded_data.generators.generate_embeddings import save_embeddings
+from datasets.embedded_datasets.generators.generate_embeddings import save_embeddings
 
 mp.set_start_method('spawn')
 

@@ -17,7 +17,7 @@ class WassersteinDistance(torch.nn.Module):
     be more appropriate.
     """
 
-    def __init__(self, p=torch.inf, q=1):
+    def __init__(self,calculate_holes = True,join_channels = False, p=torch.inf, q=1):
         """Create new Wasserstein distance calculation module.
         Parameters
         ----------
@@ -33,6 +33,55 @@ class WassersteinDistance(torch.nn.Module):
 
         self.p = p
         self.q = q
+        
+        
+    def forward(self, X, Y):
+        """Calculate Wasserstein metric based on input tensors.
+        Parameters
+        ----------
+        X : list or instance of :class:`PersistenceInformation`
+            Topological features of the first space. Supposed to contain
+            persistence diagrams and persistence pairings.
+        Y : list or instance of :class:`PersistenceInformation`
+            Topological features of the second space. Supposed to
+            contain persistence diagrams and persistence pairings.
+        Returns
+        -------
+        torch.tensor
+            A single scalar tensor containing the distance between the
+            persistence diagram(s) contained in `X` and `Y`.
+        """
+        total_cost = 0.0
+
+        X = wrap_if_not_iterable(X)
+        Y = wrap_if_not_iterable(Y)
+        n = type(X[0])
+        if len(X) != len(Y):
+            print(f" X has len {len(X)} an Y has length  {len(Y)}")
+
+        for pers_info in zip(X, Y):
+            D1 = pers_info[0].diagram
+            D2 = pers_info[1].diagram
+
+            n = len(D1)
+            m = len(D2)
+
+            dist = self._make_distance_matrix(D1, D2)
+
+            # Create weight vectors. Since the last entries of entries
+            # describe the m points coming from D2, we have to set the
+            # last entry accordingly.
+
+            a = torch.ones(n + 1, device=dist.device)
+            b = torch.ones(m + 1, device=dist.device)
+
+            a[-1] = m
+            b[-1] = n
+
+            # TODO: Make settings configurable?
+            total_cost += ot.emd2(a, b, dist)
+
+        return total_cost.pow(1.0 / self.q)
 
     def _project_to_diagonal(self, diagram):
         x = diagram[:, 0]
@@ -85,50 +134,31 @@ class WassersteinDistance(torch.nn.Module):
         Y, ind = torch.sort(Y, dim=0)
         return torch.sum(torch.abs(torch.sub(X, Y)))
 
-    def forward(self, X, Y):
-        """Calculate Wasserstein metric based on input tensors.
-        Parameters
-        ----------
-        X : list or instance of :class:`PersistenceInformation`
-            Topological features of the first space. Supposed to contain
-            persistence diagrams and persistence pairings.
-        Y : list or instance of :class:`PersistenceInformation`
-            Topological features of the second space. Supposed to
-            contain persistence diagrams and persistence pairings.
-        Returns
-        -------
-        torch.tensor
-            A single scalar tensor containing the distance between the
-            persistence diagram(s) contained in `X` and `Y`.
-        """
-        total_cost = 0.0
+#custom milad distance
+class MaximumMeanDiscrepancyDistance:
+    def __init__(self, sigma=1.0) -> None:
+        self.sigma = sigma
+        
+    def gaussian_kernel(self, x, y, sigma=None):
+        if sigma is None:
+            sigma = self.sigma
+        beta = 1.0 / (2.0 * sigma**2)
+        dist = torch.cdist(x, y, p=2.0)
+        return torch.exp(-beta * dist**2)
 
-        X = wrap_if_not_iterable(X)
-        Y = wrap_if_not_iterable(Y)
-        n = type(X[0])
-        if len(X) != len(Y):
-            print(f" X has len {len(X)} an Y has length  {len(Y)}")
+    def compute_mmd(self, x, y, sigma=None):
+        if sigma is None:
+            sigma = self.sigma
+        K_XX = self.gaussian_kernel(x, x, sigma)
+        K_YY = self.gaussian_kernel(y, y, sigma)
+        K_XY = self.gaussian_kernel(x, y, sigma)
+        
+        m = x.shape[0]
+        n = y.shape[0]
+        
+        mmd = (K_XX.sum() / (m * m) + K_YY.sum() / (n * n) - 2 * K_XY.sum() / (m * n))
+        return mmd
 
-        for pers_info in zip(X, Y):
-            D1 = pers_info[0].diagram
-            D2 = pers_info[1].diagram
-
-            n = len(D1)
-            m = len(D2)
-
-            dist = self._make_distance_matrix(D1, D2)
-
-            # Create weight vectors. Since the last entries of entries
-            # describe the m points coming from D2, we have to set the
-            # last entry accordingly.
-
-            a = torch.ones(n + 1, device=dist.device)
-            b = torch.ones(m + 1, device=dist.device)
-
-            a[-1] = m
-            b[-1] = n
-
-            # TODO: Make settings configurable?
-            total_cost += ot.emd2(a, b, dist)
-
-        return total_cost.pow(1.0 / self.q)
+    def __call__(self, x, y):
+        return self.compute_mmd(x, y)
+    

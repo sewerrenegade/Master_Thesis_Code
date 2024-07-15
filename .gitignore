@@ -3,7 +3,7 @@ logs/
 models/DinoBloom/weights
 models/DinoBloom/DinoBloom
 junk/
-results/
+results/data
 wandb/
 .hydra/
 .vscode/

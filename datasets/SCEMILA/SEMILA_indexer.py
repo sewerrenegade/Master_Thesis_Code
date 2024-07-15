@@ -30,7 +30,7 @@ class SCEMILA_Indexer(Indexer):
         for key, value in self.instance_level_annotations_by_class.items():
             indicies_list.extend(value)
             labels_list.extend([key]*len(value))
-        return list(zip(indicies_list,labels_list)), self.instance_level_annotations_by_class,self.instance_level_class_count
+        return self.instance_level_annotations_by_class
     
     def get_bag_level_indicies(self):
         raise NotImplementedError  

@@ -150,13 +150,80 @@
 # x = SCEMILA_Indexer()
 # pass
 
-from datetime import datetime
+# from datetime import datetime
 
-# Get the current date and time
-current_time = datetime.now()
+# # Get the current date and time
+# current_time = datetime.now()
 
-# Truncate seconds and microseconds to get up to the minute
-current_time_up_to_minute = current_time.replace(microsecond=0)
+# # Truncate seconds and microseconds to get up to the minute
+# current_time_up_to_minute = current_time.replace(microsecond=0)
 
-# Print the current time up to the minute
-print(current_time_up_to_minute)
+# # Print the current time up to the minute
+# print(current_time_up_to_minute)
+
+# from datasets.image_augmentor import AugmentationSettings
+# from distance_functions.distance_function_metrics.interclass_distance_matrix_metrics import calculate_n_sample_balanced_distance_matrix,knn_loocv_accuracy,evaluate_triplet_loss,knn_loocv_accuracy,compute_silhouette_score_from_distance_matrix,visualize_embeddings_from_distance_matrix,evaluate_knn_classifier_from_distance_matrix,average_inter_intra_class_distance_ratio
+# from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
+# from datasets.MNIST.MNIST_base import MNISTBase
+# from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base
+
+# dataset = MNISTBase(True,balance_dataset_classes=100,numpy=True,flatten=False,gpu=False,augmentation_settings=None)
+# dist_mat,label,per_class_indicies = calculate_n_sample_balanced_distance_matrix(dataset,10,distance_fn=None)
+# print(evaluate_triplet_loss(dist_mat,label))
+# print(compute_silhouette_score_from_distance_matrix(dist_mat,label))
+# visualize_embeddings_from_distance_matrix(dist_mat,label)
+# evaluate_knn_classifier_from_distance_matrix(dist_mat,label)
+# print("\n")
+# print(knn_loocv_accuracy(dist_mat,label))
+# print("\n")
+# print(average_inter_intra_class_distance_ratio(dist_mat,label))
+
+# #print(dist_mat)
+
+# def integer_to_binary_list(number, length):
+#     # Convert number to binary and remove the '0b' prefix
+#     binary_representation = bin(number)[2:]
+    
+#     # Pad the binary representation with leading zeros to match the desired length
+#     padded_binary_list = [int(digit) for digit in binary_representation.zfill(length)]
+    
+#     # Ensure the list is exactly the desired length
+#     if len(padded_binary_list) > length:
+#         raise ValueError("The length of the binary representation exceeds the specified length")
+    
+#     return padded_binary_list[::-1]
+
+# # Example usage
+# number = 9
+# length = 7
+# result = integer_to_binary_list(number, length)
+# print(result)  # Output: [1, 1, 1, 1, 1, 0, 0]
+# print(result[0])
+
+
+from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_base
+from datasets.MNIST.MNIST_base import MNISTBase
+from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base
+from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
+from distance_functions.distance_function_metrics.embedding_performance_test import  calculate_origin_dataset_metrics
+
+import matplotlib.pyplot as plt
+
+flatten = False
+mnist_dataset = FashionMNIST_base(training_mode = True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = 100)
+scemila_dataset = SCEMILAimage_base(training_mode = True,grayscale=True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = 36)
+dist_fnc = CubicalComplexImageDistanceFunction(calculate_holes= True,join_channels=False)
+base_metrics = calculate_origin_dataset_metrics(scemila_dataset,distance_function= dist_fnc,flatten= False)
+print(base_metrics)
+avg_dist = base_metrics["intra_inter_class_distance_matrix_mean"]
+plt.figure(figsize=(10, 8))
+plt.imshow(avg_dist, cmap='viridis', interpolation='nearest')
+plt.colorbar()
+
+# Add title and labels
+plt.title('Heatmap of the Given Array')
+plt.xlabel('Column Index')
+plt.ylabel('Row Index')
+
+# Show the plot
+plt.show()

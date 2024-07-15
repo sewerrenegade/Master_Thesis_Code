@@ -19,7 +19,8 @@ class GlobalConfig:
     PATH_TO_SERIALIZED_SESSION_NAMES = "extras/session_names.pkl"
     CUSTOM_METRICS = []
 
-
+    EMBEDDING_DATA_FOLDER_PATH = "data/EMBEDDING/v1/"
+    RESULTS_DATA_FOLDER_PATH = "results/data/"
     RESULTS_FOLDER_PATH = "results/"
     MNIST_INTER_CLASS_DIST = "MNIST_interinstance_distances/"
     FashionMNIST_INTER_CLASS_DIST = "FashionMNIST_interinstance_distances/"

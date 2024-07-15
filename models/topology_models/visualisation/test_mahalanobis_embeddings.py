@@ -1,6 +1,6 @@
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase
-from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
+from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset as EmbeddingDatabase
 from models.topology_models.mahalanobis import MahalanobisDistanceCalculator
 import numpy as np
 import random
@@ -11,7 +11,7 @@ from configs.global_config import GlobalConfig
 
 order_of_embeddings = ["ISOMAP","PCA","TSNE","UMAP"]
 MSNIT_DATASET= MNISTbase(training= True)
-EMBEDDED_MNIST_DATASET = [EMNIST(f"data/MNIST/embeddings/{embeddings}/") for embeddings in order_of_embeddings]
+EMBEDDED_MNIST_DATASET = [EmbeddingDatabase(f"data/MNIST/embeddings/{embeddings}/") for embeddings in order_of_embeddings]
 NUMBER_OF_SAMPLES_PER_CLASS = 100
 
 def _compute_euclidean_distance(x):
@@ -90,6 +90,6 @@ def visualize_array(array):
         #axs[1].axis('off
         distance_index+=1
     
-    save_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,"interclass_mahalanobis_distance.png")
+    save_path = os.path.join(GlobalConfig.RESULTS_DATA_FOLDER_PATH,GlobalConfig.MNIST_INTER_CLASS_DIST,"interclass_mahalanobis_distance.png")
     plt.savefig(save_path)
     plt.close(fig)

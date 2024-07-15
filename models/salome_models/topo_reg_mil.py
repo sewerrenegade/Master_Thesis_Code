@@ -9,7 +9,7 @@ from models.salome_models.scheduler import  ConstantScheduler
 from models.topology_models.topo_tools.topology import PersistentHomologyCalculation
 from models.salome_models.mil import CV_MIL,MILOutput
 from distance_functions.functions.perceptual_lpsis_distance import PerceptualLoss
-from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
+from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
 from distance_functions.functions.random_convolutions_distance import RandomProjectionModel
 from distance_functions.functions.reconstruction_functions.classic_ae_distance.ae_reconstruction_distance import ReconstructionProjectionModel
 from models.topology_models.topo_tools import SignatureLoss, VietorisRipsComplex, WassersteinDistance
@@ -192,7 +192,7 @@ class CV_TopoRegMIL(CV_MIL):
         if self.distance == "perceptual":
             self.perceptual_distance_calculator = PerceptualLoss(device='cuda:0')
         elif self.distance == "cubical_complex":
-            self.cubical_complex_calculator = CubicalComplexImageEncoder()
+            self.cubical_complex_calculator = CubicalComplexImageDistanceFunction()
         elif self.distance == "random_convolutions":
             self.random_convolution_distance_calculator = RandomProjectionModel(input_dim=[1,28,28]) #FOR MNIST
         elif self.distance == "reconstruction":

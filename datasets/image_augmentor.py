@@ -11,14 +11,27 @@ class Augmentability(Enum):
     WEAKLY_ROTATIONALY_INVARIANT = 2
     UNAUGMENTABLE = 3
     
+    def to_string(self) -> str:
+        """Convert the enum to its name as a string."""
+        return self.name
+
+    @staticmethod
+    def from_string(name: str) -> 'Augmentability':
+        """Convert a string name back to the enum."""
+        return Augmentability[name]
+    
 DATASET_AUGMENTABIBILITY = {
     "FashionMNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "MNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "CIFAR10": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "SCEMILA/fnl34_feature_data": Augmentability.UNAUGMENTABLE,
     "SCEMILA/image_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
-    "SCEMILA/dinobloom_feature_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
-    "Acevedo": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT
+    "Acevedo": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
+    "MIL_FashionMNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
+    "MIL_MNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
+    "MIL_CIFAR10": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
+    #"MIL_SCEMILA/image_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
+    "MIL_Acevedo": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT
 }
 DATASET_RGB = {
     "FashionMNIST": False,
@@ -26,7 +39,6 @@ DATASET_RGB = {
     "CIFAR10": True,
     "SCEMILA/fnl34_feature_data": False,
     "SCEMILA/image_data": True,
-    "SCEMILA/dinobloom_feature_data": True,
     "Acevedo": True
 }
 #make sure I added all included the augmentation settings for all datasets
@@ -81,6 +93,11 @@ class AugmentationSettings:
     def to_dict(self) -> dict:
         """Convert the configuration settings to a dictionary."""
         return vars(self)
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create an object from a dictionary."""
+        return cls(**data)
     
     
     #If the input is all, then all possible augmentations will be activated

@@ -1,4 +1,6 @@
 
+from collections.abc import Iterable
+import random
 import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from datasets.indexer_scripts.indexer_abstraction import Indexer
@@ -25,16 +27,11 @@ class AcevedoIndexer(Indexer):
         else:
             raise ValueError
         
-    def get_instance_level_indicies(self,training=True):
-        indicies_list = []
-        labels_list = []            
-        for key, value in self.per_class_paths_dict.items():
-            indicies_list.extend(value)
-            labels_list.extend([key]*len(value))
-        return list(zip(indicies_list,labels_list)), self.per_class_paths_dict,self.per_class_count
+    def get_instance_level_indicies(self,training=True):       
+        return self.per_class_paths_dict
     
-    def get_bag_level_indicies(self):
-        raise NotImplementedError  
+    def get_bag_level_indicies(self,training_mode,number_of_balanced_datapoints,synth):
+        return synth.generate_bag_level_indicies_per_class(training_mode,self,number_of_balanced_datapoints)
       
     def get_meta_data(self):
         if os.path.exists(self.dict_path):
@@ -86,10 +83,14 @@ class AcevedoIndexer(Indexer):
         
         return train_class_count
             
-    def get_random_samples_of_class(self, class_name, number_of_instances):
-        
-        raise NotImplementedError("Subclass must implement abstract method")
-        return
+    def get_random_samples_of_class(self,target_class_s,training):
+        if not isinstance(target_class_s, Iterable):
+            target_class_s = [target_class_s]
+        instances = []
+        for target_class in target_class_s:
+            instances.append(random.choice(self.per_class_paths_dict[target_class]))
+        return instances
+    
 if __name__ == "__main__":
     x = AcevedoIndexer()
     x.get_instance_level_indicies()

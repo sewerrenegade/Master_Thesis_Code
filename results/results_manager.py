@@ -3,35 +3,81 @@ import pickle
 import json
 import hashlib
 import sys
+from typing import Union
+
 import numpy as np
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-from datasets.embedded_data.generators.embedding_descriptor import SerializableEmbeddingDescriptor
+from configs.global_config import GlobalConfig
+from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor, SerializableEmbeddingDescriptor, create_serialializable_descriptor_from_live_descriptor
 from datasets.image_augmentor import AugmentationSettings
 from datetime import datetime
 
-class EmbeddingManager:
-    def __init__(self, storage_dir = "data/EMBEDDING/"):
-        self.storage_dir = storage_dir
-        os.makedirs(storage_dir, exist_ok=True)
-        self.descriptor_dir = os.path.join(storage_dir, 'descriptors')
-        self.embedding_dir = os.path.join(storage_dir, 'embeddings')
-        self.creation_time_tracker = os.path.join(storage_dir, 'creation_times')
+
+
+class ResultsManager:
+    def __init__(self):
+        self.storage_dir = GlobalConfig.EMBEDDING_DATA_FOLDER_PATH
+        os.makedirs(self.storage_dir, exist_ok=True)
+        self.descriptor_dir = os.path.join(self.storage_dir, 'descriptors')
+        self.embedding_dir = os.path.join(self.storage_dir, 'embeddings')
+        self.creation_time_tracker = os.path.join(self.storage_dir, 'creation_times')
         os.makedirs(self.descriptor_dir, exist_ok=True)
         os.makedirs(self.embedding_dir, exist_ok=True)
+    _instance = None
+    
+    @classmethod
+    def get_manager(cls) -> 'ResultsManager':
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    def check_if_result_already_exists(self,descriptor:Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,dict,str]):
+        if isinstance(descriptor,Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,dict]):
+            _descriptor_id = self._calculate_descriptor_id(descriptor)
+        else:
+            _descriptor_id = descriptor
+        descriptor_path = os.path.join(self.descriptor_dir, f"{_descriptor_id}.pkl")
+        return os.path.exists(descriptor_path)
+    
+    def save_embedding(self, descriptor:EmbeddingDescriptor, embedding,embedding_label = None,embedding_stats = None):
+        
+        descriptor_id = self._calculate_descriptor_id(descriptor)
+        descriptor_path = os.path.join(self.descriptor_dir, f"{descriptor_id}.pkl")
+        embedding_path = os.path.join(self.embedding_dir, f"{descriptor_id}.npy")        
 
-    def save_embedding(self, descriptor, embedding):
+        descriptor_dict = descriptor.to_dict()
+        with open(descriptor_path, 'wb') as f:
+            pickle.dump(descriptor_dict, f)
+        np.save(embedding_path, embedding)
+        if embedding_label is not None:
+            assert len(embedding) == len(embedding_label)
+            embedding_label_path = os.path.join(self.embedding_dir, f"{descriptor_id}_label.npy")
+            labels = np.array(embedding_label)
+            np.save(embedding_label_path, labels)
+              
+        self.add_creation_time(descriptor_id)
+        self.generate_descriptor_list_file()
+        
+    def load_embedding(self, descriptor):
         descriptor_dict = descriptor.to_dict()
         descriptor_id = self._calculate_descriptor_id(descriptor_dict)
         descriptor_path = os.path.join(self.descriptor_dir, f"{descriptor_id}.pkl")
         embedding_path = os.path.join(self.embedding_dir, f"{descriptor_id}.npy")
+        embedding_label_path = os.path.join(self.embedding_dir, f"{descriptor_id}.npy")
 
-        
-        with open(descriptor_path, 'wb') as f:
-            pickle.dump(descriptor_dict, f)
+        if os.path.exists(descriptor_path) and os.path.exists(embedding_path):
+            with open(descriptor_path, 'rb') as f:
+                embedding_descriptor = pickle.load(f)
+            embedding = np.load(embedding_path)
+            if os.path.exists(embedding_label_path):
+                embedding_label = np.load(embedding_label_path)
+            else:
+                embedding_label = None
+            
+            return embedding,embedding_label,embedding_descriptor
+        else:
+            print(f"Warning! The embedding or descriptor you are looking for does not exist in the file system.")
+            return None
 
-        np.save(embedding_path, embedding)
-        self.add_creation_time(descriptor_id)
-        self.generate_descriptor_list_file()
     
     def get_creation_times(self):
         if os.path.exists(self.creation_time_tracker):
@@ -85,21 +131,7 @@ class EmbeddingManager:
         else:
             print(f"Embedding file not found: {embedding_path}")
 
-    def load_embedding(self, descriptor):
-        descriptor_dict = descriptor.to_dict()
-        descriptor_id = self._calculate_descriptor_id(descriptor_dict)
-        descriptor_path = os.path.join(self.descriptor_dir, f"{descriptor_id}.pkl")
-        embedding_path = os.path.join(self.embedding_dir, f"{descriptor_id}.npy")
-
-        if os.path.exists(descriptor_path) and os.path.exists(embedding_path):
-            with open(descriptor_path, 'rb') as f:
-                descriptor_data = pickle.load(f)
-            embedding = np.load(embedding_path)
-            return embedding
-        else:
-            print(f"Warning! The embedding or descriptor you are looking for does not exist in the file system.")
-            return None
-
+    
     def query_descriptors_lambda(self, condition):
         matching_descriptors = []
         for filename in os.listdir(self.descriptor_dir):
@@ -146,47 +178,17 @@ class EmbeddingManager:
                         f.write(f"{descriptor}\n")
                         f.write("----------------------------------------\n\n")
 
-    def _calculate_descriptor_id(self, descriptor_dict):
+    def _calculate_descriptor_id(self, descriptor: Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,dict]):
         """Generate a unique ID based on the descriptor's content."""
-        if isinstance(descriptor_dict,SerializableEmbeddingDescriptor):
-            descriptor_dict = descriptor_dict.to_dict()
-        descriptor_str = json.dumps(descriptor_dict, sort_keys=True)
+        if isinstance(descriptor,EmbeddingDescriptor):
+            descriptor= create_serialializable_descriptor_from_live_descriptor(descriptor).to_dict()
+        elif isinstance(descriptor,SerializableEmbeddingDescriptor):
+            descriptor = descriptor.to_dict()
+        elif isinstance(descriptor,dict):
+            descriptor = descriptor
+        else:
+            raise TypeError(f"Descriptor should be of type Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,dict]")
+        
+        descriptor_str = json.dumps(descriptor, sort_keys=True)
         return hashlib.sha256(descriptor_str.encode('utf-8')).hexdigest()
-
-# # Example usage
-# storage_dir = 'embeddings'
-# manager = EmbeddingManager(storage_dir)
-
-# descriptor = SerializableEmbeddingDescriptor(
-#     name='PHATE_2',
-#     dataset_name='SCEMILA/image_data',
-#     dataset_sampling=100,
-#     augmentation_settings=AugmentationSettings(
-#         dataset_name='SCEMILA/image_data',
-#         color_jitter=False,
-#         sharpness_aug=False,
-#         horizontal_flip_aug=False,
-#         vertical_flip_aug=False,
-#         rotation_aug=True,
-#         translation_aug=False,
-#         gaussian_blur_aug=False,
-#         gaussian_noise_aug=False,
-#         auto_generated_notes='+/-180 degree rotation augmentation applied'
-#     ),
-#     dino_bloom=False,
-#     transform_name=None,
-#     transform_settings={'knn': 110, 't': 'auto', 'n_components': 2, 'decay': 40}
-# )
-
-# embedding = np.random.rand(100, 40)  # Example embedding
-
-# # Save the embedding
-# manager.save_embedding(descriptor, embedding)
-
-# # Load the embedding
-# loaded_embedding = manager.load_embedding(descriptor)
-# print(loaded_embedding)
-
-# # Query descriptors using a lambda expression
-# query_result = manager.query_descriptors_lambda(lambda desc: desc.transform_name == "PHATE" and desc.transform_settings['n_components'] == 2)
-# print("Query result:", query_result)
+    

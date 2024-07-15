@@ -4,12 +4,12 @@ from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
  
 from datasets.SCEMILA.base_fnl34_features import SCEMILA_fnl34_feature_base
-from datasets.data_synthesizers.MNIST_data_sythesizer import SinglePresenceSythesizer, DoublePresenceSythesizer
+from datasets.data_synthesizers.data_sythesizer import SinglePresenceMILSynthesizer, DoublePresenceSythesizer
 from datasets.MNIST.MNIST_dataloader import MNIST
-from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_base
-from datasets.MNIST.MNIST_base import MNIST_base
-from datasets.CIFAR10.CIFAR10_base import CIFAR10_base
-from datasets.Acevedo.acevedo_base import Acevedo_base
+from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_MIL_base, FashionMNIST_base
+from datasets.MNIST.MNIST_base import MNIST_MIL_base, MNISTBase
+from datasets.CIFAR10.CIFAR10_base import CIFAR10_MIL_base, CIFAR10_base
+from datasets.Acevedo.acevedo_base import Acevedo_MIL_base, Acevedo_base
 # from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base,SCEMILA_fnl34_feature_base,SCEMILA_DinoBloom_feature_base
 from datasets.SCEMILA import *
 from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
@@ -18,16 +18,23 @@ from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
 MODULES = {
     "MNIST": MNIST,
     "SCEMILA" : SCEMILA,
-    "SinglePresenceSythesizer" :SinglePresenceSythesizer,
-    "DoublePresenceSythesizer" : DoublePresenceSythesizer
+    "SinglePresenceSythesizer" :SinglePresenceMILSynthesizer,
+    #"DoublePresenceSythesizer" : DoublePresenceSythesizer
 }
 BASE_MODULES = {
     "FashionMNIST": FashionMNIST_base,
-    "MNIST": MNIST_base,
+    "MNIST": MNISTBase,
     "CIFAR10": CIFAR10_base,
     "SCEMILA/fnl34_feature_data": SCEMILA_fnl34_feature_base,
     "SCEMILA/image_data": SCEMILAimage_base,
-    "Acevedo":Acevedo_base
+    "Acevedo":Acevedo_base,
+    "MIL_FashionMNIST": FashionMNIST_MIL_base,
+    "MIL_MNIST": MNIST_MIL_base,
+    "MIL_CIFAR10": CIFAR10_MIL_base,
+    #"MIL_SCEMILA/fnl34_feature_data": SCEMILA_fnl34_feature_base,
+    #"MIL_SCEMILA/image_data": SCEMILAimage_base,
+    "MIL_Acevedo":Acevedo_MIL_base
+    
 }
 
 

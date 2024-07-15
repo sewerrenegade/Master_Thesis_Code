@@ -2,8 +2,9 @@ import sys
 
 
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-from datasets.embedded_data.generators.embedding_descriptor import EmbeddingDescriptor,SerializableEmbeddingDescriptor,create_serialializable_descriptor_from_live_descriptor
-from datasets.embedded_data.generators.generate_embeddings import generate_embedding_from_descriptor
+from datasets.embedded_datasets.embeddings_manager import EmbeddingManager
+from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor,SerializableEmbeddingDescriptor,create_serialializable_descriptor_from_live_descriptor
+from datasets.embedded_datasets.generators.generate_embeddings import generate_embedding_from_descriptor
 from configs.global_config import GlobalConfig
 from datasets.image_augmentor import AugmentationSettings
 import umap
@@ -46,7 +47,7 @@ DATASET_NAMES_AND_SETTINGS = {("SCEMILA/image_data","normal"):{"training_mode":T
                               ("CIFAR10","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
                               ("MNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
                               }
-AUGMENTATIONS_OF_INTEREST = ['rotation_aug','all', 'translation_aug','gaussian_noise_aug']
+AUGMENTATIONS_OF_INTEREST = ['all','rotation_aug', 'translation_aug','gaussian_noise_aug']
 descriptors = []
 #dataset = SCEMILA_DINO_BLOOM_BASE_DS
 def generate_embeddings():
@@ -62,9 +63,13 @@ def generate_embeddings():
                     trans_settings = copy.deepcopy(trans_settings)
                     trans_settings["n_components"] = dim
                     descriptor = EmbeddingDescriptor(f"{transform_name}_{dim}",dataset,transform_name,trans_func,trans_settings)
-                    print(f"started generating embeddings for {descriptor.name}")
-                    print(f"finished generating embeddings for {descriptor.name} saved in path {generate_embedding_from_descriptor(descriptor)}")
-                    print(create_serialializable_descriptor_from_live_descriptor(descriptor))
+                    if not EmbeddingManager.get_manager().check_if_embedding_already_exists(descriptor):
+                        print(f"started generating embeddings for {descriptor.name}")
+                        print(f"finished generating embeddings for {descriptor.name} saved in path {generate_embedding_from_descriptor(descriptor)}")
+                        print(create_serialializable_descriptor_from_live_descriptor(descriptor))
+                    else:
+                        print("embedding already exists!")
+                    
 
 
 

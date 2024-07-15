@@ -27,23 +27,15 @@ class MNIST_Indexer(Indexer):
         pass
     
     def get_instance_level_indicies(self,training):
-        indicies_list = []
-        labels_list = []
         if training:
-            indicies = self.train_per_class_indicies
-            class_count = self.train_class_count
+            per_class_indicies = self.train_per_class_indicies
         else:
-            indicies = self.test_per_class_indicies
-            class_count = self.test_class_count
-        for key, value in indicies.items():
-            indicies_list.extend(value)
-            labels_list.extend([key]*len(value))
-                
-        return list(zip(indicies_list,labels_list)),indicies,class_count
+            per_class_indicies = self.test_per_class_indicies                
+        return per_class_indicies
         
-    def get_bag_level_indicies(self):
-        raise NotImplementedError
-    
+    def get_bag_level_indicies(self,training_mode,number_of_balanced_datapoints,synth):
+        return synth.generate_bag_level_indicies_per_class(training_mode,self,number_of_balanced_datapoints)
+        
     def get_per_class_count(self,classes,train_indicies,test_indicies):
         train_class_count={}
         test_class_count={}

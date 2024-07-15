@@ -17,14 +17,15 @@ class SCEMILAimage_base(BaseDataset):
             numpy = False,
             gpu =True,
             flatten = False,
-            to_tensor = False,
+            to_tensor = True,
             balance_dataset_classes = None,
-            augmentation_settings = None
+            augmentation_settings = None,
+            grayscale = False
             ):
         super().__init__("SCEMILA/image_data",augmentation_settings,balance_dataset_classes=balance_dataset_classes)
         self.encode_with_dino_bloom = encode_with_dino_bloom
         self.augmentation_settings = augmentation_settings
-        self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings)
+        self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,grayscale=grayscale)
         if self.encode_with_dino_bloom:
             self.dino_enc = self.get_dino_bloom_transform()
             self.get_item_function = self.get_and_dino_encoded_tif_image

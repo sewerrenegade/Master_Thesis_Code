@@ -12,7 +12,9 @@ class EmbeddingDescriptor:
     downprojection_function_name:str
     downprojection_function: Callable
     downprojection_function_settings: dict
-
+    
+    def to_dict(self):
+        return create_serialializable_descriptor_from_live_descriptor(self).to_dict()
 
 class SerializableEmbeddingDescriptor:
     def __init__(self, name, dataset_name, dataset_sampling, augmentation_settings, dino_bloom, transform_name, transform_settings):

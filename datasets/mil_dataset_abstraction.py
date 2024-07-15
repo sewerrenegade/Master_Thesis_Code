@@ -12,16 +12,19 @@ from datasets.image_augmentor import AugmentationSettings
 from datasets.indexer_scripts.indexer_abstraction import Indexer
 
 
-class BaseDataset(Dataset, ABC):
-    def __init__(self, database_name,augmentation_settings:AugmentationSettings,balance_dataset_classes,training = True):
+class BaseMILDataset(Dataset, ABC):
+    def __init__(self, database_name,augmentation_settings:AugmentationSettings,balance_dataset_classes,data_synth = None,training = True):
         self.name = database_name
         self.number_of_per_class_instances = balance_dataset_classes
         self.augmentation_settings = augmentation_settings
         if self.augmentation_settings is not None:
             self.augmentation_settings.dataset_name = self.name
         self.indexer:Indexer = self.get_indexer()
-        self.per_class_indicies= self.indexer.get_instance_level_indicies(training)
-        self.per_class_count = BaseDataset.count_per_class_samples(self.per_class_indicies)
+        if data_synth is None:
+            self.per_class_indicies = self.indexer.get_bag_level_indicies(training)
+        else:
+            self.per_class_indicies = self.indexer.get_bag_level_indicies(training,balance_dataset_classes,data_synth)
+        self.per_class_count = BaseMILDataset.count_per_class_samples(self.per_class_indicies)
         self.indicies_list,self.per_class_indicies,self.per_class_count =self.balance_dataset()
         self.classes = list(self.per_class_indicies.keys())
     
@@ -34,7 +37,7 @@ class BaseDataset(Dataset, ABC):
                 paths.extend(value)
                 new_class_indicies[key] = list(range(len(labels),len(labels)+len(value)))
                 labels.extend([key]*len(value))
-            return list(zip(paths,labels)),new_class_indicies, BaseDataset.count_per_class_samples(new_class_indicies)
+            return list(zip(paths,labels)),new_class_indicies, BaseMILDataset.count_per_class_samples(new_class_indicies)
         
         if self.augmentation_settings is None and min(list(self.per_class_count.values())) < self.number_of_per_class_instances:
             raise ValueError(f"You have requested a balanced version of {self.name}, however the smallest class (size of {min(list(self.per_class_count.values()))}) in the natural dataset is smaller than the requested balance {self.per_class_count} and the augmentation of")
@@ -48,7 +51,7 @@ class BaseDataset(Dataset, ABC):
             paths.extend(class_list_of_paths)
             new_class_indicies[key] = list(range(len(labels),len(labels)+self.number_of_per_class_instances))
             labels.extend([key]*self.number_of_per_class_instances)
-        return list(zip(paths,labels)),new_class_indicies, BaseDataset.count_per_class_samples(new_class_indicies)
+        return list(zip(paths,labels)),new_class_indicies, BaseMILDataset.count_per_class_samples(new_class_indicies)
     
     @staticmethod
     def count_per_class_samples(class_indicies_dict):

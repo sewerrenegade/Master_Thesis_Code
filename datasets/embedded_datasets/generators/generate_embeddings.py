@@ -1,5 +1,7 @@
 import sys
 import os
+
+from datasets.embedded_datasets.embeddings_manager import EmbeddingManager
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from configs.global_config import GlobalConfig
 import umap
@@ -7,7 +9,7 @@ import numpy as np
 from datasets.MNIST.MNIST_base import BaseDataset as MNIST_baseDataset
 import time
 import random
-from datasets.embedded_data.generators.embedding_descriptor import EmbeddingDescriptor
+from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
 
 
 
@@ -35,17 +37,12 @@ def generate_embeddings_for_dataset(name, base_database,transform):
     for i, vec in enumerate(all_data):
         if vec.shape != expected_shape:
             print(f"Vector at index {i} has shape {vec.shape}, expected {expected_shape}")
-
     x = np.array(all_data)
     embeddings = transform(x)
     stats_dic = get_stats_from_embedding(name,embeddings,base_database.name)
-    folder_path = f"data/{base_database.name}/embeddings/{name}/"
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
     end_time = time.time()
     stats_dic["time_taken_seconds"] = end_time - start_time
-    save_embeddings(embeddings,labels,stats_dic,folder_path)
-    return folder_path
+    return embeddings,labels,stats_dic
 
 
 def get_stats_from_embedding(name,embeddings,generating_data_name):#gets stats on each feature
@@ -58,8 +55,9 @@ def get_stats_from_embedding(name,embeddings,generating_data_name):#gets stats o
 
 
 def generate_embedding_from_descriptor(descriptor : EmbeddingDescriptor):
-    return generate_embeddings_for_dataset(descriptor.name,descriptor.dataset,descriptor.downprojection_function(**descriptor.downprojection_function_settings).fit_transform)
-
+    embeddings,labels,stats_dic = generate_embeddings_for_dataset(descriptor.name,descriptor.dataset,descriptor.downprojection_function(**descriptor.downprojection_function_settings).fit_transform)
+    embeddings_manager = EmbeddingManager.get_manager()
+    embeddings_manager.save_embedding(descriptor,embeddings,embedding_label = labels,embedding_stats = stats_dic)
 
 if __name__ == '__main__':
     #UMAP EXAMPLE

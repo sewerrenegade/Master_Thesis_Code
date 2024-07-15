@@ -2,26 +2,53 @@ import numpy as np
 import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import random
-from datasets.embedded_data.dataset.embedding_base import EmbeddingBaseDataset as EMNIST
+from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset as EmbeddingDatabase
 import matplotlib.pyplot as plt
 import os
+from datasets.base_dataset_abstraction import BaseDataset
 from configs.global_config import GlobalConfig
-from distance_functions.input_distance_function_metrics.interclass_distance_matrix_metrics import get_score_of_distances,calculate_softmax,standardize_array_mean
-from distance_functions.functions.cubical_complex import CubicalComplexImageEncoder
+from distance_functions.distance_function_metrics.interclass_distance_matrix_metrics import calculate_all_distance_metrics_on_distance_matrix, calculate_n_sample_balanced_distance_matrix,calculate_softmax,standardize_array_mean
+from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
 import json
-from sklearn.metrics import silhouette_score
+
 from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
-cubical_complex_calculator = CubicalComplexImageEncoder()
+def calculate_distance_function_metrics_on_dataset(database,per_class_samples = 10,distance_fn = None):
+    if distance_fn is None:
+        distance_fn = euclidean_distance_function
+    metrics = {}
+    distance_matrix, labels_shuffled, per_class_indicies = calculate_n_sample_balanced_distance_matrix(database,per_class_samples,distance_fn)#needs rework
+    
+    metrics.update(calculate_all_distance_metrics_on_distance_matrix(distance_matrix, labels_shuffled, per_class_indicies))#needs rework
+    #metrics.update(get_embedding_score(database))#silhouette_score, CREATE!
+    #path = get_directory_path(database)
+    #metrics  = save_score(mean,data_used,path)
+    #visualize_interclass_distances(mean,var,database,path, metrics_dict= metrics)
+    return metrics
 
-def euclidean_distance_function(x):
-    assert len(x)==2
-    out_dic =np.linalg.norm(x[0] - x[1])
-    return out_dic
+def save_score(mean,data_used,path):
+    score_dict =None
+    score_serialize = json.dumps(score_dict)
+    with open(os.path.join(path,"score.txt"), "w") as file:
+        file.write(score_serialize)
+    return score_dict
 
 
-def image_cubical_complex_distance_function(x):
-    return cubical_complex_calculator(x).cpu()
+def calculate_origin_dataset_metrics(embedding_database,distance_function = None,flatten = True):
+    if distance_function is None:
+        distance_function = euclidean_distance_function
+    if isinstance(embedding_database,EmbeddingDatabase): 
+        emb_descriptor = embedding_database.embedding_descriptor
+        og_db = DATA_SET_MODULES.get(emb_descriptor.dataset_name,None)
+        database = og_db(training_mode = True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = emb_descriptor.dataset_sampling)
+
+    elif isinstance(embedding_database,BaseDataset):
+        database = embedding_database   
+    else:
+        raise TypeError("input needs to be an embedding database or the original dataset itself")
+    metrics = calculate_distance_function_metrics_on_dataset(database,distance_fn=distance_function)
+    return metrics    
+
 
 def compute_distance_between_classes(distance_fn,class1,class2=None):
     if class2 is None:
@@ -35,32 +62,12 @@ def compute_distance_between_classes(distance_fn,class1,class2=None):
     var = np.var(distances)
     return mean,var
 
-def test_baseline_on_dataset_origin(database,distance_function = euclidean_distance_function,flatten = True):
-    if hasattr(database, 'data_origin'): 
-        og_db = DATA_SET_MODULES.get(database.data_origin,None)
-        assert og_db is not None
-        database = og_db(training_mode = True,gpu= False,numpy = True,flatten = flatten)
-        database.data_origin = database.name
-        metrics = test_embedding(database,distance_fn=distance_function)
-        return metrics
-    elif type(database) is str:
-        og_db = DATA_SET_MODULES.get(database,None)
-        assert og_db is not None
-        database = og_db(training_mode = True,gpu= False,numpy = True,flatten = flatten)
-        database.data_origin = database.name
-        metrics = test_embedding(database,distance_fn=distance_function)
-        return metrics
-    else:
-        return {}
+def euclidean_distance_function(x):
+    assert len(x)==2
+    out_dic =np.linalg.norm(x[0] - x[1])
+    return out_dic
+
         
-
-def save_score(mean,data_used,path):
-    score_dict = get_score_of_distances(mean,data_used)
-    score_serialize = json.dumps(score_dict)
-    with open(os.path.join(path,"score.txt"), "w") as file:
-        file.write(score_serialize)
-    return score_dict
-
 
 def calculate_interclass_distances(database ,per_class_nb_samples,distance_fn):
     classes  = database.classes
@@ -107,17 +114,12 @@ def get_directory_path(database):
     else:
         data_origin = name
         name = "identity_embedding"
-    path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,f"{data_origin}_interinstance_distances",GlobalConfig.EMBEDDING_RESULTS,name)
+    path = os.path.join(GlobalConfig.RESULTS_DATA_FOLDER_PATH,f"{data_origin}_interinstance_distances",GlobalConfig.EMBEDDING_RESULTS,name)
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
     return path
 
-def test_embedding(database,per_class_samples = 10,distance_fn = euclidean_distance_function):
-    path = get_directory_path(database)
-    mean,var,data_used = calculate_interclass_distances(database,per_class_samples,distance_fn)
-    metrics  = save_score(mean,data_used,path)
-    visualize_interclass_distances(mean,var,database,path, metrics_dict= metrics)
-    return metrics
+
 
 def visualize_embedding_performance_wrt_dimension(methode_name,metrics,down_dim,data_origin):
     num_metrics = len(metrics[0])
@@ -136,26 +138,26 @@ def visualize_embedding_performance_wrt_dimension(methode_name,metrics,down_dim,
 
     fig.suptitle(f"Metrics Plots for {methode_name}", fontsize=20)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    base_path = os.path.join(GlobalConfig.RESULTS_FOLDER_PATH,f"{data_origin}_interinstance_distances/","dimensionality_results")
+    base_path = os.path.join(GlobalConfig.RESULTS_DATA_FOLDER_PATH,f"{data_origin}_interinstance_distances/","dimensionality_results")
     os.makedirs(base_path,exist_ok=True)
     path = os.path.join(base_path,f"{methode_name}_metrics_plots.png")
     plt.savefig(path)
     plt.close(fig)
 
-if __name__ == '__main__':
-    original_dataset_name = "MNIST"    
-    down_dim = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS
-    order_of_embeddings = GlobalConfig.EMBEDDING_METHODS
-    base_metrics = test_baseline_on_dataset_origin(original_dataset_name)
-    joint_metrics = {"baseline": base_metrics}
-    for method in order_of_embeddings:
-        metrics = []
-        for dim in down_dim:
-            name = f"{method}_{dim}"
-            print(f"started metrics calculation for {name}")
-            data = EMNIST(f"data/{original_dataset_name}/embeddings/{name}/")
-            metrics.append(test_embedding(data))
-            print(f"finished calculating metrics {name}")
-        visualize_embedding_performance_wrt_dimension(methode_name=method,metrics= metrics,down_dim=down_dim)
-        joint_metrics[method] = metrics
-    #visualize_all_embeddings_performance_wrt_dimension(joint_metrics,data_origin=original_dataset_name)
+# if __name__ == '__main__':
+#     original_dataset_name = "MNIST"    
+#     down_dim = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS
+#     order_of_embeddings = GlobalConfig.EMBEDDING_METHODS
+#     base_metrics = test_embedding_origin(original_dataset_name)
+#     joint_metrics = {"baseline": base_metrics}
+#     for method in order_of_embeddings:
+#         metrics = []
+#         for dim in down_dim:
+#             name = f"{method}_{dim}"
+#             print(f"started metrics calculation for {name}")
+#             data = EmbeddingDatabase(f"data/{original_dataset_name}/embeddings/{name}/")
+#             metrics.append(test_embedding(data))
+#             print(f"finished calculating metrics {name}")
+#         visualize_embedding_performance_wrt_dimension(methode_name=method,metrics= metrics,down_dim=down_dim)
+#         joint_metrics[method] = metrics
+#     #visualize_all_embeddings_performance_wrt_dimension(joint_metrics,data_origin=original_dataset_name)
