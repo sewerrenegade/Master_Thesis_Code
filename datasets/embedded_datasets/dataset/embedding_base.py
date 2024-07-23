@@ -1,29 +1,47 @@
-from torch.utils.data import Dataset, random_split, Subset
-import os
+from torch.utils.data import Dataset
 import numpy as np
 import random
-from datasets.base_dataset_abstraction import BaseDataset
 from configs.global_config import GlobalConfig
 from collections.abc import Iterable
-from datasets.embedded_datasets.embeddings_manager import EMBEDDING_MANAGER_INSTANCE
+
+from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 class EmbeddingBaseDataset(Dataset):
     def __init__(self, embedding_id,balance_dataset_classes:int = None):
         self.embedding_id = embedding_id
         self.balance_dataset_classes = balance_dataset_classes
-        self.embeddings, self.embedding_labels, self.embedding_descriptor = EMBEDDING_MANAGER_INSTANCE.load_embedding(self.embedding_id)
+        from results.results_manager import ResultsManager
+        self.embeddings, self.embedding_labels, self.embedding_descriptor = ResultsManager.get_manager().load_embedding(self.embedding_id)
         assert self.embedding_labels is not None
+        from datasets.embedded_datasets.generators.embedding_descriptor import SerializableEmbeddingDescriptor
+        self.embedding_descriptor = SerializableEmbeddingDescriptor.from_dict(self.embedding_descriptor)
         self.name = self.embedding_descriptor.name
         self.data_origin =   self.embedding_descriptor.dataset_name
+        self.augmentation_settings = self.embedding_descriptor.augmentation_settings
         self.classes = []
         self.class_indicies = self.get_class_indicies()
         self.indicies_list = self.build_smaller_dataset()
     
+    def get_serializable_embedding_descriptor(self):
+        return self.embedding_descriptor
+
+    def get_dataset_origin(self,flatten):
+        emb_descriptor = self.embedding_descriptor
+        og_db = DATA_SET_MODULES.get(emb_descriptor.dataset_name,None)
+        return og_db(training_mode = True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = emb_descriptor.dataset_sampling)
+        
     def get_random_samples_from_class(self, class_name, number_of_instances):
         indicies = self.class_indicies[class_name]
         random_indicies = random.sample(indicies,number_of_instances)
         return self[random_indicies]
-
+    
+    def get_random_instances_from_all_classes(self, number_of_instances):
+        instances_dict = {}
+        for class_name in self.classes:
+            instances_dict[class_name] = self.get_random_samples_from_class(
+                class_name, number_of_instances
+            )[0]
+        return instances_dict
     
     def get_class_indicies(self):
         class_indicies  = {}

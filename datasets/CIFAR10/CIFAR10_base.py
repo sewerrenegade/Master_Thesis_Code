@@ -10,18 +10,28 @@ from datasets.mil_dataset_abstraction import BaseMILDataset
 
 class CIFAR10_base(BaseDataset):
 
-    def __init__(self,training_mode, root_dir = "data/",balance_dataset_classes = None,gpu = True, grayscale = False, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
+    def __init__(self,training_mode, root_dir = "data/",balance_dataset_classes = None,gpu = True, grayscale = False,resize=False, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None):
         self.root_dir = root_dir
         super().__init__("CIFAR10",augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes,training=training_mode)
         self.training_mode = training_mode
-        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=grayscale,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])])
+        self.preload_transforms,self.transform = self.get_transform_function(augmentation_settings= augmentation_settings,grayscale=grayscale,resize=resize,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,extra_transforms=[])#[transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616])])
         self.data = CIFAR10(train=training_mode,root=root_dir,transform=self.preload_transforms)
         
 
     
     def __len__(self):
         return len(self.indicies_list)
-
+    
+    def get_only_pretransform_item(self, index):
+        if isinstance(index,int):
+            x = self.indicies_list[index][0]
+            image_data,image_label = self.data[x][0],self.indicies_list[index][1]
+            return image_data, image_label
+        else:
+            image_data =[self.data[self.indicies_list[ind][0]][0] for ind in index]
+            image_label =[self.indicies_list[ind][1] for ind in index]
+            return image_data, image_label
+        
     def __getitem__(self, index):
         if isinstance(index,int):
             x = self.indicies_list[index][0]

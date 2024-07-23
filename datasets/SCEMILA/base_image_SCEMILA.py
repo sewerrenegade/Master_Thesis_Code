@@ -20,12 +20,13 @@ class SCEMILAimage_base(BaseDataset):
             to_tensor = True,
             balance_dataset_classes = None,
             augmentation_settings = None,
-            grayscale = False
+            grayscale = False,
+            resize=False
             ):
         super().__init__("SCEMILA/image_data",augmentation_settings,balance_dataset_classes=balance_dataset_classes)
         self.encode_with_dino_bloom = encode_with_dino_bloom
         self.augmentation_settings = augmentation_settings
-        self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,grayscale=grayscale)
+        self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,resize=resize,grayscale=grayscale)
         if self.encode_with_dino_bloom:
             self.dino_enc = self.get_dino_bloom_transform()
             self.get_item_function = self.get_and_dino_encoded_tif_image
@@ -46,16 +47,34 @@ class SCEMILAimage_base(BaseDataset):
             labels = []
             for index in idx:
                 image , label = self.get_item_function(index)
-                images.append(self.transforms(image))
+                images.append(image)
                 labels.append(label)
             return images,labels
         
+    def get_only_pretransform_item(self,idx):
+        '''returns specific item from this dataset'''
+        if type(idx) is int:
+            return self.get_item_function(idx)
+        elif isinstance(idx,Iterable):
+            images = []
+            labels = []
+            for index in idx:
+                image , label = self.get_single_tiff_imagewithout_post_trans(index)
+                images.append(image)
+                labels.append(label)
+            return images,labels
+           
     def get_single_tiff_image(self, idx):
         if idx not in self.loaded_data:
             image_path = self.indicies_list[idx][0]
             image = self.transforms(self.preload_transforms(image_path))
             self.loaded_data[idx] =  image,self.indexer.convert_from_int_to_label_instance_level(self.indicies_list[idx][1])
         return self.loaded_data[idx]
+    
+    def get_single_tiff_imagewithout_post_trans(self, idx):
+        image_path = self.indicies_list[idx][0]
+        image = self.preload_transforms(image_path)
+        return image,self.indexer.convert_from_int_to_label_instance_level(self.indicies_list[idx][1])
 
     
     def get_and_dino_encoded_tif_image(self,idx):

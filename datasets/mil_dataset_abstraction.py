@@ -1,3 +1,4 @@
+from enum import Enum
 from torch.utils.data import Dataset
 from abc import ABC, abstractmethod
 import torch
@@ -11,7 +12,22 @@ import random
 from datasets.image_augmentor import AugmentationSettings
 from datasets.indexer_scripts.indexer_abstraction import Indexer
 
+class BagSizeTypes(Enum): 
+    CONSTANT = 1 #(CONSTANT,bag_size)
+    GAUSSIAN = 2 #(GAUSSIAN,mean_of_bag_size,var_of_bag_size)
+    UNIFORM_DISTRIBUTION = 3 #(UNIFORM_DISTRIBUTION,high_int,low_int)
+    CALCULATED_AVERAGE_AND_STD = 4 #(CALCULATED_AVERAGE_AND_STD,calc_avg,calc_std)
+    NOT_APPLICABLE = -1 # (NOT_APPLICABLE) This used to indicate that bag_size information is irrelavent it will look as indicated in the beginning of comment
+    
+    def to_string(self) -> str:
+        """Convert the enum to its name as a string."""
+        return self.name
 
+    @staticmethod
+    def from_string(name: str) -> 'BagSizeTypes':
+        """Convert a string name back to the enum."""
+        return BagSizeTypes[name]
+    
 class BaseMILDataset(Dataset, ABC):
     def __init__(self, database_name,augmentation_settings:AugmentationSettings,balance_dataset_classes,data_synth = None,training = True):
         self.name = database_name
@@ -22,11 +38,15 @@ class BaseMILDataset(Dataset, ABC):
         self.indexer:Indexer = self.get_indexer()
         if data_synth is None:
             self.per_class_indicies = self.indexer.get_bag_level_indicies(training)
+            bag_sizes =  np.array([len(x) for key,value in self.per_class_indicies.items() for x in value])
+            self.bag_size = (BagSizeTypes.CALCULATED_AVERAGE_AND_STD,int(np.average(bag_sizes)),int(np.std(bag_sizes)))
         else:
             self.per_class_indicies = self.indexer.get_bag_level_indicies(training,balance_dataset_classes,data_synth)
+            self.bag_size = data_synth.bag_size
         self.per_class_count = BaseMILDataset.count_per_class_samples(self.per_class_indicies)
         self.indicies_list,self.per_class_indicies,self.per_class_count =self.balance_dataset()
         self.classes = list(self.per_class_indicies.keys())
+        
     
     def balance_dataset(self):
         if self.number_of_per_class_instances is None or self.number_of_per_class_instances == 0:

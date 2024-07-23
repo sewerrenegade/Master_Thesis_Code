@@ -8,6 +8,7 @@ class PerceptualLoss(nn.Module):
     """
     def __init__(self, device='cuda:0', net='vgg', **kwargs):
         super(PerceptualLoss, self).__init__(**kwargs)
+        self.name = "Perceptual Distance"
         self.loss_fn = lpips.LPIPS(net=net)
         self.device = device
 

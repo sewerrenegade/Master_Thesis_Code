@@ -7,7 +7,7 @@ import tifffile as tiff
 from models.DinoBloom.dinobloom_hematology_feature_extractor import get_dino_bloom,DINOBLOOM_TRANSFORMS,DINOBLOOM_NETWORKS_INFOS,DEFAULT_PATCH_NUM,DINOBLOOM_DEFAULT_IMAGE_DIM
 
 class DatasetTransforms:
-    def __init__(self, dataset_name,load_tiff=False,load_jpg = False, augmentation_settings :AugmentationSettings=None, numpy=False, to_gpu=False, flatten=False, grayscale=False, to_tensor=False, extra_transforms=None) -> None:
+    def __init__(self, dataset_name,resize = False,load_tiff=False,load_jpg = False, augmentation_settings :AugmentationSettings=None, numpy=False, to_gpu=False, flatten=False, grayscale=False, to_tensor=False, extra_transforms=None) -> None:
         self.dataset_name = dataset_name
         self.load_tiff = load_tiff
         self.load_jpg = load_jpg
@@ -16,6 +16,7 @@ class DatasetTransforms:
         self.to_gpu = to_gpu
         self.flatten = flatten
         self.grayscale = grayscale
+        self.resize = resize
         self.to_tensor = to_tensor
         self.extra_transforms = extra_transforms if extra_transforms is not None else []
         self.preload_transforms,self.postload_transforms = None,None
@@ -37,6 +38,8 @@ class DatasetTransforms:
 
             if self.grayscale:
                 preload_transforms_list.append(transforms.Grayscale())
+            if self.resize:
+                preload_transforms_list.append(transforms.Resize((100,100),transforms.InterpolationMode.BILINEAR))
 
             if self.augmentation_settings is not None:
                 aug_list, db_compatible_settings = get_dataset_compatible_augmentation_function(self.augmentation_settings)

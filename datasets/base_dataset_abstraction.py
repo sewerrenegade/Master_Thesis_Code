@@ -67,6 +67,15 @@ class BaseDataset(Dataset, ABC):
             )[0]
         return instances_dict
 
+    @abstractmethod
+    def get_only_pretransform_item(self):
+        pass
+    def get_per_class_image_samples(self,k=1):
+        sample_images = {}
+        for class_name in self.classes:
+            rndm_indx = random.sample(self.per_class_indicies[class_name],k=k)
+            sample_images[class_name] = self.get_only_pretransform_item(rndm_indx)[0]
+        return sample_images
     def get_indexer(self) -> Indexer:
         from datasets.indexer_scripts. indexer_utils import get_dataset_indexer
         return get_dataset_indexer(self.name)
@@ -83,6 +92,7 @@ class BaseDataset(Dataset, ABC):
         to_gpu=False,
         flatten=False,
         grayscale=False,
+        resize = False,
         to_tensor=True,
         extra_transforms=[],
     ):
@@ -95,6 +105,7 @@ class BaseDataset(Dataset, ABC):
             to_gpu=to_gpu,
             flatten=flatten,
             grayscale=grayscale,
+            resize= resize,
             to_tensor=to_tensor,
             extra_transforms=extra_transforms,
         )

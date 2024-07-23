@@ -20,7 +20,7 @@ class GlobalConfig:
     CUSTOM_METRICS = []
 
     EMBEDDING_DATA_FOLDER_PATH = "data/EMBEDDING/v1/"
-    RESULTS_DATA_FOLDER_PATH = "results/data/"
+    RESULTS_DATA_FOLDER_PATH = "results/data/v1/"
     RESULTS_FOLDER_PATH = "results/"
     MNIST_INTER_CLASS_DIST = "MNIST_interinstance_distances/"
     FashionMNIST_INTER_CLASS_DIST = "FashionMNIST_interinstance_distances/"
@@ -31,6 +31,7 @@ class GlobalConfig:
     DOWNPROJECTION_TEST_DIMENSIONS = [1,2,3,4,6,8,12,16,32]
     EMBEDDING_METHODS = ["PHATE","ISOMAP","PCA","TSNE","UMAP"]
     
+    TEMP_RESULTS_FOLDER = "results/temp_results/"
     
     LIST_OF_ALL_DATASETS = [
         "MNSIT",

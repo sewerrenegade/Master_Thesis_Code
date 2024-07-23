@@ -1,9 +1,11 @@
 import random
 
+from datasets.mil_dataset_abstraction import BagSizeTypes
+
 class SinglePresenceMILSynthesizer:
     def __init__(self,postive_classes, bag_size) -> None:
         self.positive_classes = postive_classes
-        self. bag_size = bag_size
+        self.bag_size = bag_size
         
         
     def generate_bag_level_indicies_per_class(self,training,indexer,number_of_bags_per_class):
@@ -15,13 +17,13 @@ class SinglePresenceMILSynthesizer:
         return per_class_indicies
         
     def generate_bag_instance_from_label(self,label,training):
-        assert isinstance(self.bag_size,int)
+        assert self.bag_size[0] == BagSizeTypes.CONSTANT
         if label:
-            instance_labels = random.choices(self.classes, k=self.bag_size)
-            forced_index = random.randint(0, self.bag_size - 1)
+            instance_labels = random.choices(self.classes, k=self.bag_size[1])
+            forced_index = random.randint(0, self.bag_size[1] - 1)
             instance_labels[forced_index] = random.choice(self.positive_classes)
         else:
-            instance_labels = random.choices(self.missing_classes, k=self.bag_size)
+            instance_labels = random.choices(self.missing_classes, k=self.bag_size[1])
         return self.indexer.get_random_samples_of_class(instance_labels,training)
     
 class MultiPresenceMILSynthesizer:

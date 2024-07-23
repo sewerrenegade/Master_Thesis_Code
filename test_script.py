@@ -7,8 +7,8 @@
 # from  models.topology_models.train_reconstruction_distance import train_or_show_rec_autoencoder
 # train_or_show_rec_autoencoder('models/topology_models/reconstruction_distance_parameters/MNIST_Reconstruction_model_32_150.pth')
 
-# from gudhi.tensorflow import LowerStarSimplexTreeLayer, CubicalLayer, RipsLayer 
-# import gudhi 
+# from gudhi.tensorflow import LowerStarSimplexTreeLayer, CubicalLayer, RipsLayer
+# import gudhi
 # #import tensorflow as tf
 # import numpy as np
 # import pandas as pd
@@ -28,7 +28,7 @@
 
 # mean, var = calculate_class_distance_embedded_MNIST()
 # visualize_array(zip(mean,var))
-#--------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------
 # from  distance_functions.input_distance_function_metrics.test_distances import calculate_class_distance_MNIST, visualize_array
 
 # mean, var = calculate_class_distance_MNIST()
@@ -38,7 +38,7 @@
 
 # configs = [
 #     #["configs/test/","topo_test_reconstruction.yaml"],
-    
+
 #     #["configs/test/","test.yaml"],
 #     ["configs/test","topo_test_reconstruction.yaml"],
 #     ]
@@ -183,14 +183,14 @@
 # def integer_to_binary_list(number, length):
 #     # Convert number to binary and remove the '0b' prefix
 #     binary_representation = bin(number)[2:]
-    
+
 #     # Pad the binary representation with leading zeros to match the desired length
 #     padded_binary_list = [int(digit) for digit in binary_representation.zfill(length)]
-    
+
 #     # Ensure the list is exactly the desired length
 #     if len(padded_binary_list) > length:
 #         raise ValueError("The length of the binary representation exceeds the specified length")
-    
+
 #     return padded_binary_list[::-1]
 
 # # Example usage
@@ -201,29 +201,161 @@
 # print(result[0])
 
 
-from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_base
-from datasets.MNIST.MNIST_base import MNISTBase
-from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base
-from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
-from distance_functions.distance_function_metrics.embedding_performance_test import  calculate_origin_dataset_metrics
+# from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_base
+# from datasets.MNIST.MNIST_base import MNISTBase
+# from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base
+# from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
+# from distance_functions.distance_function_metrics.distance_function_performance_test import  calculate_origin_dataset_metrics
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-flatten = False
-mnist_dataset = FashionMNIST_base(training_mode = True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = 100)
-scemila_dataset = SCEMILAimage_base(training_mode = True,grayscale=True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = 36)
-dist_fnc = CubicalComplexImageDistanceFunction(calculate_holes= True,join_channels=False)
-base_metrics = calculate_origin_dataset_metrics(scemila_dataset,distance_function= dist_fnc,flatten= False)
-print(base_metrics)
-avg_dist = base_metrics["intra_inter_class_distance_matrix_mean"]
-plt.figure(figsize=(10, 8))
-plt.imshow(avg_dist, cmap='viridis', interpolation='nearest')
-plt.colorbar()
+# flatten = False
+# mnist_dataset = FashionMNIST_base(training_mode = True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = 100)
+# scemila_dataset = SCEMILAimage_base(training_mode = True,grayscale=True,gpu= False,numpy = True,flatten = flatten,balance_dataset_classes = 36)
+# dist_fnc = CubicalComplexImageDistanceFunction(calculate_holes= True,join_channels=False)
+# base_metrics = calculate_origin_dataset_metrics(scemila_dataset,distance_function= dist_fnc,flatten= False)
+# print(base_metrics)
+# avg_dist = base_metrics["intra_inter_class_distance_matrix_mean"]
+# plt.figure(figsize=(10, 8))
+# plt.imshow(avg_dist, cmap='viridis', interpolation='nearest')
+# plt.colorbar()
 
-# Add title and labels
-plt.title('Heatmap of the Given Array')
-plt.xlabel('Column Index')
-plt.ylabel('Row Index')
+# # Add title and labels
+# plt.title('Heatmap of the Given Array')
+# plt.xlabel('Column Index')
+# plt.ylabel('Row Index')
 
-# Show the plot
-plt.show()
+# # Show the plot
+# plt.show()
+
+# ########################
+# from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset
+# from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
+# from datasets.image_augmentor import AugmentationSettings
+# import umap
+# from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
+# from distance_functions.distance_function_metrics.distance_matrix_metrics import DistanceMatrixMetricCalculator
+# from distance_functions.functions.basic_distance_functions import EuclideanDistance
+# from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
+# from results.metrics_descriptor import MetricsDescriptor
+# from results.results_manager import ResultsManager
+
+# def g():
+#     #dx= {("Acevedo","normal"):{"training_mode":True,"balance_dataset_classes": 99,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True}}
+#     results_manager = ResultsManager.get_manager()
+#     dataset = DATA_SET_MODULES.get("Acevedo")
+#     db_settings = {"training_mode":True,"balance_dataset_classes": 51,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True}
+#     trans_func,trans_settings =umap.UMAP,{'n_components': 1}
+
+#     dataset = dataset(**db_settings)
+#     descriptor = EmbeddingDescriptor(f"UMAP_1",dataset,"UMAP",trans_func,trans_settings)
+#     embedding_descriptor_id = results_manager.calculate_descriptor_id(descriptor)
+#     # if not results_manager.check_if_result_already_exists(descriptor):
+#     #                         print(f"started     # descriptor = EmbeddingDescriptor(f"UMAP_1",dataset,"UMAP",trans_func,trans_settings)
+#     embedding_descriptor_id = results_manager.calculate_descriptor_id(descriptor)
+#     if not results_manager.check_if_result_already_exists(descriptor):
+#         print(f"started generating embeddings for {descriptor.name}")
+#         print(descriptor.to_dict())
+#         descriptor.generate_embedding_from_descriptor()
+#     else:
+#         print("embedding already exists!")
+#     embd_ds = EmbeddingBaseDataset(embedding_descriptor_id)
+#     distance_function = EuclideanDistance()
+#     per_class = 10
+#     metric = DistanceMatrixMetricCalculator
+#     metric_desc = MetricsDescriptor(metric_calculator=metric,dataset=embd_ds,distance_function= distance_function,per_class_samples=per_class)
+#     if not results_manager.check_if_result_already_exists(metric_desc):
+#         metrics = metric_desc.calculate_metric()
+#         print(metrics)
+#     else:
+#         print("metric already exists!")
+
+# if __name__ == '__main__':
+#     g()
+
+
+from datasets.image_augmentor import AugmentationSettings
+from results.results_manager import ResultsManager
+
+
+def dict_to_lambda_condition(d, prefix=""):
+    conditions = []
+    for key, value in d.items():
+        if isinstance(value, dict) and not value == {}:
+            nested_conditions = dict_to_lambda_condition(
+                value, prefix=f"{prefix}['{key}']"
+            )
+            conditions.append(nested_conditions)
+        else:
+            if value is not None and not value == {}:
+                if isinstance(value, str):
+                    condition = f"desc{prefix}['{key}'] == '{value}'"
+                elif isinstance(value, bool):
+                    condition = f"desc{prefix}['{key}'] == {str(value)}"
+                else:
+                    condition = f"desc{prefix}['{key}'] == {value}"
+                conditions.append(condition)
+    return " and ".join(conditions)
+
+
+results_mngr = ResultsManager.get_manager()
+
+
+q_dict = {
+    "dataset_dict": {
+        "dataset_name": "SCEMILA/image_data",
+        "dataset_sampling": 100,
+        "augmentation_settings": {
+            "dataset_name": None,
+            "color_jitter": True,
+            "sharpness_aug": True,
+            "horizontal_flip_aug": True,
+            "vertical_flip_aug": True,
+            "rotation_aug": True,
+            "translation_aug": True,
+            "gaussian_blur_aug": True,
+            "gaussian_noise_aug": True,
+        },
+        "dino_bloom": None,
+        "transform_name": "UMAP",
+        "transform_settings": {"n_components": 4},
+    },
+    "metric_name": "distance_matrix_metrics",
+    "metric_settings": {},
+    "distance_function_name": None,
+    "distance_function_settings": {},
+    "per_class_samples": None,
+}
+q_dict2 = {
+    "dataset_dict": {
+        "name": "SCEMILA/image_data",
+        "augmentation_settings": {
+            "color_jitter": True,
+            "sharpness_aug": True,
+            "horizontal_flip_aug": True,
+            "vertical_flip_aug": True,
+            "rotation_aug": True,
+            "translation_aug": True,
+            "gaussian_blur_aug": True,
+            "gaussian_noise_aug": True,
+        },
+        "augmentation_scheme": "COMPLETELY_ROTATIONALY_INVARIANT",
+        "dino_bloom": None,
+    },
+    "metric_name": "distance_matrix_metrics",
+    "metric_settings": {},
+    "distance_function_name": "Cubical Complex Distance",
+    "distance_function_settings": {
+        "calculate_holes": True,
+        "join_channels": False,
+        "distribution_distance": "WasserStein",
+    },
+    "per_class_samples": 5,
+}
+
+lambda_condition_str = dict_to_lambda_condition(q_dict2)
+lambda_condition = eval(f"lambda desc: {lambda_condition_str}")
+query_result = results_mngr.query_metrics_lambda(lambda_condition)
+print(query_result)
+
+

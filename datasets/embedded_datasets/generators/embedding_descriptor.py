@@ -1,20 +1,43 @@
 from dataclasses import dataclass
-from torch.utils.data import Dataset
 from typing import Callable,Union
-import json
-
+from datasets.base_dataset_abstraction import BaseDataset
+from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset
+from datasets.embedded_datasets.generators.generate_embeddings import generate_embeddings_for_dataset
 from datasets.image_augmentor import AugmentationSettings
+from datasets.mil_dataset_abstraction import BaseMILDataset
+
 
 @dataclass
 class EmbeddingDescriptor:
     name: str
-    dataset: Dataset
+    dataset: Union[BaseDataset,BaseMILDataset]
     downprojection_function_name:str
     downprojection_function: Callable
     downprojection_function_settings: dict
     
     def to_dict(self):
-        return create_serialializable_descriptor_from_live_descriptor(self).to_dict()
+        return self.create_serialializable_descriptor_from_live_embedding_descriptor().to_dict()
+    
+    def create_serialializable_descriptor_from_live_embedding_descriptor(self):
+        emb_decriptor= self
+        return SerializableEmbeddingDescriptor(
+            name=emb_decriptor.name,
+            dataset_name=emb_decriptor.dataset.name,
+            dataset_sampling=emb_decriptor.dataset.number_of_per_class_instances,
+            augmentation_settings=emb_decriptor.dataset.augmentation_settings,
+            dino_bloom=getattr(emb_decriptor.dataset, 'encode_with_dino_bloom', False),
+            transform_name=emb_decriptor.downprojection_function_name,
+            transform_settings=emb_decriptor.downprojection_function_settings
+        )
+    def generate_embedding_from_descriptor(self,recalculate = False):
+        from results.results_manager import ResultsManager
+        results_manager = ResultsManager.get_manager()
+        if not recalculate and results_manager.check_if_result_already_exists(self):
+            embeddings,labels,stats_dic = results_manager.load_embedding(self)
+        else:
+            embeddings,labels,stats_dic = generate_embeddings_for_dataset(self.name,self.dataset,self.downprojection_function(**self.downprojection_function_settings).fit_transform)
+            results_manager.save_results(descriptor=self ,results= {"embedding":embeddings,"embedding_label" : labels,"embedding_stats" : stats_dic})
+        return embeddings,labels,stats_dic
 
 class SerializableEmbeddingDescriptor:
     def __init__(self, name, dataset_name, dataset_sampling, augmentation_settings, dino_bloom, transform_name, transform_settings):
@@ -59,13 +82,7 @@ class SerializableEmbeddingDescriptor:
             transform_settings=data['transform_settings'],
         )
     
-def create_serialializable_descriptor_from_live_descriptor(emb_decriptor:EmbeddingDescriptor):
-    return SerializableEmbeddingDescriptor(
-        name=emb_decriptor.name,
-        dataset_name=emb_decriptor.dataset.name,
-        dataset_sampling=emb_decriptor.dataset.number_of_per_class_instances,
-        augmentation_settings=emb_decriptor.dataset.augmentation_settings,
-        dino_bloom=getattr(emb_decriptor.dataset, 'encode_with_dino_bloom', False),
-        transform_name=emb_decriptor.downprojection_function_name,
-        transform_settings=emb_decriptor.downprojection_function_settings
-    )
+
+    
+def create_serialializable_descriptor_from_live_embedding_dataset(emb_dataset:EmbeddingBaseDataset)-> SerializableEmbeddingDescriptor:
+    return emb_dataset.get_serializable_embedding_descriptor()

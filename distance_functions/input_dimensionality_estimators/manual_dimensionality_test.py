@@ -5,7 +5,7 @@ import os
 from configs.global_config import GlobalConfig
 from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset as EmbeddingDatabase
 from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
-from distance_functions.distance_function_metrics.embedding_performance_test import visualize_embedding_performance_wrt_dimension, calculate_origin_dataset_metrics, calculate_distance_function_metrics_on_dataset,image_cubical_complex_distance_function
+from distance_functions.distance_function_metrics.distance_function_performance_test import visualize_embedding_performance_wrt_dimension, calculate_origin_dataset_metrics, calculate_distance_function_metrics_on_dataset,image_cubical_complex_distance_function
 
 
 
@@ -39,9 +39,7 @@ def visualize_all_embeddings_performance_wrt_dimension(metrics,data_origin,down_
 
 def perform_manual_dimensionality_test(original_dataset_name,down_dim = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS,order_of_embeddings = GlobalConfig.EMBEDDING_METHODS,per_class_samples = 10):
 
-    cubical_complex_metrics = calculate_origin_dataset_metrics(original_dataset_name,distance_function= image_cubical_complex_distance_function,flatten= False)
-    base_metrics = calculate_origin_dataset_metrics(original_dataset_name)
-    joint_metrics = {"baseline": [base_metrics]*len(down_dim),"cubical_complex":[cubical_complex_metrics]*len(down_dim)}
+    joint_metrics = {}
     for method in order_of_embeddings:
         metrics = []
         for dim in down_dim:
@@ -52,6 +50,11 @@ def perform_manual_dimensionality_test(original_dataset_name,down_dim = GlobalCo
             print(f"finished generating embeddings for {name} saved in path ")
         visualize_embedding_performance_wrt_dimension(methode_name=method,metrics=metrics,down_dim=down_dim,data_origin=original_dataset_name)
         joint_metrics[method] = metrics
+    og_dataset_flat = data.get_dataset_origin(flatten= True)
+    og_dataset = data.get_dataset_origin(flatten= False)
+    cubical_complex_metrics = calculate_distance_function_metrics_on_dataset(og_dataset,per_class_samples=per_class_samples,distance_function= CubicalComplexImageDistanceFunction(),flatten= False)
+    base_metrics = calculate_distance_function_metrics_on_dataset(og_dataset_flat,per_class_samples=per_class_samples)
+    joint_metrics["baseline"],joint_metrics["cubical_complex"]  = [base_metrics]*len(down_dim),[cubical_complex_metrics]*len(down_dim)
     visualize_all_embeddings_performance_wrt_dimension(joint_metrics,data_origin=original_dataset_name,down_dim=down_dim,order_of_embeddings=order_of_embeddings)
 
 if __name__ == '__main__':

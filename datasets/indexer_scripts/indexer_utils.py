@@ -5,14 +5,24 @@ from datasets.CIFAR10.CIFAR10_indexer import CIFAR10_Indexer
 from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
 from datasets.Acevedo.acevedo_indexer import AcevedoIndexer
 
-def process_deserialized_json(data):
+def process_deserialized_json(data,class_mapping = None):
     if isinstance(data, dict):
-        return {int(key): value for key, value in data.items()}
+        return  convert_int_keys_to_string_if_mapping_exists({int(key): value for key, value in data.items()},class_mapping)
     elif isinstance(data, list):
-        return [{int(key): value for key, value in d.items()} for d in data]
+        return [convert_int_keys_to_string_if_mapping_exists({int(key): value for key, value in d.items()},class_mapping) for d in data]
     else:
         raise TypeError("Input must be a dictionary or a list of dictionaries")
 
+def convert_int_keys_to_string_if_mapping_exists(dict_struct,class_mapping):
+    if class_mapping is not None:
+            new_dict = {}
+            for key,value in dict_struct.items():
+                assert isinstance(key,int)
+                new_dict[class_mapping[key]] = value
+            return new_dict
+    else:
+        return dict_struct
+    
 def get_dataset_indexer(dataset_name):
     return DATASET_TO_INDEXER_MAPPING[dataset_name].get_indexer()
 

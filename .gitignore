@@ -2,6 +2,7 @@ data/
 logs/
 models/DinoBloom/weights
 models/DinoBloom/DinoBloom
+results/temp_results/
 junk/
 results/data
 wandb/

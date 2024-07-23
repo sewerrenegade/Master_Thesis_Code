@@ -20,10 +20,10 @@ class CIFAR10_Indexer(Indexer):
         with open(self.dict_path, 'r') as json_file:
             loaded_dict = json.load(json_file)    
         from datasets.indexer_scripts.indexer_utils import process_deserialized_json
-        self.train_per_class_indicies = process_deserialized_json(loaded_dict["train"])
-        self.test_per_class_indicies = process_deserialized_json(loaded_dict["test"])
-        self.classes= sorted(loaded_dict["classes"])
-        self.train_class_count ,self.test_class_count = process_deserialized_json(loaded_dict["class_count"])
+        self.train_per_class_indicies = process_deserialized_json(loaded_dict["train"],self.class_names)
+        self.test_per_class_indicies = process_deserialized_json(loaded_dict["test"],self.class_names)
+        self.classes= self.class_names
+        self.train_class_count ,self.test_class_count = process_deserialized_json(loaded_dict["class_count"],self.class_names)
         self.train_size,self.test_size = loaded_dict["total_count"]
         
     def get_instance_level_indicies(self,training):

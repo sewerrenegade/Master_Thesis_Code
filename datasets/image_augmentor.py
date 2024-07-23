@@ -83,6 +83,21 @@ class AugmentationSettings:
         self.gaussian_blur_aug = gaussian_blur_aug
         self.gaussian_noise_aug = gaussian_noise_aug
         self.auto_generated_notes = auto_generated_notes
+    def __eq__(self, other):
+            if not isinstance(other, AugmentationSettings):
+                return False
+            return (
+                self.dataset_name == other.dataset_name and
+                self.color_jitter == other.color_jitter and
+                self.sharpness_aug == other.sharpness_aug and
+                self.horizontal_flip_aug == other.horizontal_flip_aug and
+                self.vertical_flip_aug == other.vertical_flip_aug and
+                self.rotation_aug == other.rotation_aug and
+                self.translation_aug == other.translation_aug and
+                self.gaussian_blur_aug == other.gaussian_blur_aug and
+                self.gaussian_noise_aug == other.gaussian_noise_aug and
+                self.auto_generated_notes == other.auto_generated_notes
+            )
 
 
     def __repr__(self) -> str:
@@ -102,7 +117,7 @@ class AugmentationSettings:
     
     #If the input is all, then all possible augmentations will be activated
     @classmethod
-    def all_false_except_one(cls, only_enabled: str, dataset_name: str="") -> 'AugmentationSettings':
+    def create_settings_with_name(cls, only_enabled: str, dataset_name: str="") -> 'AugmentationSettings':
         """
         Initialize with all augmentations set to False except one specified.
 
@@ -116,16 +131,19 @@ class AugmentationSettings:
         valid_augmentations = [
             'color_jitter', 'sharpness_aug', 'horizontal_flip_aug', 
             'vertical_flip_aug', 'rotation_aug', 'translation_aug', 
-            'gaussian_blur_aug', 'gaussian_noise_aug', 'all'
+            'gaussian_blur_aug', 'gaussian_noise_aug', 'all','none'
         ]
         
         if only_enabled not in valid_augmentations:
             raise ValueError(f"{only_enabled} is not a valid augmentation type.")
-        if only_enabled == valid_augmentations[-1]:
+        if only_enabled == valid_augmentations[-2]:
             return AugmentationSettings() #ALL AUGMENTATIONS ACTIVE
-        settings = {aug: False for aug in valid_augmentations[0:-1]}
-        settings[only_enabled] = True
-        return cls(dataset_name, **settings)
+        elif only_enabled == valid_augmentations[-1]:
+            settings = {aug: False for aug in valid_augmentations[0:-2]}
+            return cls(dataset_name, **settings)
+        else:   
+            settings[only_enabled] = True
+            return cls(dataset_name, **settings)
 
 
 whiteness = 0.98

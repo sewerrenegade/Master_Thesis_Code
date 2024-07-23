@@ -2,9 +2,8 @@ import sys
 
 
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-from datasets.embedded_datasets.embeddings_manager import EmbeddingManager
-from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor,SerializableEmbeddingDescriptor,create_serialializable_descriptor_from_live_descriptor
-from datasets.embedded_datasets.generators.generate_embeddings import generate_embedding_from_descriptor
+from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
+
 from configs.global_config import GlobalConfig
 from datasets.image_augmentor import AugmentationSettings
 import umap
@@ -53,7 +52,7 @@ descriptors = []
 def generate_embeddings():
     for augmentation in AUGMENTATIONS_OF_INTEREST:
         for dataset_name,db_settings in DATASET_NAMES_AND_SETTINGS.items():
-            db_settings["augmentation_settings"] = AugmentationSettings.all_false_except_one(augmentation)
+            db_settings["augmentation_settings"] = AugmentationSettings.create_settings_with_name(augmentation)
             dataset = DATA_SET_MODULES.get(dataset_name[0])
             assert dataset is not None
             dataset = dataset(**db_settings)
@@ -63,10 +62,10 @@ def generate_embeddings():
                     trans_settings = copy.deepcopy(trans_settings)
                     trans_settings["n_components"] = dim
                     descriptor = EmbeddingDescriptor(f"{transform_name}_{dim}",dataset,transform_name,trans_func,trans_settings)
-                    if not EmbeddingManager.get_manager().check_if_embedding_already_exists(descriptor):
+                    if not ResultsManager.get_manager().check_if_embedding_already_exists(descriptor):
                         print(f"started generating embeddings for {descriptor.name}")
                         print(f"finished generating embeddings for {descriptor.name} saved in path {generate_embedding_from_descriptor(descriptor)}")
-                        print(create_serialializable_descriptor_from_live_descriptor(descriptor))
+                        print(create_serialializable_descriptor_from_live_embedding_descriptor(descriptor))
                     else:
                         print("embedding already exists!")
                     

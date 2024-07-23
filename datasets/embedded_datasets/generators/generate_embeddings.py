@@ -1,7 +1,7 @@
 import sys
 import os
 
-from datasets.embedded_datasets.embeddings_manager import EmbeddingManager
+
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from configs.global_config import GlobalConfig
 import umap
@@ -9,7 +9,6 @@ import numpy as np
 from datasets.MNIST.MNIST_base import BaseDataset as MNIST_baseDataset
 import time
 import random
-from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
 
 
 
@@ -54,10 +53,10 @@ def get_stats_from_embedding(name,embeddings,generating_data_name):#gets stats o
     "generating_data": generating_data_name}
 
 
-def generate_embedding_from_descriptor(descriptor : EmbeddingDescriptor):
-    embeddings,labels,stats_dic = generate_embeddings_for_dataset(descriptor.name,descriptor.dataset,descriptor.downprojection_function(**descriptor.downprojection_function_settings).fit_transform)
-    embeddings_manager = EmbeddingManager.get_manager()
-    embeddings_manager.save_embedding(descriptor,embeddings,embedding_label = labels,embedding_stats = stats_dic)
+# def generate_embedding_from_descriptor(descriptor : EmbeddingDescriptor):
+#     embeddings,labels,stats_dic = generate_embeddings_for_dataset(descriptor.name,descriptor.dataset,descriptor.downprojection_function(**descriptor.downprojection_function_settings).fit_transform)
+#     embeddings_manager = ResultsManager.get_manager()
+#     embeddings_manager.save_results(descriptor=descriptor ,results= {"embedding":embeddings,"embedding_label" : labels,"embedding_stats" : stats_dic})
 
 if __name__ == '__main__':
     #UMAP EXAMPLE

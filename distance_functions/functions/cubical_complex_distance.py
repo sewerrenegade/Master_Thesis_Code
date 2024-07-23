@@ -10,11 +10,12 @@ import numpy as np
 class CubicalComplexImageDistanceFunction(nn.Module):
     def __init__(self,calculate_holes = True,join_channels = False,distribution_distance = "WasserStein"):
         super(CubicalComplexImageDistanceFunction,self).__init__()
+        self.name = "Cubical Complex Distance"
         self.device='cpu'
         self.calculate_holes = calculate_holes
         self.join_channels = join_channels
         self.cube_complex_encoder = CubicalComplex()
-        self.distribution_distance = distribution_distance
+        self.distribution_distance_name = distribution_distance
         if distribution_distance ==  "WasserStein":
             self.distribution_distance = WassersteinDistance()
         elif distribution_distance == "MaximumMeanDiscrepancy":
@@ -24,6 +25,12 @@ class CubicalComplexImageDistanceFunction(nn.Module):
         self.transform = transforms.Compose([
             transforms.ToTensor(),  # Converts the image to a PyTorch tensor (HWC -> CHW, [0, 255] -> [0, 1])
         ])
+    
+    def get_settings(self):
+        return {'calculate_holes': self.calculate_holes,
+                'join_channels':self.join_channels,
+                'distribution_distance':self.distribution_distance_name,
+                }
     def forward(self, x, y =None):
         if y is None:
             assert len(x) == 2, "Input list must contain exactly two elements."
@@ -72,7 +79,6 @@ class CubicalComplexImageDistanceFunction(nn.Module):
         new_per_info = []
         dims = len(per_infos[0])
         for dim in range(dims):
-            
             pixel_pairings = torch.cat([per_infos[i][dim].pairing for i in range(len(per_infos))])
             persistence_diagram = torch.cat([per_infos[i][dim].diagram for i in range(len(per_infos))])
             dimension = dim

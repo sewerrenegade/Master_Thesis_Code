@@ -14,13 +14,13 @@ from datasets.mil_dataset_abstraction import BaseMILDataset
 
 class Acevedo_base(BaseDataset):
 
-    def __init__(self,training_mode,encode_with_dino_bloom = False, root_dir = "data/",balance_dataset_classes = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None,gray_scale = False):
+    def __init__(self,training_mode,encode_with_dino_bloom = False, resize = False,root_dir = "data/",balance_dataset_classes = None,gpu = True, numpy = False,flatten = False,to_tensor = True,augmentation_settings = None,grayscale = False):
         self.encode_with_dino_bloom = encode_with_dino_bloom
         self.root_dir = root_dir
         super().__init__("Acevedo",augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes)
-        self.preload_transforms,self.transforms = self.get_transform_function(grayscale=gray_scale,load_jpg=True ,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
+        self.preload_transforms,self.transforms = self.get_transform_function(grayscale=grayscale,resize = resize,load_jpg=True ,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
         self.path_to_data_folder = self.indexer.get_path_to_data_folder()
-        self.supposed_dimension = (360,363)
+        self.supposed_dimension = (360,360)
         self.to_pil = transforms.ToPILImage()
         if self.encode_with_dino_bloom:
             self.dino_enc = self.get_dino_bloom_transform()
@@ -32,6 +32,19 @@ class Acevedo_base(BaseDataset):
 
     def __len__(self):
         return len(self.indicies_list)
+    
+    def get_only_pretransform_item(self, idx):
+        '''returns specific item from this dataset'''
+        if type(idx) is int:
+            return self.get_single_jpg_image_without_postrans(idx)
+        elif isinstance(idx,Iterable):
+            images = []
+            labels = []
+            for index in idx:
+                image , label = self.get_single_jpg_image_without_postrans(index)
+                images.append(image)
+                labels.append(label)
+            return images,labels
 
     def __getitem__(self, idx):
         '''returns specific item from this dataset'''
@@ -42,7 +55,7 @@ class Acevedo_base(BaseDataset):
             labels = []
             for index in idx:
                 image , label = self.get_item_function(index)
-                images.append(self.transforms(image))
+                images.append(image)
                 labels.append(label)
             return images,labels
         
@@ -54,6 +67,11 @@ class Acevedo_base(BaseDataset):
             self.loaded_data[idx] =  image,self.indexer.convert_label_from_int_to_str_or_viceversa(self.indicies_list[idx][1])
         return self.loaded_data[idx]
 
+    def get_single_jpg_image_without_postrans(self, idx):
+        image_path = self.indicies_list[idx][0]
+        image_path = os.path.join(self.path_to_data_folder,image_path)
+        image = self.preload_transforms(image_path)
+        return image,self.indexer.convert_label_from_int_to_str_or_viceversa(self.indicies_list[idx][1])
     
     def get_and_dino_encoded_tif_image(self,idx):
         if idx not in self.loaded_data:
