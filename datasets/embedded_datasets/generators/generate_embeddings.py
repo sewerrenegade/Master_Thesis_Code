@@ -37,6 +37,7 @@ def generate_embeddings_for_dataset(name, base_database,transform):
         if vec.shape != expected_shape:
             print(f"Vector at index {i} has shape {vec.shape}, expected {expected_shape}")
     x = np.array(all_data)
+    x = x.reshape(x.shape[0], -1)
     embeddings = transform(x)
     stats_dic = get_stats_from_embedding(name,embeddings,base_database.name)
     end_time = time.time()

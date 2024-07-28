@@ -1,17 +1,11 @@
 import sys
-
-
-
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-    
-import pandas as pd
-from matplotlib.backends.backend_pdf import PdfPages
+from results.report_generators.report_generator import create_pdf_from_dataset_reports, produce_element_from_df, produce_pivot_table_from_dict_lists
+from results.report_generators.dataset_report_generator import DatasetReportElements
 from results.metrics_descriptor import MetricsDescriptor
-from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset
 from distance_functions.distance_function_metrics.distance_matrix_metrics import DistanceMatrixMetricCalculator
-from distance_functions.functions.basic_distance_functions import EuclideanDistance
+from distance_functions.functions.basic_distance_functions import EuclideanDistance, L1Distance
 from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
-from results.results_manager import ResultsManager
 from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
 from configs.global_config import GlobalConfig
 from datasets.image_augmentor import AugmentationSettings
@@ -20,168 +14,106 @@ import phate
 from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap,TSNE
 import copy
-import pandas as pd
-import matplotlib.pyplot as plt
-from pandas.plotting import table
 from datasets.SCEMILA import *
 from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 DEFAULT_TRANSFROM_DICT = {
     "PHATE": (phate.PHATE,{
-    'n_components': 3,
+    'n_components': 8,
     'knn': 10,
     'decay': 40,
     't': 'auto'}),
     
     "TSNE": (TSNE,{
-    'n_components': 3,
+    'n_components': 8,
     'method':'exact'}),
     
     "Isomap": (Isomap,{
-    'n_components': 3}),
+    'n_components': 8}),
     
     "UMAP": (umap.UMAP,{
-    'n_components': 3}),
+    'n_components': 8}),
     
     "PCA": (PCA,{
-    'n_components': 3})
+    'n_components': 8})
 }
 
 SWEEP_PORJECTION_DIM = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS
-
-DATASET_NAMES_AND_SETTINGS = {("SCEMILA/image_data","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
-                              ("SCEMILA/image_data","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
-                              ("Acevedo","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
-                              ("Acevedo","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
-                              ("FashionMNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
-                              ("CIFAR10","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
-                              ("MNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"flatten":True,"numpy":True},
+METRIC = DistanceMatrixMetricCalculator
+DATASET_NAMES_AND_SETTINGS = {
+                              ("SCEMILA/image_data","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("SCEMILA/image_data","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("Acevedo","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("Acevedo","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("FashionMNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("CIFAR10","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("MNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
                               }
-AUGMENTATIONS_OF_INTEREST = ['translation_aug','gaussian_noise_aug','all','rotation_aug','none' ]
+AUGMENTATIONS_OF_INTEREST = ['all','translation_aug','rotation_aug','gaussian_noise_aug','none' ]
 descriptors = []
-    
-
-
-def create_complete_metrics_table(experiment_metrics, key_metric='accuracy'):
-    # Initialize dictionary to store metrics and associated details
-    combined_metrics = []
-
-    # Iterate over augmentations of interest
-    for augmentation, datasets in experiment_metrics.items():
-        for dataset_name, dataset_types in datasets.items():
-            for dataset_type, results in dataset_types.items():
-                for calc_type, calc_results in results.items():
-                    if isinstance(calc_results, dict):
-                        for dim, dim_metrics in calc_results.items():
-                            metric_value1 = dim_metrics.get(key_metric, float('-inf'))
-                            metric_value2 = dim_metrics.get("triplet_loss", float('-inf'))
-                            entry = {
-                                'Dataset': dataset_name,
-                                'Type': dataset_type,
-                                'Calculation': f"{calc_type}_{dim}",
-                                'Augmentation': augmentation,
-                                'KeyMetricValue1': metric_value1,
-                                'KeyMetricValue2': metric_value2,
-                            }
-                            combined_metrics.append(entry)
-                    else:
-                        metric_value1 = calc_results.get(key_metric, float('-inf'))
-                        metric_value2 = calc_results.get("triplet_loss", float('-inf'))
-                        entry = {
-                            'Dataset': dataset_name,
-                            'Type': dataset_type,
-                            'Calculation': calc_type,
-                            'Augmentation': augmentation,
-                            'KeyMetricValue1': metric_value1,
-                            'KeyMetricValue2': metric_value2
-                        }
-                        combined_metrics.append(entry)
-
-    # Create a DataFrame from the combined metrics
-    df = pd.DataFrame(combined_metrics)
-
-    # Pivot the DataFrame to have augmentations as columns
-    pivot_df = df.pivot_table(index=['Dataset', 'Type', 'Calculation'], columns=['Augmentation'], values=['KeyMetricValue2','KeyMetricValue1']).reset_index()
-
-    # Fill NaN values with a placeholder if necessary
-    pivot_df = pivot_df.fillna('N/A')
-
-    return pivot_df
-
 
 def test_augmentation_sensitivity():
-    results_manager = ResultsManager.get_manager()
     per_class_samples_for_metric_calc = 10
-    metric = DistanceMatrixMetricCalculator
-    experiment_metrics = {}
-    for augmentation in AUGMENTATIONS_OF_INTEREST:
-        experiment_metrics[augmentation]= {}
-        for dataset_name,db_settings in DATASET_NAMES_AND_SETTINGS.items():
-            if not dataset_name[0] in experiment_metrics[augmentation]:
-                experiment_metrics[augmentation][dataset_name[0]] = {dataset_name[1]:{}}
-            else:
-                experiment_metrics[augmentation][dataset_name[0]][dataset_name[1]] = {}
-            iteration_dict = experiment_metrics[augmentation][dataset_name[0]][dataset_name[1]]
+
+    experiment_metrics_list = []
+    dataset_reports = {dataset_name[0]:DatasetReportElements() for dataset_name in list(DATASET_NAMES_AND_SETTINGS.keys())}
+    
+
+    for dataset_name, db_settings in DATASET_NAMES_AND_SETTINGS.items():
+        for augmentation in AUGMENTATIONS_OF_INTEREST:
             db_settings["augmentation_settings"] = AugmentationSettings.create_settings_with_name(augmentation)
             dataset_class = DATA_SET_MODULES.get(dataset_name[0])
-            assert dataset_class is not None
             dataset = dataset_class(**db_settings)
-            
-            # Euclidean Baseline metrics
-            baseline_metric_desc = MetricsDescriptor(metric_calculator=metric,dataset=dataset,distance_function= EuclideanDistance(),per_class_samples=per_class_samples_for_metric_calc)
-            baseline_metrics = baseline_metric_desc.calculate_metric()
-            iteration_dict["baseline"] = baseline_metrics
-            print(baseline_metric_desc.to_dict())
-            if dataset_name[1] == "normal":
-                # Cubical Complex metrics
-                db_settings_tmp = copy.deepcopy(db_settings)
-                db_settings_tmp["flatten"] = False
-                dataset_cub = dataset_class(**db_settings_tmp)
-                cub_complex_metrics_desc = MetricsDescriptor(metric_calculator=metric,dataset=dataset_cub,distance_function= CubicalComplexImageDistanceFunction(),per_class_samples=int(per_class_samples_for_metric_calc/2))
+            dataset_report = dataset_reports[dataset_name[0]]
+            dataset_report.add_variant(dataset)
+
+            euclidean_baseline_metric_desc = MetricsDescriptor(metric_calculator=METRIC, dataset=dataset, distance_function=EuclideanDistance(), per_class_samples=per_class_samples_for_metric_calc)
+            euclidean_baseline_metrics = euclidean_baseline_metric_desc.calculate_metric()
+            experiment_metrics_list.append({"dataset":dataset_name[0],"dinobloom":dataset_name[1],"augmentation":augmentation,"distance":"euclidean_distance","metric":euclidean_baseline_metrics})
+
+            L1_baseline_metric_desc = MetricsDescriptor(metric_calculator=METRIC, dataset=dataset, distance_function=L1Distance(), per_class_samples=per_class_samples_for_metric_calc)
+            L1_baseline_metrics = L1_baseline_metric_desc.calculate_metric()
+            experiment_metrics_list.append({"dataset":dataset_name[0],"dinobloom":dataset_name[1],"augmentation":augmentation,"distance":"L1_distance","metric":L1_baseline_metrics})
+
+            if not dataset_name[1] == "dino":
+                cubical_complex_baseline_db_settings = copy.deepcopy(db_settings)
+                if dataset_name[0] == "SCEMILA/image_data" or dataset_name[0] == "Acevedo":
+                    cubical_complex_baseline_db_settings["resize"] = True    
+                dataset_cub = dataset_class(**cubical_complex_baseline_db_settings)
+                cub_complex_metrics_desc = MetricsDescriptor(metric_calculator=METRIC, dataset=dataset_cub, distance_function=CubicalComplexImageDistanceFunction(), per_class_samples=int(per_class_samples_for_metric_calc))
                 cub_complex_metrics = cub_complex_metrics_desc.calculate_metric()
-                iteration_dict["cubical_complex"] = cub_complex_metrics
-                
-            # Embedding functions metrics
-            for dim in SWEEP_PORJECTION_DIM:
-                for transform_name in list(DEFAULT_TRANSFROM_DICT.keys()):
-                    if not transform_name in iteration_dict:
-                        iteration_dict[transform_name] = {dim:{}}
-                    else:
-                        iteration_dict[transform_name][dim] = {}
-                    trans_func,trans_settings = DEFAULT_TRANSFROM_DICT[transform_name]
-                    trans_settings = copy.deepcopy(trans_settings)
-                    trans_settings["n_components"] = dim
-                    descriptor = EmbeddingDescriptor(f"{dataset_name[0]}_{transform_name}_{dim}",dataset,transform_name,trans_func,trans_settings)
-                    embeddings,labels,stats_dic =descriptor.generate_embedding_from_descriptor()
-                    embd_ds = EmbeddingBaseDataset(embedding_id = results_manager.calculate_descriptor_id(descriptor))
-                    metric_desc = MetricsDescriptor(metric_calculator=metric,dataset=embd_ds,distance_function= EuclideanDistance(),per_class_samples=per_class_samples_for_metric_calc)
-                    metrics = metric_desc.calculate_metric()
-                    iteration_dict[transform_name][dim]= metrics
-    return experiment_metrics
+                experiment_metrics_list.append({"dataset":dataset_name[0],"dinobloom":dataset_name[1],"augmentation":augmentation,"distance":"cubical_complex_distance","metric":cub_complex_metrics})
+
+            for transform_name, transform in DEFAULT_TRANSFROM_DICT.items():
+                trans_func, trans_settings = transform
+                descriptor = EmbeddingDescriptor(f"{dataset_name[0]}_{transform_name}_8", dataset, transform_name, trans_func, trans_settings)
+                embd_ds= descriptor.generate_embedding_from_descriptor()
+                metric_desc = MetricsDescriptor(metric_calculator=METRIC, dataset=embd_ds, distance_function=EuclideanDistance(), per_class_samples=per_class_samples_for_metric_calc)
+                it_metrics = metric_desc.calculate_metric()
+                experiment_metrics_list.append({"dataset":dataset_name[0],"dinobloom":dataset_name[1],"augmentation":augmentation,"distance":transform_name,"metric":it_metrics})
+
+            print(euclidean_baseline_metric_desc.to_dict())
+    return experiment_metrics_list,dataset_reports
 
 
-def df_to_pdf2(df,pdf_file_name = 'metrics_results.pdf'):
-    num_rows, num_cols = df.shape
-    fig_width = num_cols * 2
-    fig_height = num_rows * 0.3
-
-    with PdfPages(pdf_file_name) as pdf:
-        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-        ax.axis('tight')
-        ax.axis('off')
-        table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-
-        table.auto_set_font_size(False)
-        table.set_fontsize(10)
-        table.auto_set_column_width(col=list(range(len(df.columns))))
-
-        pdf.savefig(fig, bbox_inches='tight')
-        plt.close(fig)
 
                         
+def produce_experiment_elements():
+    elements = []
+    experiment_metrics_list,dataset_reports = test_augmentation_sensitivity()
+    for dataset_report_name,dataset_report in dataset_reports.items():
+        dataset_name = dataset_report.name
+        relavent_metrics = [metric for metric in experiment_metrics_list if metric["dataset"] == dataset_name]
+        relavent_scalar_metrics = METRIC.get_all_scalar_metrics(relavent_metrics)
+        pd_pivoted_table_acc = produce_pivot_table_from_dict_lists(relavent_scalar_metrics,["dinobloom","distance"],["augmentation"],["loocv_knn_acc"])
+        pd_pivoted_table_inter_intra_ratio = produce_pivot_table_from_dict_lists(relavent_scalar_metrics,["dinobloom","distance"],["augmentation"],["intra_to_inter_class_distance_overall_ratio"])
+        table_element_acc = produce_element_from_df(pd_pivoted_table_acc)
+        table_element_acc_inter_intra_ratio = produce_element_from_df(pd_pivoted_table_inter_intra_ratio)
+        dataset_report.result_elements.append(table_element_acc)
+        dataset_report.result_elements.append(table_element_acc_inter_intra_ratio)
+    create_pdf_from_dataset_reports(dataset_reports)
+    
+        
 if __name__ == '__main__':
-    experiment_metrics = test_augmentation_sensitivity()
-    metrics_table = create_complete_metrics_table(experiment_metrics, key_metric='knn_acc')
-    print(metrics_table)
-    # Convert to PDF
-    df_to_pdf2(metrics_table, 'output.pdf')
+    produce_experiment_elements()
+    pass

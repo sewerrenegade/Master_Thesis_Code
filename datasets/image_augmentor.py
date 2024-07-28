@@ -142,6 +142,7 @@ class AugmentationSettings:
             settings = {aug: False for aug in valid_augmentations[0:-2]}
             return cls(dataset_name, **settings)
         else:   
+            settings = {aug: False for aug in valid_augmentations[0:-2]}
             settings[only_enabled] = True
             return cls(dataset_name, **settings)
 

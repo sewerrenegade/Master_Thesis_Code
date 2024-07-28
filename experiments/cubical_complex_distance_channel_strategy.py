@@ -1,12 +1,8 @@
 import sys
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
-
-
-
 sys.path.append("/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code")
+from results.report_generators.dataset_report_generator import DatasetReportElements
+from results.report_generators.report_generator import create_pdf_from_dataset_reports, produce_element_from_df, produce_pivot_table_from_dict_lists
+
 
 from results.metrics_descriptor import MetricsDescriptor
 from distance_functions.distance_function_metrics.distance_matrix_metrics import (
@@ -18,144 +14,105 @@ from distance_functions.functions.cubical_complex_distance import (
 )
 from configs.global_config import GlobalConfig
 from datasets.image_augmentor import AugmentationSettings
-import umap
-import phate
-from sklearn.decomposition import PCA
-from sklearn.manifold import Isomap, TSNE
-import copy
 
 # from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base,SCEMILA_fnl34_feature_base,SCEMILA_DinoBloom_feature_base
 from datasets.SCEMILA import *
 from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
-DEFAULT_TRANSFROM_DICT = {
-    "PHATE": (phate.PHATE, {"n_components": 3, "knn": 10, "decay": 40, "t": "auto"}),
-    "TSNE": (TSNE, {"n_components": 3, "method": "exact"}),
-    "Isomap": (Isomap, {"n_components": 3}),
-    "UMAP": (umap.UMAP, {"n_components": 3}),
-    "PCA": (PCA, {"n_components": 3}),
-}
-
+AUGMENTATIONS_OF_INTEREST = ['all','none']
 SWEEP_PORJECTION_DIM = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS
 
 DATASET_NAMES_AND_SETTINGS = {
-    ("CIFAR10", "normal"): {
+    ("CIFAR10"): {
         "training_mode": True,
         "balance_dataset_classes": 100,
         "gpu": False,
         "augmentation_settings": AugmentationSettings(),
-        "flatten": True,
         "numpy": True,
+
     },
-    ("Acevedo", "normal"): {
+    ("Acevedo"): {
         "training_mode": True,
         "balance_dataset_classes": 100,
         "gpu": False,
         "augmentation_settings": AugmentationSettings(),
-        "flatten": True,
         "numpy": True,
-        "resize": True
     },
 }
+METRIC = DistanceMatrixMetricCalculator
 
 descriptors = []
 
 
 def perform_test():
     per_class_samples_for_metric_calc = 10
-    metric = DistanceMatrixMetricCalculator
-    experiment_metrics = {}
+    experiment_metrics_list = []
+    dataset_reports = {dataset_name:DatasetReportElements() for dataset_name in list(DATASET_NAMES_AND_SETTINGS.keys())}
 
     for dataset_name, db_settings in DATASET_NAMES_AND_SETTINGS.items():
-        experiment_metrics[dataset_name[0]] = {}
-        iter_metric = experiment_metrics[dataset_name[0]]
-        dataset_class = DATA_SET_MODULES.get(dataset_name[0])
-        assert dataset_class is not None
-        dataset = dataset_class(**db_settings)
-
-        # Euclidean Baseline metrics
-        baseline_metric_desc = MetricsDescriptor(
-            metric_calculator=metric,
-            dataset=dataset,
-            distance_function=EuclideanDistance(),
-            per_class_samples=per_class_samples_for_metric_calc,
-        )
-        baseline_metrics = baseline_metric_desc.calculate_metric()
-        iter_metric["baseline"] = baseline_metrics
-        # Normal RGB Cubical Complex metrics
-        db_settings_cub = copy.deepcopy(db_settings)
-        db_settings_cub["flatten"] = False
-        dataset_cub = dataset_class(**db_settings_cub)
-        cub_complex_metrics_desc = MetricsDescriptor(
-            metric_calculator=metric,
-            dataset=dataset_cub,
-            distance_function=CubicalComplexImageDistanceFunction(),
-            per_class_samples=int(per_class_samples_for_metric_calc / 2),
-        )
-        cub_complex_metrics = cub_complex_metrics_desc.calculate_metric()
-        iter_metric["normal_cub_comp"] = cub_complex_metrics
-        # Merged Channel Cubical Complex metrics
-        cub_complex_join_metrics_desc = MetricsDescriptor(
-            metric_calculator=metric,
-            dataset=dataset_cub,
-            distance_function=CubicalComplexImageDistanceFunction(join_channels=True),
-            per_class_samples=int(per_class_samples_for_metric_calc / 2),
-        )
-        joint_cub_complex_metrics = cub_complex_join_metrics_desc.calculate_metric()
-        iter_metric["joint_channel_cub_comp"] = joint_cub_complex_metrics
-        # Grayscale input
-        db_settings_tmp = copy.deepcopy(db_settings)
-        db_settings_tmp["flatten"] = False
-        db_settings_tmp["grayscale"] = True
-        dataset_cub_grayscale = dataset_class(**db_settings_tmp)
-        grayscale_cub_complex_metrics_description = MetricsDescriptor(
-            metric_calculator=metric,
-            dataset=dataset_cub_grayscale,
-            distance_function=CubicalComplexImageDistanceFunction(),
-            per_class_samples=int(per_class_samples_for_metric_calc / 2),
-        )
-        grayscale_cubical_complex_metrics = grayscale_cub_complex_metrics_description.calculate_metric()
-        iter_metric["grayscale_cub_comp"] = grayscale_cubical_complex_metrics
-    return experiment_metrics
+        for augmentation in AUGMENTATIONS_OF_INTEREST:
+            db_settings["augmentation_settings"] = AugmentationSettings.create_settings_with_name(augmentation)
+            dataset_class = DATA_SET_MODULES.get(dataset_name)
+            assert dataset_class is not None
+            dataset = dataset_class(**db_settings)
+            dataset_report = dataset_reports[dataset_name]
+            dataset_report.add_variant(dataset)
 
 
-def create_table_and_export_to_pdf(metrics_dict, key_metric='accuracy'):
-    # Convert the metrics dictionary to a Pandas DataFrame
-    rows = []
+            # Euclidean Baseline metrics
+            baseline_metric_desc = MetricsDescriptor(
+                metric_calculator=METRIC,
+                dataset=dataset,
+                distance_function=EuclideanDistance(),
+                per_class_samples=per_class_samples_for_metric_calc,
+            )
+            euclidean_baseline_metrics = baseline_metric_desc.calculate_metric()
+            experiment_metrics_list.append({"dataset":dataset_name,"augmentation":augmentation,"distance":"euclidean_distance","metric":euclidean_baseline_metrics})
 
-    def make_serializable(metrics):
-        if isinstance(metrics, np.ndarray) and metrics.size == 1:
-            return metrics.item()
-        return metrics
+            # Normal RGB Cubical Complex metrics
+            cub_complex_metrics_desc = MetricsDescriptor(
+                metric_calculator=METRIC,
+                dataset=dataset,
+                distance_function=CubicalComplexImageDistanceFunction(grayscale_input= False),
+                per_class_samples=int(per_class_samples_for_metric_calc),
+            )
+            cub_complex_metrics = cub_complex_metrics_desc.calculate_metric()
+            experiment_metrics_list.append({"dataset":dataset_name,"augmentation":augmentation,"distance":"normal_cub_complex","metric":cub_complex_metrics})
+            
+            # Merged Channel Cubical Complex metrics
+            cub_complex_join_metrics_desc = MetricsDescriptor(
+                metric_calculator=METRIC,
+                dataset=dataset,
+                distance_function=CubicalComplexImageDistanceFunction(join_channels=True,grayscale_input= False),
+                per_class_samples=int(per_class_samples_for_metric_calc),
+            )
+            joint_cub_complex_metrics = cub_complex_join_metrics_desc.calculate_metric()
+            experiment_metrics_list.append({"dataset":dataset_name,"augmentation":augmentation,"distance":"merged_pd_channels_cub_complex","metric":joint_cub_complex_metrics})
+            
 
-    for dataset, metrics in metrics_dict.items():
-        for metric_type, values in metrics.items():
-            values = make_serializable(values)
-            row = {'Dataset': dataset, 'Calculation': metric_type}
-            metric_value = values.get(key_metric, float('-inf'))
-            row.update({key_metric:metric_value})
-            rows.append(row)
+            grayscale_cub_complex_metrics_description = MetricsDescriptor(
+                metric_calculator=METRIC,
+                dataset=dataset,
+                distance_function=CubicalComplexImageDistanceFunction(grayscale_input=True),
+                per_class_samples=int(per_class_samples_for_metric_calc),
+            )
+            grayscale_cubical_complex_metrics = grayscale_cub_complex_metrics_description.calculate_metric()
+            experiment_metrics_list.append({"dataset":dataset_name,"augmentation":augmentation,"distance":"grayscale_cub_complex","metric":grayscale_cubical_complex_metrics})
+    return experiment_metrics_list, dataset_reports
 
-    df = pd.DataFrame(rows)
 
-    # Export DataFrame to a PDF
-    num_rows, num_cols = df.shape
-    fig_width = num_cols * 2
-    fig_height = num_rows * 0.3
-
-    with PdfPages('metrics_results.pdf') as pdf:
-        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-        ax.axis('tight')
-        ax.axis('off')
-        table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-
-        table.auto_set_font_size(False)
-        table.set_fontsize(10)
-        table.auto_set_column_width(col=list(range(len(df.columns))))
-
-        pdf.savefig(fig, bbox_inches='tight')
-        plt.close(fig)
+def produce_experiment_report():
+    experiment_metrics_list,dataset_reports = perform_test()
+    for dataset_report_name,dataset_report in dataset_reports.items():
+        dataset_name = dataset_report.name
+        relavent_metrics = [metric for metric in experiment_metrics_list if metric["dataset"] == dataset_name]
+        relavent_scalar_metrics = METRIC.get_all_scalar_metrics(relavent_metrics)
+        pd_pivoted_table = produce_pivot_table_from_dict_lists(relavent_scalar_metrics,["augmentation","distance"],[],["loocv_knn_acc","intra_to_inter_class_distance_overall_ratio"])
+        table_element = produce_element_from_df(pd_pivoted_table)
+        dataset_report.result_elements.append(table_element)
+    create_pdf_from_dataset_reports(dataset_reports)
+    
+    
 if __name__ == "__main__":
-    exp_metrics = perform_test()
-    create_table_and_export_to_pdf(exp_metrics,'knn_acc')
+    elements = produce_experiment_report()
     

@@ -43,6 +43,8 @@ class DistanceMatrixMetricCalculator(Metric):
         self.distance_function = live_descriptor.distance_function
         self.distance_matrix, self.labels, self.per_class_indicies = None,None,None
         
+
+        
     def calculate_metric(self):
         return self.calculate_distance_matrix_metrics()
     
@@ -172,7 +174,7 @@ class DistanceMatrixMetricCalculator(Metric):
         std = np.std(predictions == labels)
         
         # Print classification report
-        report = classification_report(labels, predictions)
+        report = classification_report(labels, predictions,output_dict= True)
         conf_matrix = confusion_matrix(labels, predictions)
         
         return accuracy, std, report, conf_matrix
@@ -181,7 +183,7 @@ class DistanceMatrixMetricCalculator(Metric):
         knn = KNeighborsClassifier(n_neighbors=k, metric='precomputed')
         knn.fit(distance_matrix, labels)
         predictions = knn.predict(distance_matrix)
-        report = classification_report(labels, predictions)
+        report = classification_report(labels, predictions,output_dict= True)
         accuracy = np.mean(predictions == labels)
         accuracy_std = np.std(predictions == labels)
         conf_matrix = confusion_matrix(labels, predictions)

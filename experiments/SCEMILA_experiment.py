@@ -49,16 +49,6 @@ class SCEMILA_Experiment(pl.LightningModule):
     def convert_matrix_to_pic(self,mat,name = "Confusion Matrix"):
         return wandb.Image(mat, caption=name)
     
-    # def optimizer_step(
-    #     self,
-    #     epoch,
-    #     batch_idx,
-    #     optimizer,
-    #     optimizer_closure,
-    # ):
-    #     optimizer.step(closure=optimizer_closure)df_cm
-
-
     def training_step(
             self, 
             batch, 
@@ -107,7 +97,6 @@ class SCEMILA_Experiment(pl.LightningModule):
         train_loss = per_sample_avg_loss
         self.log_dictionary({"epoch_train_loss":train_loss,"epoch_train_accuracy": accuracy})#,"train_data_obj":self.current_data_object.return_data()
         wandb.log({"train_confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix,"train_confusion_matrix")})
-        #wandb.log(self.current_data_object.return_data())
         self.on_epoch_end_custom()
 
     def count_corrects(self,outputs):

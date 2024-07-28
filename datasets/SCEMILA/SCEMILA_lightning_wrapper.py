@@ -4,6 +4,9 @@ from sklearn.model_selection import KFold
 from torch.utils.data import  random_split
 from torch.utils.data.dataloader import DataLoader
 
+from datasets.SCEMILA.SCEMILA_fnl34_feature_dataloader import SCEMILAfeature_MIL_base
+from datasets.indexer_scripts.indexer_utils import get_dataset_indexer
+
 class SCEMILA(pl.LightningDataModule):
     def __init__(
             self,
@@ -19,7 +22,7 @@ class SCEMILA(pl.LightningDataModule):
         self.num_workers = num_workers
         self.val_split = val_split
         self.k_fold = k_fold
-        from datasets.indexer_utils import get_dataset_indexer
+
         self.indexer = get_dataset_indexer(self.name)
         self.train_indicies = self.process_indicies(self.indexer.train_patients_path,patient_bootstrap_exclude)
         self.test_indicies = self.process_indicies(self.indexer.test_indicies,patient_bootstrap_exclude)

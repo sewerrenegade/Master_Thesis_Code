@@ -1,4 +1,5 @@
     
+from io import BytesIO
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -6,19 +7,42 @@ from reportlab.lib.units import inch
 from reportlab.platypus import  Table, TableStyle, Paragraph, Image, PageBreak,Spacer
 from PIL import Image as PILImage
 import uuid
+from reportlab.pdfgen import canvas
 import numpy as np
 from configs.global_config import GlobalConfig
 from reportlab.lib import utils
-from results.report_generators.common_report_data import normal_style
-def plot_histograms(df):
+from results.report_generators.common_report_data import NORMAL_STYLE
+from pdf2image import convert_from_path
+
+
+
+def pdf_page_to_image(input_pdf, page_number):
+    images = convert_from_path(input_pdf, first_page=page_number + 1, last_page=page_number + 1)
+    if not images:
+        raise ValueError(f"No page found at number {page_number} in the PDF.")
+    
+    img_path = os.path.join(GlobalConfig.TEMP_RESULTS_FOLDER, f'{uuid.uuid4()}.png')
+    images[0].save(img_path, 'PNG')
+    return img_path
+
+# Function to append a specific page from another PDF
+def append_pdf_page(input_pdf, page_number, output_elements):
+    img_path = pdf_page_to_image(input_pdf, page_number)
+    img = Image(img_path, width=5 * inch, height=5 * inch)
+    output_elements.append(img)
+
+    
+def plot_histograms(dict_list):
     histograms = []
-    for column in df.columns:
-        fig, ax = plt.subplots()
-        ax.bar(df.index, df[column], label=column)
-        ax.set_title(f'Class Distribution')
+    for d in dict_list:
+        fig, ax = plt.subplots(figsize=(8, 8))
+        keys = list(d.keys())
+        values = list(d.values())
+        ax.bar(keys, values)
+        ax.set_title('Class Distribution')
         ax.set_xlabel('Class')
         ax.set_ylabel('Sample Count')
-        ax.legend()
+        plt.xticks(rotation=15, ha='right', fontsize=10)
         histograms.append(fig)
     return histograms
 def sort_dict_list(dict_list):
@@ -58,13 +82,12 @@ def get_histogram_elements(histograms, n_per_row=2):
     for i in range(0, len(img_paths), n_per_row):
         img_row = [Image(img_path, width=3 * inch, height=2 * inch) for img_path in img_paths[i:i+n_per_row]]
         if len(img_row) < n_per_row:  # If the last row has fewer images, add spacers
-            img_row += [Spacer(width=3 * inch, height=2 * inch)] * (n_per_row - len(img_row))
+            img_row += [Spacer(3 * inch, 2 * inch)] * (n_per_row - len(img_row))
         img_table_data.append(img_row)
 
     img_table = Table(img_table_data, hAlign='LEFT')
     elements.append(img_table)
     return elements
- 
 
 def save_tensor_as_png(tensor):
     """
@@ -108,7 +131,7 @@ def save_tensor_as_png(tensor):
     return img_path
 
 
-def get_sample_image_elements(image_dict, images_per_row=3):
+def get_sample_image_elements(image_dict, images_per_row=5):
     elements = []
     data = []
     row = []
@@ -123,16 +146,31 @@ def get_sample_image_elements(image_dict, images_per_row=3):
         img_width = 2 * inch
         img_height = img_width * aspect
         image = Image(image_path, width=img_width, height=img_height)
-        caption = Paragraph(str(label), normal_style)
+        caption = Paragraph(str(label), NORMAL_STYLE)
         
         row.append([image, caption])
     
     if row:
         data.append(row)
     
-    for r in data:
-        for c in r:
-            elements.extend(c)
-        elements.append(Spacer(1, 12))  # Add some space between rows
+    # Create a table with images and captions
+    table_data = []
+    for row in data:
+        image_row = []
+        caption_row = []
+        for cell in row:
+            image_row.append(cell[0])
+            caption_row.append(cell[1])
+        table_data.append(image_row)
+        table_data.append(caption_row)
+
+    table = Table(table_data)
+    table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    
+    elements.append(table)
     
     return elements

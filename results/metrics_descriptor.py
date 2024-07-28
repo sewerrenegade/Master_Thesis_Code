@@ -27,6 +27,7 @@ class MetricsDescriptor:
         else:
             metric = self.metric_calculator.calculate_metric()
             res_manager.save_results(descriptor=self,results={"metrics_dict":metric})
+            metric = res_manager.load_metric(self)
         return metric
         
     def to_dict(self):

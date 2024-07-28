@@ -10,7 +10,7 @@ import json
 SINGLETON_INSTANCE= None
 
 class AcevedoIndexer(Indexer):
-    def __init__(self,path_to_acevedo = "data/Acevedo/processed_images/") -> None:
+    def __init__(self,path_to_acevedo = "data/Acevedo/processed_images_144/") -> None:
         super().__init__()
         self.path_to_acevedo = path_to_acevedo
         self.dict_path = f"{path_to_acevedo}/metadata.json"

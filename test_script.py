@@ -274,88 +274,90 @@
 #     g()
 
 
-from datasets.image_augmentor import AugmentationSettings
-from results.results_manager import ResultsManager
+# from datasets.image_augmentor import AugmentationSettings
+# from results.results_manager import ResultsManager
 
 
-def dict_to_lambda_condition(d, prefix=""):
-    conditions = []
-    for key, value in d.items():
-        if isinstance(value, dict) and not value == {}:
-            nested_conditions = dict_to_lambda_condition(
-                value, prefix=f"{prefix}['{key}']"
-            )
-            conditions.append(nested_conditions)
-        else:
-            if value is not None and not value == {}:
-                if isinstance(value, str):
-                    condition = f"desc{prefix}['{key}'] == '{value}'"
-                elif isinstance(value, bool):
-                    condition = f"desc{prefix}['{key}'] == {str(value)}"
-                else:
-                    condition = f"desc{prefix}['{key}'] == {value}"
-                conditions.append(condition)
-    return " and ".join(conditions)
+# def dict_to_lambda_condition(d, prefix=""):
+#     conditions = []
+#     for key, value in d.items():
+#         if isinstance(value, dict) and not value == {}:
+#             nested_conditions = dict_to_lambda_condition(
+#                 value, prefix=f"{prefix}['{key}']"
+#             )
+#             conditions.append(nested_conditions)
+#         else:
+#             if value is not None and not value == {}:
+#                 if isinstance(value, str):
+#                     condition = f"desc{prefix}['{key}'] == '{value}'"
+#                 elif isinstance(value, bool):
+#                     condition = f"desc{prefix}['{key}'] == {str(value)}"
+#                 else:
+#                     condition = f"desc{prefix}['{key}'] == {value}"
+#                 conditions.append(condition)
+#     return " and ".join(conditions)
 
 
-results_mngr = ResultsManager.get_manager()
+# results_mngr = ResultsManager.get_manager()
 
 
-q_dict = {
-    "dataset_dict": {
-        "dataset_name": "SCEMILA/image_data",
-        "dataset_sampling": 100,
-        "augmentation_settings": {
-            "dataset_name": None,
-            "color_jitter": True,
-            "sharpness_aug": True,
-            "horizontal_flip_aug": True,
-            "vertical_flip_aug": True,
-            "rotation_aug": True,
-            "translation_aug": True,
-            "gaussian_blur_aug": True,
-            "gaussian_noise_aug": True,
-        },
-        "dino_bloom": None,
-        "transform_name": "UMAP",
-        "transform_settings": {"n_components": 4},
-    },
-    "metric_name": "distance_matrix_metrics",
-    "metric_settings": {},
-    "distance_function_name": None,
-    "distance_function_settings": {},
-    "per_class_samples": None,
-}
-q_dict2 = {
-    "dataset_dict": {
-        "name": "SCEMILA/image_data",
-        "augmentation_settings": {
-            "color_jitter": True,
-            "sharpness_aug": True,
-            "horizontal_flip_aug": True,
-            "vertical_flip_aug": True,
-            "rotation_aug": True,
-            "translation_aug": True,
-            "gaussian_blur_aug": True,
-            "gaussian_noise_aug": True,
-        },
-        "augmentation_scheme": "COMPLETELY_ROTATIONALY_INVARIANT",
-        "dino_bloom": None,
-    },
-    "metric_name": "distance_matrix_metrics",
-    "metric_settings": {},
-    "distance_function_name": "Cubical Complex Distance",
-    "distance_function_settings": {
-        "calculate_holes": True,
-        "join_channels": False,
-        "distribution_distance": "WasserStein",
-    },
-    "per_class_samples": 5,
-}
+# q_dict = {
+#     "dataset_dict": {
+#         "dataset_name": "SCEMILA/image_data",
+#         "dataset_sampling": 100,
+#         "augmentation_settings": {
+#             "dataset_name": None,
+#             "color_jitter": True,
+#             "sharpness_aug": True,
+#             "horizontal_flip_aug": True,
+#             "vertical_flip_aug": True,
+#             "rotation_aug": True,
+#             "translation_aug": True,
+#             "gaussian_blur_aug": True,
+#             "gaussian_noise_aug": True,
+#         },
+#         "dino_bloom": None,
+#         "transform_name": "UMAP",
+#         "transform_settings": {"n_components": 4},
+#     },
+#     "metric_name": "distance_matrix_metrics",
+#     "metric_settings": {},
+#     "distance_function_name": None,
+#     "distance_function_settings": {},
+#     "per_class_samples": None,
+# }
+# q_dict2 = {
+#     "dataset_dict": {
+#         "name": "SCEMILA/image_data",
+#         "augmentation_settings": {
+#             "color_jitter": True,
+#             "sharpness_aug": True,
+#             "horizontal_flip_aug": True,
+#             "vertical_flip_aug": True,
+#             "rotation_aug": True,
+#             "translation_aug": True,
+#             "gaussian_blur_aug": True,
+#             "gaussian_noise_aug": True,
+#         },
+#         "augmentation_scheme": "COMPLETELY_ROTATIONALY_INVARIANT",
+#         "dino_bloom": None,
+#     },
+#     "metric_name": "distance_matrix_metrics",
+#     "metric_settings": {},
+#     "distance_function_name": "Cubical Complex Distance",
+#     "distance_function_settings": {
+#         "calculate_holes": True,
+#         "join_channels": False,
+#         "distribution_distance": "WasserStein",
+#     },
+#     "per_class_samples": 5,
+# }
 
-lambda_condition_str = dict_to_lambda_condition(q_dict2)
-lambda_condition = eval(f"lambda desc: {lambda_condition_str}")
-query_result = results_mngr.query_metrics_lambda(lambda_condition)
-print(query_result)
+# lambda_condition_str = dict_to_lambda_condition(q_dict2)
+# lambda_condition = eval(f"lambda desc: {lambda_condition_str}")
+# query_result = results_mngr.query_metrics_lambda(lambda_condition)
+# print(query_result)
 
 
+x = {2:"one,2",2:"three"}
+print(x)

@@ -20,7 +20,7 @@ class Acevedo_base(BaseDataset):
         super().__init__("Acevedo",augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes)
         self.preload_transforms,self.transforms = self.get_transform_function(grayscale=grayscale,resize = resize,load_jpg=True ,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
         self.path_to_data_folder = self.indexer.get_path_to_data_folder()
-        self.supposed_dimension = (360,360)
+        self.supposed_dimension = (144,144)
         self.to_pil = transforms.ToPILImage()
         if self.encode_with_dino_bloom:
             self.dino_enc = self.get_dino_bloom_transform()

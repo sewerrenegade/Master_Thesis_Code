@@ -6,9 +6,10 @@ from models.topology_models.topo_tools.cubical_complex import CubicalComplex
 import torch
 import torchvision.transforms as transforms
 import numpy as np
+import torchvision.transforms.functional as F
 
 class CubicalComplexImageDistanceFunction(nn.Module):
-    def __init__(self,calculate_holes = True,join_channels = False,distribution_distance = "WasserStein"):
+    def __init__(self,calculate_holes = True,join_channels = False,grayscale_input = True,distribution_distance = "WasserStein"):
         super(CubicalComplexImageDistanceFunction,self).__init__()
         self.name = "Cubical Complex Distance"
         self.device='cpu'
@@ -16,20 +17,24 @@ class CubicalComplexImageDistanceFunction(nn.Module):
         self.join_channels = join_channels
         self.cube_complex_encoder = CubicalComplex()
         self.distribution_distance_name = distribution_distance
+        self.grayscale_input = grayscale_input
         if distribution_distance ==  "WasserStein":
             self.distribution_distance = WassersteinDistance()
         elif distribution_distance == "MaximumMeanDiscrepancy":
             self.distribution_distance = MaximumMeanDiscrepancyDistance()
         else:
             raise NotImplementedError(f"Unknown distribution distance: {distribution_distance}")
+        
         self.transform = transforms.Compose([
             transforms.ToTensor(),  # Converts the image to a PyTorch tensor (HWC -> CHW, [0, 255] -> [0, 1])
         ])
+        assert not (self.join_channels and self.grayscale_input)
     
     def get_settings(self):
         return {'calculate_holes': self.calculate_holes,
                 'join_channels':self.join_channels,
                 'distribution_distance':self.distribution_distance_name,
+                'gray_scale_input': self.grayscale_input
                 }
     def forward(self, x, y =None):
         if y is None:
@@ -44,6 +49,10 @@ class CubicalComplexImageDistanceFunction(nn.Module):
             b = torch.Tensor(b)
         else:
             assert not a.is_cuda
+        if self.grayscale_input:
+            a = self.make_sure_image_input_is_single_channel(a)
+            b = self.make_sure_image_input_is_single_channel(b)
+            
         cub_complexs_0 = self.cube_complex_encoder(a)
         cub_complexs_1 = self.cube_complex_encoder(b)
         if not self.calculate_holes:
@@ -53,7 +62,7 @@ class CubicalComplexImageDistanceFunction(nn.Module):
             cub_complexs_0 = self.merge_cubical_complex_persistence_info_across_channels(cub_complexs_0)
             cub_complexs_1 = self.merge_cubical_complex_persistence_info_across_channels(cub_complexs_1)
 
-            
+
         distance = self.calculate_distance_between_complexes(cub_complexs_0,cub_complexs_1)
         return distance
 
@@ -89,3 +98,8 @@ class CubicalComplexImageDistanceFunction(nn.Module):
                     dimension=dimension # for a normal image (not volumetric) this is 0 or 1; 0 for connected components and 1 for rings/holes
         ))
         return [new_per_info] #this is to imply that it is single channel now.
+    
+    def make_sure_image_input_is_single_channel(self,img):
+        if img.shape[0] != 1:
+            img = F.rgb_to_grayscale(img, num_output_channels=1)
+        return img

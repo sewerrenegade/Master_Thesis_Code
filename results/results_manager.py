@@ -85,7 +85,8 @@ class ResultsManager:
         # with open(metric_path, "r") as f:
         #     serialized_metrics = f.read()
         # deserialized_metrics = self.deserialize_metrics(serialized_metrics)
-        deserialized_metrics = np.load(metric_path)
+        deserialized_metrics = np.load(metric_path,allow_pickle= True)
+        deserialized_metrics = {key:deserialized_metrics[key] for key in deserialized_metrics}
         return deserialized_metrics
         
     def serialize_metrics(self,metrics_dict):

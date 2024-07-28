@@ -7,10 +7,12 @@ from collections.abc import Iterable
 from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 class EmbeddingBaseDataset(Dataset):
-    def __init__(self, embedding_id,balance_dataset_classes:int = None):
-        self.embedding_id = embedding_id
-        self.balance_dataset_classes = balance_dataset_classes
+    def __init__(self, embedding_descriptor,balance_dataset_classes:int = None):
         from results.results_manager import ResultsManager
+        results_manager = ResultsManager.get_manager()
+        self.embedding_descriptor = embedding_descriptor
+        self.embedding_id = results_manager.calculate_descriptor_id(embedding_descriptor)
+        self.balance_dataset_classes = balance_dataset_classes
         self.embeddings, self.embedding_labels, self.embedding_descriptor = ResultsManager.get_manager().load_embedding(self.embedding_id)
         assert self.embedding_labels is not None
         from datasets.embedded_datasets.generators.embedding_descriptor import SerializableEmbeddingDescriptor

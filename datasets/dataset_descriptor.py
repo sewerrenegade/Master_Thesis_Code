@@ -138,7 +138,7 @@ class SerializableDatasetDescriptor:
             f"  class_distribution={self.class_distribution},\n"
             f"  classes={self.classes},\n"
             f"  augmentation_settings={self.augmentation_settings},\n"
-            f"  augmentation_scheme={self.augmentation_scheme},\n"
+            f"  augmentation_scheme={self.augmentation_scheme.to_string()},\n"
             f"  size={self.size},\n"
             f"  multiple_instance_dataset={self.multiple_instance_dataset}\n"
             f"  bag_size={self.bag_size}\n"

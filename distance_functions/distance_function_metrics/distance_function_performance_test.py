@@ -36,7 +36,7 @@ def calculate_origin_dataset_metrics(descriptor: MetricsDescriptor):
         new_descriptor = MetricsDescriptor(descriptor.metrics,dataset=database,distance_function=descriptor.distance_function,per_class_samples=descriptor.per_class_samples)
     else:
         raise TypeError("input needs to be an embedding database or the original dataset itself")
-    metrics = calculate_metrics_from_metrics_descriptor(new_descriptor)
+    metrics = calculate_metric_from_descriptor(new_descriptor)
     return metrics    
 
 

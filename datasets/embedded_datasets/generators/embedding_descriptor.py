@@ -33,11 +33,12 @@ class EmbeddingDescriptor:
         from results.results_manager import ResultsManager
         results_manager = ResultsManager.get_manager()
         if not recalculate and results_manager.check_if_result_already_exists(self):
-            embeddings,labels,stats_dic = results_manager.load_embedding(self)
+            pass
         else:
             embeddings,labels,stats_dic = generate_embeddings_for_dataset(self.name,self.dataset,self.downprojection_function(**self.downprojection_function_settings).fit_transform)
             results_manager.save_results(descriptor=self ,results= {"embedding":embeddings,"embedding_label" : labels,"embedding_stats" : stats_dic})
-        return embeddings,labels,stats_dic
+        embeddings_ds = EmbeddingBaseDataset(self)
+        return embeddings_ds
 
 class SerializableEmbeddingDescriptor:
     def __init__(self, name, dataset_name, dataset_sampling, augmentation_settings, dino_bloom, transform_name, transform_settings):
