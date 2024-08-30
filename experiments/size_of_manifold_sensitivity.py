@@ -40,14 +40,14 @@ DEFAULT_TRANSFROM_DICT = {
     "PCA": (PCA,{
     'n_components': 8})
 }
-MANIFOLD_CALC_SIZE = [10,20,50,100,400]
-PER_CLASS_NB_SAMPLES_FOR_METRIC_CALC = 10
+MANIFOLD_CALC_SIZE = [30,60,120,240,480]
+PER_CLASS_NB_SAMPLES_FOR_METRIC_CALC = 30
 SWEEP_PORJECTION_DIM = GlobalConfig.DOWNPROJECTION_TEST_DIMENSIONS
 METRIC = DistanceMatrixMetricCalculator
 DATASET_NAMES_AND_SETTINGS = {("SCEMILA/image_data","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
                               ("SCEMILA/image_data","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
-                            #   ("Acevedo","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
-                            #   ("Acevedo","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("Acevedo","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
+                              ("Acevedo","dino"):{"training_mode":True,"encode_with_dino_bloom":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
                               ("FashionMNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
                               ("CIFAR10","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
                               ("MNIST","normal"):{"training_mode":True,"balance_dataset_classes": 100,"gpu":False,"augmentation_settings":AugmentationSettings(),"numpy":True},
@@ -65,6 +65,7 @@ def test_manifold_size_sensitivity():
     for dataset_name, db_settings in DATASET_NAMES_AND_SETTINGS.items():
         for nb_points_on_man in MANIFOLD_CALC_SIZE:
             db_settings["balance_dataset_classes"] = nb_points_on_man
+            db_settings["augmentation_settings"] = AugmentationSettings.create_settings_with_name("none")
             dataset_class = DATA_SET_MODULES.get(dataset_name[0])
             dataset = dataset_class(**db_settings)
             dataset_report = dataset_reports[dataset_name[0]]
@@ -77,7 +78,7 @@ def test_manifold_size_sensitivity():
             for transform_name, transform in DEFAULT_TRANSFROM_DICT.items():
                 trans_func, trans_settings = transform
                 descriptor = EmbeddingDescriptor(f"{dataset_name[0]}_{transform_name}_8", dataset, transform_name, trans_func, trans_settings)
-                embd_ds= descriptor.generate_embedding_from_descriptor()
+                embd_ds= descriptor.make_sure_embedding_exists()
                 metric_desc = MetricsDescriptor(metric_calculator=METRIC, dataset=embd_ds, distance_function=EuclideanDistance(), per_class_samples=PER_CLASS_NB_SAMPLES_FOR_METRIC_CALC)
                 it_metrics = metric_desc.calculate_metric()
                 experiment_metrics_list.append({"dataset":dataset_name[0],"dinobloom":dataset_name[1],"manifold_calculation_size": nb_points_on_man,"distance":transform_name,"metric":it_metrics})

@@ -17,7 +17,7 @@ class SinglePresenceMILSynthesizer:
         return per_class_indicies
         
     def generate_bag_instance_from_label(self,label,training):
-        assert self.bag_size[0] == BagSizeTypes.CONSTANT
+        assert self.bag_size[0] == BagSizeTypes.CONSTANT.to_string()
         if label:
             instance_labels = random.choices(self.classes, k=self.bag_size[1])
             forced_index = random.randint(0, self.bag_size[1] - 1)

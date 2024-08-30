@@ -1,13 +1,14 @@
 import typing
-
 from experiments.MNIST_salome_mil_experiment import MILEXperiment_CV,TopoRegMILEXperiment_CV
 from experiments.SCEMILA_experiment import SCEMILA_Experiment
+from experiments.SCEMILA_topo_experiment import TopoSCEMILA_Experiment
 
 
 MODULES = {
     "salome_experiment_MIL_CV": MILEXperiment_CV,
     "salome_experiment_topo_MIL_CV": TopoRegMILEXperiment_CV,
-    "SCEMILA_experiment": SCEMILA_Experiment
+    "SCEMILA_experiment": SCEMILA_Experiment,
+    "topo_SCEMILA_experiment": TopoSCEMILA_Experiment
 }
 
 NAME_KEY: str = "name"

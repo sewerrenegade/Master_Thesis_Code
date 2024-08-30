@@ -1,11 +1,8 @@
 from enum import Enum
 from torch.utils.data import Dataset
-from abc import ABC, abstractmethod
+from abc import ABC
 import torch
-import torchvision.transforms as transforms
-from PIL import Image
-import tifffile as tiff
-from datasets.dataset_transforms import DatasetTransforms,DinoBloomEncodeTransform
+
 import numpy as np
 import random
 
@@ -29,24 +26,43 @@ class BagSizeTypes(Enum):
         return BagSizeTypes[name]
     
 class BaseMILDataset(Dataset, ABC):
-    def __init__(self, database_name,augmentation_settings:AugmentationSettings,balance_dataset_classes,data_synth = None,training = True):
+    def __init__(self,database_name,augmentation_settings:AugmentationSettings,balance_dataset_classes = None,data_synth = None,training = True):
         self.name = database_name
         self.number_of_per_class_instances = balance_dataset_classes
-        self.augmentation_settings = augmentation_settings
-        if self.augmentation_settings is not None:
-            self.augmentation_settings.dataset_name = self.name
+        self.training = training
+        if augmentation_settings is not None:
+            self.augmentation_settings = augmentation_settings
+        else:
+            self.augmentation_settings = AugmentationSettings.create_settings_with_name("none")
+        self.augmentation_settings.dataset_name = self.name   
         self.indexer:Indexer = self.get_indexer()
         if data_synth is None:
             self.per_class_indicies = self.indexer.get_bag_level_indicies(training)
-            bag_sizes =  np.array([len(x) for key,value in self.per_class_indicies.items() for x in value])
-            self.bag_size = (BagSizeTypes.CALCULATED_AVERAGE_AND_STD,int(np.average(bag_sizes)),int(np.std(bag_sizes)))
+            mean_bag_size,std_bag_size = self.indexer.avg_bag_size,self.indexer.std_bag_size
+            self.bag_size = (BagSizeTypes.CALCULATED_AVERAGE_AND_STD,mean_bag_size,std_bag_size)
         else:
             self.per_class_indicies = self.indexer.get_bag_level_indicies(training,balance_dataset_classes,data_synth)
             self.bag_size = data_synth.bag_size
         self.per_class_count = BaseMILDataset.count_per_class_samples(self.per_class_indicies)
         self.indicies_list,self.per_class_indicies,self.per_class_count =self.balance_dataset()
         self.classes = list(self.per_class_indicies.keys())
+    
+    def get_targets(self):
+        _, targets = zip(*self.indicies_list)
+        return targets
         
+    @staticmethod
+    def convert_bag_list(input_list):
+        assert isinstance(input_list,list)
+        if not input_list:
+            return input_list  # Return as is if the list is empty
+        first_element = input_list[0]
+        if isinstance(first_element, np.ndarray):
+            return np.array(input_list)
+        elif isinstance(first_element, torch.Tensor):
+            return torch.stack(input_list)
+        else:
+            return input_list
     
     def balance_dataset(self):
         if self.number_of_per_class_instances is None or self.number_of_per_class_instances == 0:
@@ -75,8 +91,8 @@ class BaseMILDataset(Dataset, ABC):
     
     @staticmethod
     def count_per_class_samples(class_indicies_dict):
-        return {key:len(value) for key,value in class_indicies_dict.items()}    
-    
+        return {key:len(value) for key,value in class_indicies_dict.items()}
+        
     def get_random_samples_from_class(self, class_name, number_of_instances):
         indicies = self.per_class_indicies[class_name]
         random_indicies = random.sample(indicies,number_of_instances)
@@ -95,7 +111,8 @@ class BaseMILDataset(Dataset, ABC):
         return get_dataset_indexer(self.name)
     
     def get_dino_bloom_transform(self):
-        return DinoBloomEncodeTransform()
+        from datasets.dataset_transforms import DinoBloomEncodeTransform
+        return DinoBloomEncodeTransform.get_dino_bloom_encoder()
     
     def get_transform_function(
         self,
@@ -109,6 +126,7 @@ class BaseMILDataset(Dataset, ABC):
         to_tensor=True,
         extra_transforms=[],
     ):
+        from datasets.dataset_transforms import DatasetTransforms
         self.dataset_transform = DatasetTransforms(
             self.name,
             load_tiff=load_tiff,
@@ -120,6 +138,7 @@ class BaseMILDataset(Dataset, ABC):
             grayscale=grayscale,
             to_tensor=to_tensor,
             extra_transforms=extra_transforms,
+            mil= True
         )
         
         return self.dataset_transform.create_preload_and_postload_transforms()

@@ -1,5 +1,5 @@
 from model_train import *   # model training function
-from model import *         # actual MIL model
+from models.SCEMILA.SCEMILA_model import *         # actual MIL model
 from dataset import *       # dataset
 # makes conversion from string label to one-hot encoding easier
 import label_converter

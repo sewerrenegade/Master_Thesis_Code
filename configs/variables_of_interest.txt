@@ -1,0 +1,26 @@
+- batch accumulation number, observed to act as a regulariser
+- learning rate found to be very influential
+- sgd vs adams, not sure of exact impact
+- epochs obviously, with validation callback setting configs
+- check out some different manifold strats
+- check out sensitivity to group size (topo thing)
+- quick investigation into downprojection dimension sensitivity
+- confirm grayscale impact on performance (computational and accuracy)
+- Finally, the biggest one , accross strategies
+- confirm the viability of kfold and usefullness
+-----------------------------------------------------------------------
+17.09.24
+- make sure pipeline working, step by step:
+* make sure the instances in the bag have good order, need some sort of unique ID for 1-bag 2-instance
+* make sure distance/topo dataset works 100%
+* make sure embedded dataset works 100% 
+* make sure kfold does well
+* get visualisations of the models, gpt
+* make sure dinobloom is not remaining loaded
+* i think the factories are a big problem in import time
+
+Done======
+* implement new salome split
+* make sure logging is 100%, remove single value graphs
+* make sure that there is a distinction in seralization between train and test
+

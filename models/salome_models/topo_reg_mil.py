@@ -275,9 +275,9 @@ class CV_TopoRegMIL(CV_MIL):
         latent_distances = self._compute_euclidean_distance(ins_latent)
         latent_distances = latent_distances / self.latent_norm
 
-        print(f"Gradient of CubComplex image side {img_distances.grad_fn}, it requires grad {img_distances.requires_grad}")
-        print(f"Gradient of Euclidean Distance {latent_distances.grad_fn}, it requires grad {latent_distances.requires_grad}")
-        print(f"Gradient of image encoder {ins_latent.grad_fn}, it requires grad {ins_latent.requires_grad}")
+        # print(f"Gradient of CubComplex image side {img_distances.grad_fn}, it requires grad {img_distances.requires_grad}")
+        # print(f"Gradient of Euclidean Distance {latent_distances.grad_fn}, it requires grad {latent_distances.requires_grad}")
+        # print(f"Gradient of image encoder {ins_latent.grad_fn}, it requires grad {ins_latent.requires_grad}")
         return ToporegMILOutput(
             ins_img = x.squeeze(dim=0),
             ins_latent = ins_latent,

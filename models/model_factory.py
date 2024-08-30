@@ -1,7 +1,8 @@
 
+from models.SCEMILA.topo_SCEMILA_model import TopoAMiL
 from models.salome_models.mil import CV_MIL
 from models.salome_models.topo_reg_mil import CV_TopoRegMIL
-from models.SCEMILA.model import AMiL
+from models.SCEMILA.SCEMILA_model import AMiL
 from torch.optim import SGD
 from models.salome_models.optimizer import Adam,SGD
 from models.salome_models.scheduler import ConstantScheduler
@@ -13,6 +14,7 @@ MODULES = {
     "Adam": Adam,
     "ConstantScheduler": ConstantScheduler,
     "SCEMILA":AMiL,
+    "TopoSCEMILA":TopoAMiL,
     "SGD" : SGD
 }
 

@@ -1,19 +1,13 @@
 import typing
 import pytorch_lightning as pl
 import torch
-import copy
 import torchmetrics.functional as tf
-import pandas as pd
+import wandb
+from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
+from models.model_factory import get_module
+from models.SCEMILA.SCEMILA_model import AMiL
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import precision_score, recall_score
-import torch.nn.functional as F
-import wandb
-import numpy as np
-
-from models.model_factory import get_module
-from models.SCEMILA.model import AMiL
-from experiments.metrics import calculate_recall,calculate_precision, calculate_sensitivity
 
 
 class SCEMILA_Experiment(pl.LightningModule):
@@ -25,79 +19,87 @@ class SCEMILA_Experiment(pl.LightningModule):
         super(SCEMILA_Experiment, self).__init__()
         self.model = model
         self.params = params
-        self.n_c = self.params["num_class"]
+        self.n_c = self.params.get("num_class",5)
+        self.class_weighting = self.params.get("class_weighting",False)
         self.curr_device = None
-        self.hold_graph = False
-        self.best_loss = 10
-        self.no_improvement_for = 0
         self.current_data_object =  DataMatrix()        
-        self.current_confusion_matrix = torch.zeros(self.n_c, self.n_c)
-        self.best_model = copy.deepcopy(self.model.state_dict())
-        #self.log = wandb.log
-        self.log_dictionary = self.log_dict#wandb.log
-
-        try:
-            self.hold_graph = self.params["retain_first_backpass"]
-        except KeyError:
-            pass
-
+        self.train_confusion_matrix,self.val_confusion_matrix ,self.test_confusion_matrix  = torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c)
+        self.test_metrics = []
+        self.indexer = SCEMILA_Indexer.get_indexer()
+        if self.class_weighting:
+            self.class_weights = self.get_class_weights()
+        pass
+    
+    def get_class_weights(self):
+        train_class_distribution = self.indexer.class_sample_counts_in_train_set
+        assert len(train_class_distribution) == self.n_c
+        total_number = sum([sample_count for class_name,sample_count in train_class_distribution.items()])
+        class_weights = {self.indexer.convert_from_int_to_label_bag_level(class_key):torch.tensor(total_number/(5*class_count)) for class_key,class_count in train_class_distribution.items()}
+        return class_weights
+        
+    
     def forward(self, inputs: torch.Tensor):
         return self.model(inputs)
     
     def convert_matrix_to_str(self,mat):
         return str(mat.tolist())
-    def convert_matrix_to_pic(self,mat,name = "Confusion Matrix"):
-        return wandb.Image(mat, caption=name)
+    
+    def log_confusion_matrix(self,phase,confusion_matrix):
+        plt.figure(figsize=(10, 7))
+        labels = [self.indexer.convert_from_int_to_label_bag_level(i) for i in range(self.model.class_count)]
+        sns.heatmap(confusion_matrix.cpu().numpy(), annot=True, fmt="g", cmap="Blues",xticklabels = labels,yticklabels=labels,cbar=False)
+        plt.xlabel("Predicted labels")
+        plt.ylabel("True labels")
+        plt.title("Confusion Matrix")
+        wandb.log({f"{phase} confusion matrix": wandb.Image(plt)})
+        plt.close()
     
     def training_step(
             self, 
             batch, 
             batch_idx
         ):
-        bag, bag_label,path = batch
-        model_output = self.model(batch)
+        bag, bag_label = batch
+        model_output = self.model(bag)
         train_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
-        self.current_confusion_matrix[ train_step_output["label"].cpu(), train_step_output["prediction_int"]] += int(1)
-        self.log_step(train_step_output,model_output,batch,"train1")
+        self.train_confusion_matrix[train_step_output["label"], train_step_output["prediction_int"]] += 1
+        train_step_output["LR"] = self.trainer.optimizers[0].param_groups[0]['lr']
+        if self.class_weighting:
+            train_step_output["loss"] = train_step_output["loss"] * self.class_weights[train_step_output["label"]]
+        self.log_step(train_step_output,"train",progress_bar= True)
         return train_step_output
     
+    def validation_step(
+            self, 
+            batch, 
+            batch_idx
+        ):
+        bag, bag_label = batch
+        model_output  = self.model(bag)
+        validation_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
+        self.val_confusion_matrix[validation_step_output["label"], validation_step_output["prediction_int"]] += 1
+        if self.class_weighting:
+            validation_step_output["loss"] = validation_step_output["loss"] * self.class_weights[validation_step_output["label"]]
+        self.log_step(validation_step_output,"val")
+        return validation_step_output
     
-    def log_step(self,step_loss,model_output,batch,phase):
-        bag, bag_label,path = batch
-        prediction, att_raw, att_softmax, bag_feature_stack  = model_output
-        log_dict = {}
-        log_dict[f"{phase}_loss"] = step_loss["loss"].data
-        log_dict[f"{phase}_correct"] =  step_loss["correct"]
-        log_dict[f"{phase}_label_int"] = step_loss["label"]
-        log_dict[f"{phase}_pred_int"] = step_loss["prediction_int"]
-        log_dict[f"{phase}_bag_size"] = len(bag.squeeze(0))
-        self.current_data_object.add_patient(
-                step_loss["label"],
-                path[0],
-                att_raw,
-                att_softmax,
-                step_loss["prediction_int"],
-                F.softmax(
-                    prediction,
-                    dim=1),
-                step_loss["train_loss"],
-                bag_feature_stack)
-        
-        self.log_dictionary(log_dict,on_step=True)
-         
-
+    def log_step(self,step_loss,phase,progress_bar = False):
+        self.log(f"{phase}_loss",step_loss["loss"].data,on_step=True,on_epoch= True,prog_bar= progress_bar,logger = True)
+        self.log(f"{phase}_mil_loss",step_loss["loss"].data,on_step=True,on_epoch= True,prog_bar= False,logger = True)
+        self.log(f"{phase}_correct",step_loss["correct"],on_step=True,prog_bar= progress_bar,logger = True)
+        if "LR" in step_loss and phase == "train":
+            self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+        self.logger.log_metrics({f"{phase}_label_int":step_loss["label"]})
+        self.logger.log_metrics({f"{phase}_pred_int":step_loss["prediction_int"]})
+       
+    def on_validation_epoch_end(self) -> None:
+        self.log_confusion_matrix("val",self.val_confusion_matrix)
+        self.val_confusion_matrix = torch.zeros(self.n_c, self.n_c)
     
-    def on_epoch_end_custom(self):
-        self.current_data_object =  DataMatrix()        
-        self.current_confusion_matrix = torch.zeros(self.n_c, self.n_c)
+    def on_train_epoch_end(self) -> None:
+        self.log_confusion_matrix("train",self.train_confusion_matrix)
+        self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
 
-    def training_epoch_end(self, outputs):
-        total_loss,per_sample_avg_loss = self.sum_loss(outputs)
-        corrects,accuracy = self.count_corrects(outputs)
-        train_loss = per_sample_avg_loss
-        self.log_dictionary({"epoch_train_loss":train_loss,"epoch_train_accuracy": accuracy})#,"train_data_obj":self.current_data_object.return_data()
-        wandb.log({"train_confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix,"train_confusion_matrix")})
-        self.on_epoch_end_custom()
 
     def count_corrects(self,outputs):
         corrects = 0
@@ -106,90 +108,42 @@ class SCEMILA_Experiment(pl.LightningModule):
                 corrects+=1
         return corrects,corrects/len(outputs)
 
-    def sum_loss(self,outputs):
-        loss = 0.0
-        for output in outputs:
-            if output["train_loss"]:
-                loss+= output["train_loss"]
-        return loss,loss/len(outputs)
-
-
-    def validation_step(
-            self, 
-            batch, 
-            batch_idx
-        ):
-        bag, bag_label,path = batch
-        model_output  = self.model(batch)
-        validation_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
-        #self.log_step(validation_step_output,model_output,batch,"valid1")
-        return validation_step_output
-    
-    def validation_epoch_end(self, outputs):
-        total_loss,per_sample_avg_loss = self.sum_loss(outputs)
-        corrects,accuracy = self.count_corrects(outputs)
-        validation_loss = per_sample_avg_loss
-        
-        pred_int = torch.tensor([p["prediction_int"] for p in outputs])
-        labels = torch.tensor([l["label"] for l in outputs])
-        f1 = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, average='weighted', top_k=1)
-        self.log_dictionary({"epoch_validation_loss":validation_loss,"epoch_validation_accuracy": accuracy,"epoch_val_f1_macro": f1})#"validation_data_obj":self.current_data_object.return_data(),
-        
-
     def test_step(
             self, 
             batch, 
             batch_idx
         ):
-        bag, bag_label,path = batch
-        model_output  = self.model(batch)
+        bag, bag_label = batch
+        model_output  = self.model(bag)
         test_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
-        #self.log_step(test_step_output,model_output,batch,"test1")
-        self.current_confusion_matrix[ test_step_output["label"].cpu(), test_step_output["prediction_int"]] += int(1)
-        return test_step_output
-    
-    def test_epoch_end(
-            self, 
-            outputs, 
+        #self.log_step(test_step_output,model_output,batch,"test")
+        self.test_confusion_matrix[test_step_output["label"], test_step_output["prediction_int"]] += int(1)
+        self.test_metrics.append(SCEMILA_Experiment.move_dict_tensors_to_cpu(test_step_output))
+
+    def on_test_epoch_end(
+            self 
         ):
-        pred_int = torch.tensor([p["prediction_int"] for p in outputs])
-        labels = torch.tensor([l["label"] for l in outputs])
-        predictions = torch.cat([p["prediction"] for p in outputs])
-
-        recall = calculate_recall(pred_int, labels, num_classes=self.n_c)
-        precision = calculate_precision(pred_int, labels, num_classes=self.n_c)
-        sensitivity = calculate_sensitivity(pred_int, labels, num_classes=self.n_c)
-        recall = recall_score(y_true=labels, y_pred=pred_int, average='macro')
-        precision = precision_score(y_true=labels, y_pred=pred_int, average='macro')
-
-        acc = tf.accuracy(pred_int, labels, task="multiclass", num_classes=self.n_c, top_k=1)
-        f1 = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, average='weighted', top_k=1)
-
-        confmat = tf.confusion_matrix(pred_int, labels, task='multiclass', num_classes=self.n_c)
-        auroc = tf.auroc(predictions.cpu(), labels.cpu(), task='multiclass', num_classes=self.n_c)
-        prroc = tf.average_precision(predictions.cpu(), labels.cpu(), task="multiclass", num_classes=self.n_c)
-
-        # self.log("Accuracy", acc)
-        # self.log("F1_macro_weighted", f1)
-        # self.log("AUROC", auroc)
-        # self.log("Prroc", prroc)
-        # self.log("Recall", recall)
-        # self.log("Precision", precision)
-        result_dict = {
-            "Test_Accuracy": acc.cpu(),
-            "Test_F1_macro_weighted": f1.cpu(),
-            "Test_AUROC": auroc.cpu(),
-            "Test_Prroc": prroc.cpu(),
-            "Test_Recall": recall,
-            "Test_Precision": precision,
-            
-            # "Sensitivity": sensitivity,
-            }
-        self.log_dictionary(result_dict)
+        metrics_dict = {}
+        self.log_confusion_matrix("test",self.test_confusion_matrix)
+        self.test_confusion_matrix = torch.zeros(self.n_c, self.n_c)
         
-        wandb.log({"Test_confusion_matrix":self.convert_matrix_to_pic(self.current_confusion_matrix)})
-        self.on_epoch_end_custom()
-        return result_dict
+        
+        pred_int = torch.tensor([p["prediction_int"] for p in self.test_metrics])
+        labels = torch.tensor([l["label"] for l in self.test_metrics])
+        predictions = torch.cat([p["prediction"] for p in self.test_metrics])
+        
+        metrics_dict['accuracy'] = tf.accuracy(pred_int, labels, task="multiclass", num_classes=self.n_c, top_k=1,average= "micro").cpu().numpy().item()
+
+        metrics_dict['precision_macro'] = tf.precision(pred_int, labels, task="multiclass", num_classes=self.n_c,average= "macro").cpu().numpy().item()
+        
+        metrics_dict['f1_macro'] = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, average='macro', top_k=1).cpu().numpy().item()
+    
+        metrics_dict['recall_macro'] = tf.recall(pred_int,labels, task='multiclass', num_classes=self.n_c, top_k=1, average="macro").cpu().numpy().item()
+        
+        metrics_dict['auroc'] = tf.auroc(predictions, labels, task='multiclass', num_classes=self.n_c)
+        for key, value in metrics_dict.items():
+            wandb.run.summary[key] = value
+        self.log_dict(metrics_dict)  # this is what creates the table in the console, i guess the on_test_end hook is doing this
 
     def predict_step(
             self, 
@@ -199,7 +153,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         imgs, bag_label = batch
         imgs = imgs.squeeze(dim=0)
         self.curr_device = imgs.device
-        result = self.model(imgs, bag_label)
+        result = self.model(imgs)
         return result
 
     def configure_optimizers(self):
@@ -212,8 +166,26 @@ class SCEMILA_Experiment(pl.LightningModule):
     
     def append_phase_to_dict(self,dict,phase):
         return {phase + '_' + key: value for key, value in dict.items()}
-
     
+    @staticmethod
+    def move_dict_tensors_to_cpu(data_dict):
+        """
+        Takes a dictionary as input and returns a new dictionary with all torch tensors moved to the CPU.
+        
+        Args:
+            data_dict (dict): A dictionary potentially containing torch tensors on the GPU.
+        
+        Returns:
+            dict: A new dictionary with all torch tensors moved to the CPU.
+        """
+        cpu_dict = {}
+        for key, value in data_dict.items():
+            if isinstance(value, torch.Tensor):
+                cpu_dict[key] = value.cpu()
+            else:
+                cpu_dict[key] = value
+        return cpu_dict
+        
 
 
 class DataMatrix():

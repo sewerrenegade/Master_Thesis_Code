@@ -359,5 +359,38 @@
 # print(query_result)
 
 
-x = {2:"one,2",2:"three"}
-print(x)
+# from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_MIL_base
+# from datasets.image_augmentor import AugmentationSettings
+
+
+# x = {2:"one,2",3:"three"}
+# print(len(x))
+# train_dataset =  SCEMILAimage_MIL_base(training_mode= True,
+#             encode_with_dino_bloom = False,
+#             gpu = True, grayscale= False,
+#             numpy = False,flatten = False,
+#             augmentation_settings = AugmentationSettings.create_settings_with_name('none'))
+
+
+
+
+# from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_MIL_base
+# from datasets.topological_datasets.topo_dataset_desciptor import TopoDatasetDescriptor
+# from distance_functions.functions.basic_distance_functions import EuclideanDistance
+# import umap
+
+# from results.results_manager import ResultsManager
+
+# #ResultsManager.get_manager().remove_id_from_tracker("ddf60b32e51738efc4f0a36e97bc6ba7c65ad845941231dde3321d772e8eca80")
+# desc = TopoDatasetDescriptor(name = "test_top",dataset=SCEMILAimage_MIL_base(training_mode= True,
+#             encode_with_dino_bloom = False,
+#             gpu = False, grayscale= True,
+#             numpy = True),nb_of_grouped_bags=5,distance_function=EuclideanDistance(),downprojection_function_name="UMAP",downprojection_function=umap.UMAP,downprojection_function_settings={
+#             'n_components': 8})
+# x = desc.generate_or_get_topo_dataset_from_descriptor()
+# pass
+
+
+import torch
+print(torch.__version__)
+print(torch.backends.cudnn.version())

@@ -14,17 +14,15 @@ class MNIST(pl.LightningDataModule):
             data_path: str = "data/",
             num_workers: int = 4,
             img_dim: int = 28,
-            val_split = 0.2,
             k_fold = -1
             ):
         super().__init__()
-        self.synth_params = synthesizer
+        self.mil_synth = synthesizer
         self.data_dir = data_path
         self.img_dim = img_dim
         self.num_workers = num_workers
         self.val_split = val_split
         self.k_fold = k_fold
-        self.transfroms = transforms.Compose([transforms.Grayscale(),transforms.Normalize((0.1307,), (0.3081,))])#transforms.ToTensor(),
         self.create_test_dataset()
         self.create_train_dataset()
 
@@ -42,14 +40,14 @@ class MNIST(pl.LightningDataModule):
             
 
     def create_train_dataset(self):
-        train_dataset = MNIST_MIL_base(data_synth=self.synth_params, root_dir=self.data_dir, transforms=self.transfroms,training= True)
+        train_dataset = MNIST_MIL_base(data_synth=self.mil_synth, root_dir=self.data_dir,training_mode= True)
         train_dataset_size = len(train_dataset)
         val_size = int(self.val_split * train_dataset_size)
         train_size = train_dataset_size - val_size
         self.train_dataset, self.val_dataset = random_split(train_dataset, [train_size, val_size])
 
     def create_test_dataset(self):
-        self.test_dataset = MNIST_MIL_base(data_synth=self.synth_params,root_dir=self.data_dir, transforms=self.transfroms,training= False)
+        self.test_dataset = MNIST_MIL_base(data_synth=self.mil_synth,root_dir=self.data_dir,training_mode= False)
 
 
     def train_dataloader(self):

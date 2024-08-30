@@ -1,3 +1,5 @@
+import glob
+import json
 import os
 import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
@@ -5,6 +7,7 @@ import pandas as pd
 import random
 import re
 from datasets.indexer_scripts.indexer_abstraction import Indexer
+import numpy as np
 SINGLETON_INSTANCE  = None
 
 class SCEMILA_Indexer(Indexer):
@@ -13,16 +16,26 @@ class SCEMILA_Indexer(Indexer):
         self.dict_path = f"{SCEMILA_Path}meta_files/metadata.csv"
         self.image_level_annotations_file = f"{SCEMILA_Path}meta_files/image_annotation_master.csv"
         self.tiff_image_pattern = re.compile(r"(.*\/)image_(\d+)\.tif$")
-        self.indicies, self.bag_meta_df = self.define_dataset()
-        self.bag_classes = list(self.indicies.keys())
+        self.per_class_bag_level_paths, self.bag_meta_df = self.define_dataset()
+        self.bag_classes = list(self.per_class_bag_level_paths.keys())
         
         #bag level indexing
-        self.train_patients_path,self.test_indicies = self.seperate_test_train_data()
-        self.class_sample_counts_in_train_set ,self.class_sample_counts_in_test_set = self.get_per_class_count(self.bag_classes,self.train_patients_path,self.test_indicies)
-        
+        self.per_class_train_patients_paths,self.per_class_test_patients_paths = self.seperate_test_train_data()
+        self.class_sample_counts_in_train_set ,self.per_class_test_counts_in_test_set = self.get_per_class_count(self.bag_classes,self.per_class_train_patients_paths,self.per_class_test_patients_paths)
+        self.avg_bag_size,self.std_bag_size =430.6797,107.3914
+
         #instance level indexing
         self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.read_csv_instance_level_annotations(include_other_and_ambiguous= False)
         self.instance_level_datset_size = sum([value for _,value in self.instance_level_class_count.items()])
+    
+    
+    def calculate_avg_std_bag_size(self):
+        indicies = []
+        for category,paths in self.get_bag_level_indicies(training_mode= True).items():
+            indicies.extend(paths)
+        sizes = [len([f for f in glob.glob(os.path.join(patient, '*.tif'))])for patient in indicies]
+        return np.mean(sizes),np.std(sizes)
+            
         
     def get_instance_level_indicies(self,training):
         indicies_list = []
@@ -32,8 +45,16 @@ class SCEMILA_Indexer(Indexer):
             labels_list.extend([key]*len(value))
         return self.instance_level_annotations_by_class
     
-    def get_bag_level_indicies(self):
-        raise NotImplementedError  
+    def get_bag_level_indicies(self,training_mode = True,number_of_balanced_datapoints = None,synth = None):
+        if training_mode:
+            per_class_indicies = self.per_class_train_patients_paths
+        else:
+            per_class_indicies = self.per_class_test_patients_paths
+        if synth is None:
+            return {key: (value[:number_of_balanced_datapoints] if number_of_balanced_datapoints is not None else value) 
+                for key, value in per_class_indicies.items()}
+        else:
+            return synth.generate_bag_level_indicies_per_class(training_mode,self,number_of_balanced_datapoints)
       
     def get_random_samples_of_class(self, class_name, number_of_instances):
         raise NotImplementedError("Subclass must implement abstract method")
@@ -86,22 +107,41 @@ class SCEMILA_Indexer(Indexer):
                 raise ValueError("The provided path does not match the expected pattern.")
         return paths_to_patients,cell_indices
     
-    def convert_from_int_to_label_instance_level(self,int_or_label):#TODO HANDLE multiple inputs
+    
+    def convert_from_int_to_label_instance_level(self,int_or_label):
         if type(int_or_label) is int:
             return self.instance_classes[int_or_label]
         elif type(int_or_label) is str:
             return self.instance_classes.index(int_or_label)
+        
+    def convert_from_int_to_label_bag_level(self,int_or_label):#TODO HANDLE multiple inputs
+        if type(int_or_label) is int:
+            return self.bag_classes[int_or_label]
+        elif type(int_or_label) is str:
+            return self.bag_classes.index(int_or_label)
 
     def get_class_int(self,class_name):
         return self.bag_classes.index(class_name)
     
 
     def seperate_test_train_data(self):
-        random.seed(42)# ensures it is split the same way
+        file_path = "data/SCEMILA/meta_files/salome_split.json"
+        with open(file_path, 'r') as file:
+            data = json.load(file)
         train_data = {}
         test_data = {}
-        for label in self.bag_classes:
-            train_data[label] , test_data[label] = self.split_train_test(self.indicies[label])
+        for key, value in data["train"].items():
+            train_data[key] = [f"data/SCEMILA/image_data/{key}/{patient_id}" for patient_id in value if os.path.exists(f"data/SCEMILA/image_data/{key}/{patient_id}")]
+ 
+        for key, value in data["test"].items():
+            test_data[key] = [f"data/SCEMILA/image_data/{key}/{patient_id}" for patient_id in value if os.path.exists(f"data/SCEMILA/image_data/{key}/{patient_id}")]
+ 
+        
+        # random.seed(42)# ensures it is split the same way
+        # train_data = {}
+        # test_data = {}
+        # for label in self.bag_classes:
+        #     train_data[label], test_data[label] = self.split_train_test(self.per_class_bag_level_paths[label])
         return train_data,test_data
     
     def read_csv_instance_level_annotations(self,number_of_classes  =10,include_other_and_ambiguous = False):
@@ -140,7 +180,7 @@ class SCEMILA_Indexer(Indexer):
         return list_80,list_20
 
     def define_dataset(
-        self,
+        self,data_type = "image_data",
         filter_diff_count=-1):
 
         # load patient data
@@ -176,7 +216,7 @@ class SCEMILA_Indexer(Indexer):
             if label not in merge_dict_processed.keys():
                 merge_dict_processed[label] = []
             patient_path = os.path.join(
-                self.path_data, 'data', row['bag_label'], row.name)
+                self.path_data, data_type, row['bag_label'], row.name)
             merge_dict_processed[label].append(patient_path)
         return merge_dict_processed,df_data_master
 
@@ -236,7 +276,7 @@ class SCEMILA_Indexer(Indexer):
 
 if __name__ == "__main__":
     x = SCEMILA_Indexer()
-    a = x.get_image_class_structure_from_indexer_instance_level()
-    print(list(x.bag_classes)[2])
+    #a = x.get_image_class_structure_from_indexer_instance_level()
+    print(f"mean and std bag size {x.calculate_avg_std_bag_size()}")
 
 

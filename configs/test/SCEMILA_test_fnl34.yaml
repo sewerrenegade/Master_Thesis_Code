@@ -1,0 +1,46 @@
+model_params:
+  name: 'SCEMILA'
+  config:
+    multicolumn: 1
+    class_count: 5
+    device: "cuda:0"
+    input_type: "fnl34"
+            
+dataset:
+  name: 'SCEMILA'
+  config:
+    num_workers: 4
+    k_fold : -1 #set to one if no cross validation wanted
+    encode_with_dino_bloom: False
+    data_type: "fnl34" #"images"
+ 
+exp_type: "SCEMILA_experiment"
+
+exp_params:
+  dataset: SCEMILA
+  num_class: 5
+  optimizer: 
+    name: "SGD"
+    config:
+      LR: 0.00005
+      momentum: 0.9
+      nestrov: True
+    batch_size: 1
+
+trainer_params:
+  accelerator: 'gpu'
+  devices: [0]
+  max_epochs: 30
+  accumulate_grad_batches : 10
+
+
+logging_params:
+  project_name: "SCEMILA_TEST"
+  save_dir: "logs/SCEMILA/"
+  name: "scemila_test"
+  manual_seed: 1265
+
+ES_params:
+  monitor: "val_loss"
+  min_delta: 0.1
+  patience: 2

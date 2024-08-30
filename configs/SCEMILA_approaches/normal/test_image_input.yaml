@@ -1,0 +1,49 @@
+model_params:
+  name: 'SCEMILA'
+  config:
+    multicolumn: 1
+    class_count: 5
+    device: "cuda:0"
+    input_type: "images"
+            
+dataset:
+  name: 'SCEMILA'
+  config:
+    num_workers: 4
+    k_fold : -1 #set to one if no cross validation wanted
+    encode_with_dino_bloom: False
+    input_type: "images"
+    gpu: True
+
+
+exp_type: "SCEMILA_experiment"
+exp_params:
+  num_class: 5
+  optimizer: 
+    name: "Adam"
+    config:
+      LR: 0.00005
+      weight_decay: 0.1
+      scheduler: "ReduceLROnPlateau"
+      patience: 2
+    batch_size: 1
+
+trainer_params:
+  precision: '32'
+  accelerator: 'gpu'
+  devices: [0]
+  max_epochs: 1
+  accumulate_grad_batches : 1
+
+
+logging_params:
+  project_name: "Masters_Project"
+  save_dir: "logs/image_input_experiment/"
+  name: "image_input_experiment"
+  manual_seed: 1265
+
+ES_params:
+  monitor: 'val_mil_loss_epoch'
+  min_delta: 0.1
+  patience: 15
+  mode: 'min'

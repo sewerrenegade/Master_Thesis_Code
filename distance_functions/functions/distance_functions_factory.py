@@ -3,7 +3,7 @@ import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
  
 
-from datasets.SCEMILA.base_image_SCEMILA import SCEMILAimage_base
+from datasets.SCEMILA.base_image_SCEMILA import SCEMILA_base
 from distance_functions.functions.basic_distance_functions import CosineSimilarity, EuclideanDistance, L1Distance, LinfinityDistance, LpDistance
 from distance_functions.functions.cubical_complex_distance import CubicalComplexImageDistanceFunction
 from distance_functions.functions.perceptual_lpsis_distance import PerceptualLoss

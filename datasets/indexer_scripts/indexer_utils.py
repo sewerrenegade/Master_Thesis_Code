@@ -36,5 +36,6 @@ DATASET_TO_INDEXER_MAPPING ={
    "SCEMILA/image_data":SCEMILA_Indexer,
    "SCEMILA/fnl34_feature_data":SCEMILA_Indexer,
    "SCEMILA_lighting" :SCEMILA_Indexer,
-   "Acevedo": AcevedoIndexer
+   "Acevedo": AcevedoIndexer,
+   "MIL_SCEMILA":SCEMILA_Indexer
 }

@@ -5,27 +5,11 @@ import sys
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import pandas as pd
 from reportlab.lib.units import inch
-#from experiments.test_perfomance_baseline import establish_baseline
 from results.report_generators.common_report_functions import append_pdf_page
-
-from results.report_generators.dataset_report_generator import DatasetReportElements
 from results.report_generators.common_report_data import NORMAL_STYLE,HEADING_STYLES,TABLE_STYLE,TITLE_STYLE
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table,  Paragraph, Image, PageBreak
-
-from distance_functions.distance_function_metrics.distance_matrix_metrics import DistanceMatrixMetricCalculator
-
-from configs.global_config import GlobalConfig
-from datasets.image_augmentor import AugmentationSettings
-import umap
-import phate
-from sklearn.decomposition import PCA
-from sklearn.manifold import Isomap, TSNE
-from reportlab.lib import colors
-import copy
 from datasets.SCEMILA import *
-from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 
 descriptors = []

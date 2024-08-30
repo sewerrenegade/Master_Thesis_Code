@@ -26,11 +26,12 @@ DATASET_AUGMENTABIBILITY = {
     "CIFAR10": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "SCEMILA/fnl34_feature_data": Augmentability.UNAUGMENTABLE,
     "SCEMILA/image_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
+    
     "Acevedo": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
     "MIL_FashionMNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "MIL_MNIST": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
     "MIL_CIFAR10": Augmentability.WEAKLY_ROTATIONALY_INVARIANT,
-    #"MIL_SCEMILA/image_data": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
+    "MIL_SCEMILA": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT,
     "MIL_Acevedo": Augmentability.COMPLETELY_ROTATIONALY_INVARIANT
 }
 DATASET_RGB = {
@@ -39,7 +40,8 @@ DATASET_RGB = {
     "CIFAR10": True,
     "SCEMILA/fnl34_feature_data": False,
     "SCEMILA/image_data": True,
-    "Acevedo": True
+    "Acevedo": True,
+    "MIL_SCEMILA": True,
 }
 #make sure I added all included the augmentation settings for all datasets
 #assert DATASET_AUGMENTABIBILITY.keys() == BASE_MODULES.keys()
@@ -114,7 +116,19 @@ class AugmentationSettings:
         """Create an object from a dictionary."""
         return cls(**data)
     
-    
+    @classmethod
+    def get_instance_from_unknown_struct(cls,data):
+        if isinstance(data,str):
+            return AugmentationSettings.create_settings_with_name(only_enabled=data)
+        elif isinstance(data,AugmentationSettings):
+            return data
+        elif isinstance(data,dict):
+            return AugmentationSettings.from_dict(data)
+        elif data is None:
+            return AugmentationSettings.create_settings_with_name("none")
+        else:
+            raise TypeError("unsupoorted tpye to create augmentation settings settings")
+            
     #If the input is all, then all possible augmentations will be activated
     @classmethod
     def create_settings_with_name(cls, only_enabled: str, dataset_name: str="") -> 'AugmentationSettings':

@@ -19,6 +19,7 @@ class BaseDataset(Dataset, ABC):
         self.augmentation_settings = augmentation_settings
         if self.augmentation_settings is not None:
             self.augmentation_settings.dataset_name = self.name
+        self.training = training
         self.indexer:Indexer = self.get_indexer()
         self.per_class_indicies= self.indexer.get_instance_level_indicies(training)
         self.per_class_count = BaseDataset.count_per_class_samples(self.per_class_indicies)
@@ -26,7 +27,7 @@ class BaseDataset(Dataset, ABC):
         self.classes = list(self.per_class_indicies.keys())
     
     def balance_dataset(self):
-        if self.number_of_per_class_instances is None or self.number_of_per_class_instances == 0:
+        if self.number_of_per_class_instances is None or self.number_of_per_class_instances <= 0:
             new_class_indicies = {}
             paths = []
             labels = []
@@ -81,7 +82,7 @@ class BaseDataset(Dataset, ABC):
         return get_dataset_indexer(self.name)
     
     def get_dino_bloom_transform(self):
-        return DinoBloomEncodeTransform()
+        return DinoBloomEncodeTransform.get_dino_bloom_encoder()
     
     def get_transform_function(
         self,

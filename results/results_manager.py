@@ -7,13 +7,15 @@ from typing import Union
 from datetime import datetime
 import numpy as np
 
+from datasets.topological_datasets.topo_dataset_desciptor import SerializableTopoDatasetDescriptor, TopoDatasetDescriptor
+
 
 sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from configs.global_config import GlobalConfig
 from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor, SerializableEmbeddingDescriptor
 
 from results.metrics_descriptor import MetricsDescriptor, SerializableMetricsDescriptor
-
+from results.manager_helper import *
 
 
 class ResultsManager:
@@ -21,12 +23,13 @@ class ResultsManager:
     def __init__(self):
         self.ensure_folder_heirarchy_exists()
         self.id_dict = self.get_serialized_id()
-        self.tracked_object_types = Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,dict,str]
+        self.tracked_object_types = Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,TopoDatasetDescriptor,SerializableTopoDatasetDescriptor,dict,str]
     
     def ensure_folder_heirarchy_exists(self):
         self.storage_dir = GlobalConfig.RESULTS_DATA_FOLDER_PATH
         self.descriptor_dir = os.path.join(self.storage_dir, 'descriptors')
         self.metrics_dir = os.path.join(self.storage_dir, 'metrics')
+        self.topo_dataset_dir = os.path.join(self.storage_dir, 'topo_datasets')
         self.embeddings_dir = os.path.join(self.storage_dir, 'embeddings')
         self.creation_time_tracker = os.path.join(self.storage_dir, 'creation_times')
         self.path_to_saved_file = os.path.join(self.storage_dir, 'saved_id_info.json')
@@ -34,6 +37,7 @@ class ResultsManager:
         os.makedirs(self.descriptor_dir, exist_ok=True)
         os.makedirs(self.metrics_dir, exist_ok=True)
         os.makedirs(self.embeddings_dir, exist_ok=True)
+        os.makedirs(self.topo_dataset_dir, exist_ok=True)
 
             
     def get_relavent_dir(self,identifier):
@@ -49,6 +53,8 @@ class ResultsManager:
                 return self.metrics_dir
             elif result_type == "embeddings":
                 return self.embeddings_dir
+            elif result_type == "topo_dataset":
+                return self.topo_dataset_dir
             else:
                 raise ValueError("could not find discriptor directors")
         raise ValueError("could not find discriptor directors")
@@ -61,6 +67,9 @@ class ResultsManager:
         if isinstance(descriptor,MetricsDescriptor):
             id = self.save_metric(descriptor=descriptor,**results)
             result_type = "metric"
+        if isinstance(descriptor,TopoDatasetDescriptor):
+            id = self.save_topo_dataset(descriptor=descriptor,**results)
+            result_type = "topo_dataset"
         self.add_results_to_tracker(id,result_type)
         
     def save_metric(self, descriptor, metrics_dict):
@@ -71,20 +80,45 @@ class ResultsManager:
         descriptor_dict = descriptor.to_dict()
         with open(descriptor_path, 'wb') as f:
             pickle.dump(descriptor_dict, f)  
-        np.savez(metric_path, **metrics_dict)
-        # with open(metric_path,'w') as f:
-        #     f.write(self.serialize_metrics(metrics_dict))            
+        np.savez(metric_path, **metrics_dict)          
         self.add_creation_time(descriptor_id)
         self.generate_descriptor_list_file()
         return descriptor_id
-      
+    
+    def load_topo_dataset(self,descriptor):
+        assert isinstance(descriptor,self.tracked_object_types)   
+        descriptor_id = self.calculate_descriptor_id(descriptor)
+        topo_ds_path = os.path.join(self.topo_dataset_dir, f"{descriptor_id}.npz")  
+        topo_ds_bag_instance_order_path = os.path.join(self.topo_dataset_dir, f"{descriptor_id}_bag_instance_order.npz")        
+        topo_ds = np.load(topo_ds_path,allow_pickle= True)
+        topo_ds_bag_instance_order = np.load(topo_ds_bag_instance_order_path,allow_pickle= True)
+        deserialized_topo_ds = {int(key):topo_ds[key] for key in topo_ds}
+        deserialized_topo_ds_bag_instance_order = {int(key):[str(path) for path in topo_ds_bag_instance_order[key]] for key in topo_ds_bag_instance_order}
+        return deserialized_topo_ds, deserialized_topo_ds_bag_instance_order
+    
+
+    def save_topo_dataset(self, descriptor, bag_distance_matrix, bag_instance_order):
+        assert isinstance(descriptor,self.tracked_object_types)   
+        descriptor_id = self.calculate_descriptor_id(descriptor)
+        descriptor_path = os.path.join(self.descriptor_dir, f"{descriptor_id}.pkl")
+        topo_ds_path = os.path.join(self.topo_dataset_dir, f"{descriptor_id}.npz")  
+        topo_ds_bag_instance_order_path = os.path.join(self.topo_dataset_dir, f"{descriptor_id}_bag_instance_order.npz")        
+
+        descriptor_dict = descriptor.to_dict()
+        assert len(bag_distance_matrix) == len(bag_instance_order)   
+        with open(descriptor_path, 'wb') as f:
+            pickle.dump(descriptor_dict, f)
+        np.savez(topo_ds_path, **convert_int_keys_to_str_keys(bag_distance_matrix))   
+        np.savez(topo_ds_bag_instance_order_path, **convert_int_keys_to_str_keys(bag_instance_order))    
+                   
+        self.add_creation_time(descriptor_id)
+        self.generate_descriptor_list_file()
+        return descriptor_id
+    
     def load_metric(self,descriptor):
         assert isinstance(descriptor,self.tracked_object_types)   
         descriptor_id = self.calculate_descriptor_id(descriptor)
         metric_path = os.path.join(self.metrics_dir, f"{descriptor_id}.npz")
-        # with open(metric_path, "r") as f:
-        #     serialized_metrics = f.read()
-        # deserialized_metrics = self.deserialize_metrics(serialized_metrics)
         deserialized_metrics = np.load(metric_path,allow_pickle= True)
         deserialized_metrics = {key:deserialized_metrics[key] for key in deserialized_metrics}
         return deserialized_metrics
@@ -149,7 +183,7 @@ class ResultsManager:
         self.id_dict[id] = result_type
         self.save_live_ids()
         
-    def remove_id_from_tracker(self,id,result_type):
+    def remove_id_from_tracker(self,id):
         del self.id_dict[id]
         self.save_live_ids()
         
@@ -159,9 +193,9 @@ class ResultsManager:
             cls._instance = cls()
         return cls._instance
     
-    def check_if_result_already_exists(self,descriptor:Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,dict,str]):
+    def check_if_result_already_exists(self,descriptor:Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,TopoDatasetDescriptor,SerializableTopoDatasetDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,dict,str]):
         assert isinstance(descriptor,self.tracked_object_types)   
-        if isinstance(descriptor,Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,EmbeddingDescriptor,SerializableEmbeddingDescriptor,dict]):
+        if isinstance(descriptor,Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,SerializableTopoDatasetDescriptor,TopoDatasetDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,EmbeddingDescriptor,SerializableEmbeddingDescriptor,dict]):
             _descriptor_id = self.calculate_descriptor_id(descriptor)
         else:
             _descriptor_id = descriptor
@@ -184,7 +218,7 @@ class ResultsManager:
         if os.path.exists(descriptor_path) and os.path.exists(embedding_path):
             with open(descriptor_path, 'rb') as f:
                 embedding_descriptor = pickle.load(f)
-            embedding = np.load(embedding_path)
+            embedding = np.load(embedding_path,allow_pickle= True)
             if os.path.exists(embedding_label_path):
                 embedding_label = np.load(embedding_label_path)
             else:
@@ -306,9 +340,9 @@ class ResultsManager:
                         f.write(f"{descriptor_dict}\n")
                         f.write("----------------------------------------\n\n")
 
-    def calculate_descriptor_id(self, descriptor: Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,dict,str]):
+    def calculate_descriptor_id(self, descriptor: Union[EmbeddingDescriptor,SerializableEmbeddingDescriptor,SerializableTopoDatasetDescriptor,TopoDatasetDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,dict,str]):
         """Generate a unique ID based on the descriptor's content."""
-        if isinstance(descriptor,(EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor)):
+        if isinstance(descriptor,(EmbeddingDescriptor,SerializableEmbeddingDescriptor,MetricsDescriptor,SerializableMetricsDescriptor,SerializableTopoDatasetDescriptor,TopoDatasetDescriptor)):
             descriptor= descriptor.to_dict()
         elif isinstance(descriptor,dict):
             descriptor = descriptor

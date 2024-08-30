@@ -1,9 +1,9 @@
-from datasets.base_dataset_abstraction import BaseDataset
+from datasets.mil_dataset_abstraction import BaseMILDataset
 import numpy as np
 import os
 import torch
 
-class SCEMILAfeature_MIL_base(BaseDataset):
+class SCEMILAfeature_MIL_base(BaseMILDataset):
 
     '''MLL mil dataset class. Can be used by pytorch DataLoader '''
 

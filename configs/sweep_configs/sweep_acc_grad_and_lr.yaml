@@ -1,0 +1,40 @@
+name: test_sweep
+program: hyperparameter_sweeper/train_injection_script.py
+method: bayes  # or grid, random
+metric:
+  name: Accuracy
+  goal: maximize
+parameters:
+  exp_params.optimizer.config.LR:
+    min: 0.0000001
+    max: 0.001
+  trainer_params.accumulate_grad_batches:
+    values: [1, 2, 4]
+  trainer_params.max_epochs:
+    values: [100,150] 
+  ES_params.patience:
+    values: [50,75]
+  dataset.config.k_fold:
+    values: [-1]
+
+# name: test_sweep
+# program: train.py
+# method: bayes  # or grid, random
+# metric:
+#   name: Accuracy
+#   goal: maximize
+# parameters:
+#   exp_params:
+#     parameters:
+#       optimizer:
+#         parameters:
+#           config:
+#             parameters:
+#               LR:
+#                 min: 0.0000001
+#                 max: 0.001
+#   trainer_params:
+#     parameters:
+#       accumulate_grad_batches:
+#         values: [1, 2, 4]
+

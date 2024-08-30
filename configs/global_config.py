@@ -1,5 +1,17 @@
-class GlobalConfig:
 
+
+
+def block_useless_warnings():
+    import warnings
+    warnings.filterwarnings("ignore", message="xFormers is available")
+
+def disable_plt_interactive_gui():
+    import matplotlib
+    matplotlib.use('Agg')
+    
+class GlobalConfig:
+    block_useless_warnings()
+    disable_plt_interactive_gui()
     HTMLStart = "<HTML><HEAD><TITLE>{0}</TITLE></HEAD><BODY style=\"background-color:#888888\"><CENTER>{1}<BR><IMG SRC=\"../extras/images/large-crisis-blackadder.jpg\" ALIGN=\"BOTTOM\"> </CENTER><HR>"
     HTMLEnd = "<HR></BODY></HTML>"
     ColoredLog = "<p style=\"color:{0}\">"

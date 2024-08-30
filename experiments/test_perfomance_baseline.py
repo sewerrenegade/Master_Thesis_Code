@@ -77,7 +77,7 @@ def establish_baseline():
             for transform_name, transform in DEFAULT_TRANSFROM_DICT.items():
                 trans_func, trans_settings = transform
                 descriptor = EmbeddingDescriptor(f"{dataset_name[0]}_{transform_name}_8", dataset, transform_name, trans_func, trans_settings)
-                embd_ds= descriptor.generate_embedding_from_descriptor()
+                embd_ds= descriptor.make_sure_embedding_exists()
                 metric_desc = MetricsDescriptor(metric_calculator=METRIC, dataset=embd_ds, distance_function=EuclideanDistance(), per_class_samples=per_class_samples_for_metric_calc)
                 it_metrics = metric_desc.calculate_metric()
                 experiment_metrics_list.append({"dataset":dataset_name,"augmentation":augmentation,"distance":transform_name,"metric":it_metrics})

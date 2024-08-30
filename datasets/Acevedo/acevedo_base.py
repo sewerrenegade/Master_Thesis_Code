@@ -18,7 +18,7 @@ class Acevedo_base(BaseDataset):
         self.encode_with_dino_bloom = encode_with_dino_bloom
         self.root_dir = root_dir
         super().__init__("Acevedo",augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes)
-        self.preload_transforms,self.transforms = self.get_transform_function(grayscale=grayscale,resize = resize,load_jpg=True ,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
+        self.preload_transforms,self.transforms = self.get_transform_function(grayscale=grayscale,resize = resize,load_jpg=True ,numpy=numpy,to_gpu = gpu and not encode_with_dino_bloom,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
         self.path_to_data_folder = self.indexer.get_path_to_data_folder()
         self.supposed_dimension = (144,144)
         self.to_pil = transforms.ToPILImage()
@@ -79,7 +79,7 @@ class Acevedo_base(BaseDataset):
             image_path = os.path.join(self.path_to_data_folder,image_path)
             image = self.preload_transforms(image_path)
             dino_features = self.dino_enc(image)
-            image_feaures = self.transforms(dino_features[0].cpu().detach())
+            image_feaures = self.transforms(dino_features[0])
             self.loaded_data[idx] = image_feaures,self.indexer.convert_label_from_int_to_str_or_viceversa(self.indicies_list[idx][1])
         return self.loaded_data[idx]
     
@@ -89,9 +89,9 @@ class Acevedo_MIL_base(BaseMILDataset):
         self.encode_with_dino_bloom = encode_with_dino_bloom
         self.root_dir = root_dir
         super().__init__("Acevedo", training=training_mode, data_synth=data_synth,augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes)
-        self.preload_transforms,self.transforms = self.get_transform_function(grayscale=grayscale,load_jpg=True ,numpy=numpy,to_gpu=gpu,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
+        self.preload_transforms,self.transforms = self.get_transform_function(grayscale=grayscale,load_jpg=True ,numpy=numpy,to_gpu = gpu and not encode_with_dino_bloom,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,extra_transforms=[])
         self.path_to_data_folder = self.indexer.get_path_to_data_folder()
-        self.supposed_dimension = (360,360)
+        self.supposed_dimension = (144,144)
         self.to_pil = transforms.ToPILImage()
         if self.encode_with_dino_bloom:
             self.dino_enc = self.get_dino_bloom_transform()

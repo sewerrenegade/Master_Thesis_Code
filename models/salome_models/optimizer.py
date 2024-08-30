@@ -85,11 +85,20 @@ class Adam:
         self,
         LR,
         weight_decay=0,
-        scheduler_gamma=None,
+        scheduler = None,
+        monitor_metric = "val_mil_loss",
+        mode = "min",
+        factor=0.5,
+        patience=5
     ):
         self.lr = LR
         self.weight_decay = weight_decay
-        self.scheduler_gamma = scheduler_gamma
+        self.scheduler = scheduler
+        self.monitor_metric = monitor_metric
+        self.metric_mode = mode
+        self.factor = factor
+        self.patience = patience
+        self.verbose = True
 
     def __call__(self, model):
         optims = []
@@ -98,4 +107,15 @@ class Adam:
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
-        return optims
+        if self.scheduler is None:
+            return optims
+        else:
+            if self.scheduler == "ReduceLROnPlateau":
+                sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer= optims, mode=self.metric_mode,factor=self.factor,patience= self.patience, verbose= self.verbose)
+                scheduler = {
+                    'scheduler': sched,
+                    'monitor': self.monitor_metric
+                }
+                return [optims], [scheduler]
+            else:
+                raise ValueError("This type of scheduler is not supported")

@@ -27,27 +27,39 @@ class EmbeddingDescriptor:
             augmentation_settings=emb_decriptor.dataset.augmentation_settings,
             dino_bloom=getattr(emb_decriptor.dataset, 'encode_with_dino_bloom', False),
             transform_name=emb_decriptor.downprojection_function_name,
-            transform_settings=emb_decriptor.downprojection_function_settings
+            transform_settings=emb_decriptor.downprojection_function_settings,
+            training = emb_decriptor.dataset.training
         )
+    def already_exists(self):
+        from results.results_manager import ResultsManager
+        results_manager = ResultsManager.get_manager()
+        return results_manager.check_if_result_already_exists(self)
+    
     def generate_embedding_from_descriptor(self,recalculate = False):
         from results.results_manager import ResultsManager
         results_manager = ResultsManager.get_manager()
         if not recalculate and results_manager.check_if_result_already_exists(self):
             pass
         else:
-            embeddings,labels,stats_dic = generate_embeddings_for_dataset(self.name,self.dataset,self.downprojection_function(**self.downprojection_function_settings).fit_transform)
+            if self.downprojection_function is not None:
+                embedding_function = self.downprojection_function(**self.downprojection_function_settings).fit_transform
+            else:
+                embedding_function = None
+                
+            embeddings,labels,stats_dic = generate_embeddings_for_dataset(self.name,self.dataset,embedding_function)
             results_manager.save_results(descriptor=self ,results= {"embedding":embeddings,"embedding_label" : labels,"embedding_stats" : stats_dic})
         embeddings_ds = EmbeddingBaseDataset(self)
         return embeddings_ds
 
 class SerializableEmbeddingDescriptor:
-    def __init__(self, name, dataset_name, dataset_sampling, augmentation_settings, dino_bloom, transform_name, transform_settings):
+    def __init__(self, name, dataset_name, dataset_sampling, augmentation_settings, dino_bloom, transform_name, transform_settings,training):
         self.name = name
         self.dataset_name = dataset_name
         self.dataset_sampling = dataset_sampling#if is int then n samples are taken from each sample. otherwise the entire dataset is taken
         self.augmentation_settings = augmentation_settings
         self.dino_bloom = dino_bloom
         self.transform_name = transform_name
+        self.training = training
         self.transform_settings = transform_settings
         
     def __str__(self):
@@ -68,6 +80,7 @@ class SerializableEmbeddingDescriptor:
             'dino_bloom': self.dino_bloom,
             'transform_name': self.transform_name,
             'transform_settings': self.transform_settings,
+            'training': self.training
         }
 
     @staticmethod
@@ -81,6 +94,7 @@ class SerializableEmbeddingDescriptor:
             dino_bloom=data['dino_bloom'],
             transform_name=data['transform_name'],
             transform_settings=data['transform_settings'],
+            training=data['training'],
         )
     
 

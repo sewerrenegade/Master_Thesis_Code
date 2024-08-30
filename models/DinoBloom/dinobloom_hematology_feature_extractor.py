@@ -32,11 +32,12 @@ def get_path_to_weights(network_weights_name):
     return f"models/DinoBloom/weights/{network_weights_name}"
 
 def get_dino_bloom(size = "small"):
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!GETTING FRESH DINO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     # load the original DINOv2 model with the correct architecture and parameters.
     network_infos= DINOBLOOM_NETWORKS_INFOS[size]
     model=torch.hub.load('facebookresearch/dinov2', network_infos["model_name"])
     # load finetuned weights
-    pretrained = torch.load(get_path_to_weights(network_infos["weights_filename"]), map_location=torch.device('cpu'))
+    pretrained = torch.load(get_path_to_weights(network_infos["weights_filename"]), map_location=torch.device('cpu'),weights_only= True)
     # make correct state dict for loading
     new_state_dict = {}
     for key, value in pretrained['teacher'].items():

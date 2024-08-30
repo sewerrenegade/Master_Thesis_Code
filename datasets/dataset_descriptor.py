@@ -12,10 +12,6 @@ from datasets.Acevedo.acevedo_base import Acevedo_MIL_base
 import json
 from datasets.base_dataset_abstraction import BaseDataset
 from datasets.mil_dataset_abstraction import BagSizeTypes, BaseMILDataset
-from datasets.CIFAR10.CIFAR10_indexer import CIFAR10_Indexer
-from datasets.FashionMNIST.FashionMNIST_indexer import FashionMNIST_Indexer
-from datasets.MNIST.MNIST_indexer import MNIST_Indexer
-from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
 from typing import Union, Tuple, Dict
 from datasets.image_augmentor import (
     DATASET_AUGMENTABIBILITY,
@@ -71,10 +67,23 @@ class SerializableDatasetDescriptor:
             self.dino_bloom = dino_bloom
 
     def to_dict(self) -> Dict:
+        if isinstance(self.bag_size,tuple):
+            bag_size_data= []
+            for entry in self.bag_size:
+                if hasattr(entry,"to_string"):
+                    bag_size_data.append(entry.to_string())
+                else:
+                    bag_size_data.append(str(entry))
+        elif hasattr(self.bag_size,"to_string"):
+            bag_size_data = self.bag_size.to_string()
+        else:
+            raise TypeError("Unsupported bag size format")
+                    
+                
         return {
             "name": self.name,
             "multiple_instance_dataset": self.multiple_instance_dataset,
-            "bag_size": self.bag_size.to_string(),
+            "bag_size": bag_size_data,
             "number_of_channels": self.number_of_channels,
             "output_dimension": self.output_dimension,
             "class_distribution": self.class_distribution,
@@ -109,18 +118,18 @@ class SerializableDatasetDescriptor:
     ):
         self.name = dataset.name
         sample_output = dataset[0][0]
-        self.output_dimension = SerializableDatasetDescriptor.get_tensor_shape(
-            sample_output
+        self.output_dimension = SerializableDatasetDescriptor.get_output_shape(
+            dataset
         )
         if isinstance(dataset, BaseDataset):
             self.multiple_instance_dataset = False
             self.number_of_channels = self.output_dimension[0]
             self.bag_size = (
                 BagSizeTypes.NOT_APPLICABLE
-            )  # write serialise deserialise for this shiii 17.07
+            )
         if isinstance(dataset, BaseMILDataset):
             self.multiple_instance_dataset = True
-            self.number_of_channels = self.output_dimension[1]
+            self.number_of_channels = self.output_dimension[0]
             self.bag_size = dataset.bag_size
         self.augmentation_settings = dataset.augmentation_settings
         self.augmentation_scheme = DATASET_AUGMENTABIBILITY[self.name]
@@ -146,7 +155,10 @@ class SerializableDatasetDescriptor:
         )
 
     @staticmethod
-    def get_tensor_shape(tensor):
+    def get_output_shape(dataset):
+        if hasattr(dataset,"encode_with_dino_bloom") and dataset.encode_with_dino_bloom:
+            return (384,)
+        tensor = dataset[0][0]
         if isinstance(tensor, torch.Tensor):
             return tuple(tensor.shape)
         elif isinstance(tensor, np.ndarray):
@@ -157,7 +169,7 @@ class SerializableDatasetDescriptor:
                 if isinstance(first_element, (torch.Tensor, np.ndarray)):
                     return (
                         len(tensor),
-                        *SerializableDatasetDescriptor.get_tensor_shape(first_element),
+                        *SerializableDatasetDescriptor.get_output_shape(first_element),
                     )
                 else:
                     raise ValueError(
