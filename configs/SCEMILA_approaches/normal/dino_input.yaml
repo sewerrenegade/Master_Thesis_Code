@@ -19,11 +19,13 @@ exp_type: "SCEMILA_experiment"
 
 exp_params:
   num_class: 5
+  class_weighting: False
   optimizer: 
     name: "Adam"
     config:
       LR: 0.00005
-      weight_decay: 0.1
+      factor: 0.5
+      weight_decay: 0.001
       scheduler: "ReduceLROnPlateau"
       patience: 2
     batch_size: 1

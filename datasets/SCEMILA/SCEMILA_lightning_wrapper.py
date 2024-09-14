@@ -88,7 +88,7 @@ class SCEMILA(pl.LightningDataModule):
             val_size = int(val_percentage * dataset_size)
             train_size = dataset_size - val_size
             self.full_dataset,self.val_dataset = random_split(train_dataset, [train_size, val_size])
-            kf = KFold(n_splits=self.k_fold, shuffle=True)
+            kf = KFold(n_splits=self.k_fold, shuffle=self.shuffle_training)
             self.all_splits = [k for k in kf.split(self.full_dataset)]
             
     def create_test_dataset(self):

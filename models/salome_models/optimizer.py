@@ -111,9 +111,9 @@ class Adam:
             return optims
         else:
             if self.scheduler == "ReduceLROnPlateau":
-                sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer= optims, mode=self.metric_mode,factor=self.factor,patience= self.patience, verbose= self.verbose)
+                sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer= optims, mode=self.metric_mode,factor=self.factor,patience= self.patience, threshold=0.01, verbose= self.verbose,min_lr=0.0000001)
                 scheduler = {
-                    'scheduler': sched,
+                    'scheduler': sched, 
                     'monitor': self.monitor_metric
                 }
                 return [optims], [scheduler]

@@ -41,12 +41,35 @@ class TopoDatasetDescriptor:
             transform_settings=topo_ds_decriptor.embedding_function.settings,
         )
     @staticmethod
+    def normalize_distance_matricies(distance_matrices):
+        average_distances = []
+
+        for key, matrix in distance_matrices.items():
+            # Convert to numpy array if not already
+            matrix = np.array(matrix)
+            n = matrix.shape[0]
+            num_elements = n * (n - 1)  # total elements excluding diagonal
+            sum_of_distances = np.sum(matrix) - np.trace(matrix)
+            
+            # Average distance for this matrix
+            average_distance = sum_of_distances / num_elements
+            average_distances.append(average_distance)
+        # Return the average of all average distances
+        avg = np.mean(average_distances)
+        for key, matrix in distance_matrices.items():
+            # Convert to numpy array if not already
+            assert isinstance(matrix,np.ndarray)
+            distance_matrices[key] = matrix/avg
+        return distance_matrices
+    
+    @staticmethod
     def ensure_float32(dict_array):
         for key,value in dict_array.items():
             if value.dtype != np.float32:
                 dict_array[key] = value.astype(np.float32)
         return dict_array
-    def generate_or_get_topo_dataset_from_descriptor(self, recalculate=False):
+    
+    def generate_or_get_topo_dataset_from_descriptor(self, normalize_distance_matricies = True, recalculate=False):
         from results.results_manager import ResultsManager
 
         results_manager = ResultsManager.get_manager()
@@ -68,8 +91,10 @@ class TopoDatasetDescriptor:
                 },
             )
         distance_matrix_bag_dict,instance_order_in_bag_dict = results_manager.load_topo_dataset(self)
-        return TopoDatasetDescriptor.ensure_float32(distance_matrix_bag_dict),instance_order_in_bag_dict
-
+        distance_matrix_bag_dict = TopoDatasetDescriptor.ensure_float32(distance_matrix_bag_dict)
+        if normalize_distance_matricies:
+            distance_matrix_bag_dict = TopoDatasetDescriptor.normalize_distance_matricies(distance_matrix_bag_dict)
+        return distance_matrix_bag_dict,instance_order_in_bag_dict
 
 class SerializableTopoDatasetDescriptor:
     def __init__(

@@ -3,12 +3,14 @@ import torch.nn as nn
 from torchvision import models
 import torch.nn.functional as F
 
+from models.encoder_models.encoder_model import get_input_encoder
+
 
 
 
 class AMiL(nn.Module):
 
-    def __init__(self, class_count, multicolumn, device,input_type = "images"):
+    def __init__(self, class_count, multicolumn, device,input_type = "images",pretrained_encoder = False,dropout_encoder = None):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -28,7 +30,7 @@ class AMiL(nn.Module):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
         # feature extractor before multiple instance learning starts
-        self.ftr_proc = self.get_encoder_architecture(input_type=input_type)
+        self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
 
         # Networks for single attention approach
         # attention network (single attention approach)
@@ -116,7 +118,7 @@ class AMiL(nn.Module):
                 resnet18 = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
             else:
                 resnet18 = models.resnet18()
-                
+
             encoder = nn.Sequential(*list(resnet18.children())[:-2],
                 nn.Conv2d(FT_DIM_IN, int(FT_DIM_IN * 1.5), kernel_size=2),
                 nn.ReLU(),

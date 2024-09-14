@@ -18,6 +18,7 @@ exp_type: "SCEMILA_experiment"
 
 exp_params:
   num_class: 5
+  class_weighting: False
   optimizer: 
     name: "SGD"
     config:

@@ -5,6 +5,8 @@ model_params:
     class_count: 5
     device: "cuda:0"
     input_type: "gray_images"
+    dropout_encoder: 0.0
+    pretrained_encoder: False
             
 dataset:
   name: 'SCEMILA'
@@ -14,6 +16,7 @@ dataset:
     encode_with_dino_bloom: False
     grayscale : True
     input_type: "images"
+
     gpu: True
 
 
@@ -21,11 +24,13 @@ exp_type: "SCEMILA_experiment"
 
 exp_params:
   num_class: 5
+  class_weighting: False
   optimizer: 
     name: "Adam"
     config:
       LR: 0.00005
-      weight_decay: 0.1
+      weight_decay: 0.001
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 2
     batch_size: 1

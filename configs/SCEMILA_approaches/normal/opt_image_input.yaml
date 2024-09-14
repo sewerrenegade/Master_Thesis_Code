@@ -4,6 +4,8 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
+    dropout_encoder: 0.2
+    pretrained_encoder: False
     input_type: "images"
             
 dataset:
@@ -19,32 +21,33 @@ dataset:
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
+  class_weighting: False
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
-      factor: 0.5
-      weight_decay: 0.001
+      LR: 0.0001
+      weight_decay: 0.00005
+      factor: 0.8
       scheduler: "ReduceLROnPlateau"
-      patience: 2
+      patience: 8
     batch_size: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 1
-  accumulate_grad_batches : 1
+  max_epochs: 150
+  accumulate_grad_batches: 6
 
 
 logging_params:
-  project_name: "Masters_Project"
+  project_name: "Masters_Project_Opt"
   save_dir: "logs/image_input_experiment/"
   name: "image_input_experiment"
   manual_seed: 1265
 
 ES_params:
   monitor: 'val_mil_loss_epoch'
-  min_delta: 0.1
-  patience: 15
+  min_delta: 0
+  patience: 75
   mode: 'min'

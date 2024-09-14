@@ -1,7 +1,5 @@
 import glob
 import os
-import sys
-
 import numpy as np
 
 
@@ -190,15 +188,22 @@ class SCEMILA_MIL_base(BaseMILDataset):
 
     def add_topological_label(self,topo_dataset_settings):
         print("!!!!!!!!!!!!!!!!!!!!!!!!!add_topological_label!!!!!!!!!!!!!!!!!!")
+        normalize_distance_matricies = True
+        if "normalize_distance_matricies" in  topo_dataset_settings:
+            normalize_distance_matricies = topo_dataset_settings.get("normalize_distance_matricies",True)
+            del topo_dataset_settings["normalize_distance_matricies"]
+            
         dataset = SCEMILA_MIL_base(training_mode= True,
             gpu = False, 
             numpy = True, **topo_dataset_settings["dataset_settings"])
+        
         embedding_function = EmbeddingFunction(**topo_dataset_settings.get("embedding_settings",{"function_name": None,"function_settings" : None}))
         nb_of_grouped_bags=topo_dataset_settings["nb_of_grouped_bags"]
         distance_function = EuclideanDistance()
         from datasets.topological_datasets.topo_dataset_desciptor import TopoDatasetDescriptor
         topo_desc = TopoDatasetDescriptor(name = "test_topo" ,dataset= dataset,nb_of_grouped_bags= nb_of_grouped_bags,embedding_function = embedding_function,distance_function =distance_function)
-        per_bag_dist_mat, bag_instance_order = topo_desc.generate_or_get_topo_dataset_from_descriptor()
+        
+        per_bag_dist_mat, bag_instance_order = topo_desc.generate_or_get_topo_dataset_from_descriptor(normalize_distance_matricies=normalize_distance_matricies)
         assert len(per_bag_dist_mat) == len(bag_instance_order)
         assert len(per_bag_dist_mat) == len(self)
         for bag_index in range(len(self)):

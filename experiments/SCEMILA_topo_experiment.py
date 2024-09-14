@@ -63,9 +63,11 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         train_joint_loss["topo_loss_weight"] = self.model.lam_topo * (self.model.lam_topo_per_epoch_decay**self.current_epoch)
         train_joint_loss["loss"] = train_joint_loss["mil_loss"] + train_joint_loss["topo_loss_weight"] * train_joint_loss["topo_loss"]
         self.train_confusion_matrix[
-            train_joint_loss["label"].cpu(), train_joint_loss["prediction_int"]
+            train_joint_loss["label"], train_joint_loss["prediction_int"]
         ] += int(1)
         train_joint_loss["LR"] = self.trainer.optimizers[0].param_groups[0]['lr']
+        if self.class_weighting:
+            train_joint_loss["loss"] = train_joint_loss["loss"] * self.class_weights[train_joint_loss["label"]]
         self.log_step(train_joint_loss, "train", progress_bar= True)
         return train_joint_loss
             
@@ -88,13 +90,6 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
                 corrects += 1
         return corrects, corrects / len(outputs)
 
-    def sum_loss(self, outputs):
-        loss = 0.0
-        for output in outputs:
-            if output["loss"].data:
-                loss += output["loss"].data
-        return loss, loss / len(outputs)
-
     def validation_step(self, batch, batch_idx):
         bag, bag_label, dist_mat = batch
         model_output = self.model(bag)
@@ -112,6 +107,8 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.val_confusion_matrix[
             val_step_joint_loss["label"], val_step_joint_loss["prediction_int"]
         ] += int(1)
+        if self.class_weighting:
+            val_step_joint_loss["loss"] = val_step_joint_loss["loss"] * self.class_weights[val_step_joint_loss["label"]]
         self.log_step(val_step_joint_loss, "val")
         return val_step_joint_loss
     
@@ -139,27 +136,23 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         metrics_dict = {}
         self.log_confusion_matrix("test",self.test_confusion_matrix)
         self.test_confusion_matrix = torch.zeros(self.n_c, self.n_c)
-        
-        
+                
         pred_int = torch.tensor([p["prediction_int"] for p in self.test_metrics])
         labels = torch.tensor([l["label"] for l in self.test_metrics])
         predictions = torch.cat([p["prediction"] for p in self.test_metrics])
         
         metrics_dict['accuracy'] = tf.accuracy(pred_int, labels, task="multiclass", num_classes=self.n_c, top_k=1,average= "micro").cpu().numpy().item()
 
-        metrics_dict['precision_micro'] = tf.precision(pred_int, labels, task="multiclass", num_classes=self.n_c,average= "micro").cpu().numpy().item()
         metrics_dict['precision_macro'] = tf.precision(pred_int, labels, task="multiclass", num_classes=self.n_c,average= "macro").cpu().numpy().item()
         
-        metrics_dict['f1_micro'] = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, top_k=1,average= "micro").cpu().numpy().item()
         metrics_dict['f1_macro'] = tf.f1_score(pred_int, labels, task='multiclass', num_classes=self.n_c, average='macro', top_k=1).cpu().numpy().item()
-        
-        metrics_dict['recall_micro'] = tf.recall(pred_int,labels, task='multiclass', num_classes=self.n_c, top_k=1,average = "micro").cpu().numpy().item()
+    
         metrics_dict['recall_macro'] = tf.recall(pred_int,labels, task='multiclass', num_classes=self.n_c, top_k=1, average="macro").cpu().numpy().item()
         
         metrics_dict['auroc'] = tf.auroc(predictions, labels, task='multiclass', num_classes=self.n_c)
         for key, value in metrics_dict.items():
             wandb.run.summary[key] = value
-        self.log_dict(metrics_dict) # this is what creates the table in the console, i guess the on_test_end hook is doing this
+        self.log_dict(metrics_dict)  # this is what creates the table in the console, i guess the on_test_end hook is doing this
 
     def predict_step(self, batch, batch_idx):
         assert False

@@ -7,6 +7,7 @@ import sys
 import hydra
 import torch.backends.cudnn as cudnn
 from tabulate import tabulate
+import re
 
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
@@ -22,8 +23,9 @@ from models.model_factory import get_module
 
 
 def set_training_env_settings(consistent = False):
-    cudnn.deterministic = not consistent
-    cudnn.benchmark = consistent
+    print(f"cudnn.enabled: {cudnn.enabled}")
+    cudnn.deterministic = False #was true
+    cudnn.benchmark = False #was false3
     os.environ["HYDRA_FULL_ERROR"] = "1"
     torch.set_float32_matmul_precision('medium')
     #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -31,7 +33,7 @@ def set_training_env_settings(consistent = False):
 def initialize_logger(config,split_num = -1):
     save_dir = os.path.join(config["logging_params"]["save_dir"], f"split{split_num}/")
     os.makedirs(save_dir, exist_ok=True)
-    wnb_logger = WandbLogger(log_model=False,save_dir=config["logging_params"]["save_dir"]+f"split{split_num}/",name = config["logging_params"]["name"],project=config["logging_params"]["project_name"],config = config)
+    wnb_logger = WandbLogger(log_model=False,save_dir=config["logging_params"]["save_dir"]+f"split{split_num}/",name = config["logging_params"]["name"],project=config["logging_params"]["project_name"],config = config,entity = "milad-research")#,kwargs={"entity":"milad-research"}
     wnb_logger.log_hyperparams(params=config)#this addes all my hyperparameters to be tracked by wandb gs
     version_number = wnb_logger.version
     wandb.run.summary["version_number_sum"] = version_number
@@ -57,10 +59,8 @@ def get_and_configure_callbacks(config,logger):
         )
     return checkpoint_callback, early_stopping
 
-@hydra.main(config_path="configs/SCEMILA_approaches/topo/", config_name="topo_dino_image_input.yaml",version_base=None)
-def main(cfg: DictConfig) -> None:
-    
-    
+@hydra.main(config_path="configs/SCEMILA_approaches/normal/", config_name="image_input.yaml",version_base=None)
+def main(cfg: DictConfig) -> None:    
     config = OmegaConf.to_container(cfg)
     print(config)
     seed = config["logging_params"]["manual_seed"]
@@ -94,6 +94,15 @@ def main(cfg: DictConfig) -> None:
         runner.fit(experiment, data)
         
         result =runner.test(experiment, data, ckpt_path="best")[0]
+        best_ckpt_path = checkpoint_callback.best_model_path
+        wandb.run.summary["test_checkpoint_path"] = best_ckpt_path
+        match = re.search(r'epoch=(\d+)', best_ckpt_path)
+        if match:
+            epoch_number = int(match.group(1))
+            wandb.run.summary["best_checkpoint_epoch"] = epoch_number
+            #print(f"Extracted epoch number: {epoch_number}")
+        else:
+            print("No epoch number found in the string.")
         results.append(result)
         wandb.finish()
 
@@ -126,11 +135,11 @@ def initialize_config_env():
 
 def setup_and_start_training(number_of_runs = 1):
     configs = [
-            #["configs/SCEMILA_approaches/normal/","test_image_input.yaml"],
+            ["configs/SCEMILA_approaches/normal/","opt_image_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","dino_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","fnl34_input.yaml"],
             # ["configs/SCEMILA_approaches/normal/","gray_image_input.yaml"],
-            ["configs/SCEMILA_approaches/normal/","image_input.yaml"],
+            #["configs/SCEMILA_approaches/normal/","image_input.yaml"],
             #### topo methods
             #["configs/SCEMILA_approaches/topo/","topo_gray_image_image_input.yaml"],
             #["configs/SCEMILA_approaches/topo/","topo_image_image_input.yaml"],

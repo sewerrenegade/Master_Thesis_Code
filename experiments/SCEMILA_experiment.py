@@ -127,7 +127,6 @@ class SCEMILA_Experiment(pl.LightningModule):
         self.log_confusion_matrix("test",self.test_confusion_matrix)
         self.test_confusion_matrix = torch.zeros(self.n_c, self.n_c)
         
-        
         pred_int = torch.tensor([p["prediction_int"] for p in self.test_metrics])
         labels = torch.tensor([l["label"] for l in self.test_metrics])
         predictions = torch.cat([p["prediction"] for p in self.test_metrics])

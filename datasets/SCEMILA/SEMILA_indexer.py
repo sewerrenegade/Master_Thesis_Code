@@ -130,13 +130,41 @@ class SCEMILA_Indexer(Indexer):
             data = json.load(file)
         train_data = {}
         test_data = {}
+
+        # Processing training data
+        missing_data = {
+            "missing_train_data": {},
+            "missing_test_data": {}
+        }
+
+        # Processing training data
         for key, value in data["train"].items():
-            train_data[key] = [f"data/SCEMILA/image_data/{key}/{patient_id}" for patient_id in value if os.path.exists(f"data/SCEMILA/image_data/{key}/{patient_id}")]
- 
-        for key, value in data["test"].items():
-            test_data[key] = [f"data/SCEMILA/image_data/{key}/{patient_id}" for patient_id in value if os.path.exists(f"data/SCEMILA/image_data/{key}/{patient_id}")]
- 
-        
+            train_data[key] = []
+            missing_data["missing_train_data"][key] = []
+            for patient_id in value:
+                file_path = f"data/SCEMILA/image_data/{key}/{patient_id}"
+                if os.path.exists(file_path):
+                    train_data[key].append(file_path)
+                else:
+                    missing_data["missing_train_data"][key].append(file_path)
+
+            # Processing testing data
+            for key, value in data["test"].items():
+                test_data[key] = []
+                missing_data["missing_test_data"][key] = []
+                for patient_id in value:
+                    file_path = f"data/SCEMILA/image_data/{key}/{patient_id}"
+                    if os.path.exists(file_path):
+                        test_data[key].append(file_path)
+                    else:
+                        missing_data["missing_test_data"][key].append(file_path)
+                        
+        missing_data_file = 'data/SCEMILA/meta_files/missing_data_from_salome_split.json'
+
+        if not os.path.exists(missing_data_file):
+            with open(missing_data_file, 'w', encoding='utf-8') as f:
+                json.dump(missing_data, f, ensure_ascii=False, indent=4)
+                
         # random.seed(42)# ensures it is split the same way
         # train_data = {}
         # test_data = {}

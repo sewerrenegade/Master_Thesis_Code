@@ -4,8 +4,10 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
+    dropout_encoder: 0.0
+    pretrained_encoder: False
     input_type: "images"
-    lam_topo: 0.1
+    lam_topo: 1
     lam_topo_per_epoch_decay: 0.955
             
 dataset:
@@ -17,6 +19,7 @@ dataset:
     input_type: "images"
     topo_settings:
       nb_of_grouped_bags: 5
+      normalize_distance_matricies: True
       dataset_settings:
         grayscale: False
         encode_with_dino_bloom: True
@@ -27,10 +30,12 @@ exp_type: "topo_SCEMILA_experiment"
 
 exp_params:
   num_class: 5
+  class_weighting: False
   optimizer: 
     name: "Adam"
     config:
       LR: 0.00005
+      factor: 0.5
       weight_decay: 0.1
       scheduler: "ReduceLROnPlateau"
       patience: 2

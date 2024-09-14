@@ -1,4 +1,5 @@
 
+from models.encoder_models.encoder_model import get_input_encoder
 from models.salome_models.topo_reg_mil import TopologicalSignatureDistance
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from torchvision import models
 
 
 class TopoAMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",lam_topo = 1.0,lam_topo_per_epoch_decay = 1):
+    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",lam_topo = 1.0,lam_topo_per_epoch_decay = 1,pretrained_encoder = False,dropout_encoder = None):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -31,7 +32,8 @@ class TopoAMiL(nn.Module):
         self.topo_sig = TopologicalSignatureDistance(match_edges='symmetric')
 
         # feature extractor before multiple instance learning starts
-        self.ftr_proc = self.get_encoder_architecture(input_type=input_type)
+        
+        self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
         self.to(device)
 
 
