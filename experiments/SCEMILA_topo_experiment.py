@@ -75,7 +75,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.log(f"{phase}_loss",step_loss["loss"].data,on_step=True,on_epoch= True,prog_bar= progress_bar,logger = True)
         self.log(f"{phase}_correct",step_loss["correct"],on_step=True,prog_bar= progress_bar,logger = True)
         self.log(f"{phase}_mil_loss",step_loss["mil_loss"].data,on_step=True,on_epoch= True,prog_bar= progress_bar,logger = True)
-        self.log(f"{phase}_topo_loss",step_loss["topo_loss"].data,on_step=True,prog_bar= progress_bar,logger = True)
+        self.log(f"{phase}_topo_loss",step_loss["topo_loss"].data,on_step=True,on_epoch= True,prog_bar= progress_bar,logger = True)
         if "LR" in step_loss and phase == "train":
             self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
         if "topo_loss_weight" in step_loss and phase == "train":

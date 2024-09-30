@@ -9,7 +9,7 @@ import torch.backends.cudnn as cudnn
 from tabulate import tabulate
 import re
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
@@ -30,22 +30,32 @@ def set_training_env_settings(consistent = False):
     torch.set_float32_matmul_precision('medium')
     #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-def initialize_logger(config,split_num = -1):
-    save_dir = os.path.join(config["logging_params"]["save_dir"], f"split{split_num}/")
+def initialize_logger(config,split_num = -1,k_folds = -1):
+    save_dir = os.path.join(config["logging_params"]["save_dir"])
+    
     os.makedirs(save_dir, exist_ok=True)
-    wnb_logger = WandbLogger(log_model=False,save_dir=config["logging_params"]["save_dir"]+f"split{split_num}/",name = config["logging_params"]["name"],project=config["logging_params"]["project_name"],config = config,entity = "milad-research")#,kwargs={"entity":"milad-research"}
-    wnb_logger.log_hyperparams(params=config)#this addes all my hyperparameters to be tracked by wandb gs
-    version_number = wnb_logger.version
-    wandb.run.summary["version_number_sum"] = version_number
+    if k_folds > 1:
+        run_name= config["logging_params"]["name"]+f"_split_{split_num}_of_{k_folds}"
+    else:
+        run_name= config["logging_params"]["name"]
+        
+    wnb_logger = WandbLogger(log_model=False,
+                            save_dir=config["logging_params"]["save_dir"],
+                            name = run_name,
+                            project=config["logging_params"]["project_name"],
+                            # config = config,
+                            entity = "milad-research")
+    #wnb_logger
+    wnb_logger.log_hyperparams(params=config)#this addes all my hyperparameters to be tracked by wandb gs, turns out the lighting constructor of wandb is doing the job, this is redundant
+    wandb.run.summary["version_number_sum"] = wnb_logger.version
     return wnb_logger
 
-def get_and_configure_callbacks(config,logger):    
+def get_and_configure_callbacks(config):
     checkpoint_callback = ModelCheckpoint(
-            #dirpath=f"{logger.save_dir}",
-            monitor="val_mil_loss_epoch",
-            mode="min",
+            monitor="val_correct_epoch",
+            mode="max",
             save_weights_only=True,
-            filename="{epoch}-{val_mil_loss_epoch:.4f}",
+            filename="{epoch}-{val_correct_epoch:.4f}",
             verbose=True,
             save_last=True,
             every_n_epochs=1,
@@ -59,10 +69,24 @@ def get_and_configure_callbacks(config,logger):
         )
     return checkpoint_callback, early_stopping
 
-@hydra.main(config_path="configs/SCEMILA_approaches/normal/", config_name="image_input.yaml",version_base=None)
-def main(cfg: DictConfig) -> None:    
+def get_override_args():
+    overrides=[arg.lstrip('--') for arg in sys.argv][1:]
+    for item in overrides:
+        if item.startswith('base_config_path='):
+            path = item.split('=', 1)[1]
+            overrides.remove(item)
+            print(f" dis is za way {path}")
+    print(overrides)
+    return overrides
+    
+    
+    #
+#@hydra.main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None)
+def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None) -> None:
+    with hydra.initialize(config_path=config_path,version_base=None):
+        cfg = hydra.compose(config_name=config_name,overrides=get_override_args())
     config = OmegaConf.to_container(cfg)
-    print(config)
+    print(f"This is the config file \n  {config}")
     seed = config["logging_params"]["manual_seed"]
 
     set_training_env_settings(False)
@@ -73,9 +97,9 @@ def main(cfg: DictConfig) -> None:
     k_folds = config["dataset"]["config"]["k_fold"]
     results = []
     for split_index in range(abs(k_folds)):
-        wnb_logger  = initialize_logger(config,split_index)
+        wnb_logger  = initialize_logger(config,split_index,k_folds)
         print(config)
-        checkpoint_callback, early_stopping = get_and_configure_callbacks(config,wnb_logger)
+        checkpoint_callback, early_stopping = get_and_configure_callbacks(config)
         
         model = get_module(config["model_params"]["name"], config["model_params"]["config"])
         experiment = get_experiment(config["exp_type"],config["exp_params"],model)
@@ -135,7 +159,8 @@ def initialize_config_env():
 
 def setup_and_start_training(number_of_runs = 1):
     configs = [
-            ["configs/SCEMILA_approaches/normal/","opt_image_input.yaml"],
+            #["configs/SCEMILA_approaches/normal/","test_image_input.yaml"],
+            ["configs/SCEMILA_approaches/normal/","opt_kfold_image_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","dino_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","fnl34_input.yaml"],
             # ["configs/SCEMILA_approaches/normal/","gray_image_input.yaml"],
@@ -147,15 +172,13 @@ def setup_and_start_training(number_of_runs = 1):
             #["configs/SCEMILA_approaches/topo/","topo_dino_dino_input.yaml"]
             ]
     
-
-    initialize_config_env()
     for test_index in range(len(configs)):
-        set_config_file_environment_variable(configs[test_index][0],configs[test_index][1])
+        #set_config_file_environment_variable(configs[test_index][0],configs[test_index][1])
         all_metrics = []
         print(f"Running the configuration {configs[test_index][0]}{configs[test_index][1]}")
         for run in range(number_of_runs):
             print(f"Starting {run+1}th run")
-            main()
+            main(config_path=configs[test_index][0],config_name=configs[test_index][1])
             all_metrics.extend(output_results)
 
         mean_metrics = {
@@ -176,6 +199,7 @@ def setup_and_start_training(number_of_runs = 1):
                 ]
             )
         save_important_results_next_to_config(results,configs[test_index])
+
     
 if __name__ == "__main__":
-    setup_and_start_training(5)
+    setup_and_start_training(1)

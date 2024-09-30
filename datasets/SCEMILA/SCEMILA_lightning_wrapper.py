@@ -1,6 +1,5 @@
 import pytorch_lightning as pl
 from sklearn.model_selection import KFold
-from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from datasets.SCEMILA.base_image_SCEMILA import SCEMILA_MIL_base
 from datasets.image_augmentor import AugmentationSettings
@@ -12,7 +11,7 @@ class SCEMILA(pl.LightningDataModule):
     def __init__(
             self,
             input_type = "fnl34",#images      
-            num_workers: int = 1,
+            num_workers: int = 2,
             val_split = 0.1,
             k_fold = -1,
             patient_bootstrap_exclude=None,
@@ -47,12 +46,13 @@ class SCEMILA(pl.LightningDataModule):
         self.test_dataset = self.create_test_dataset()
     
     def setup(self, stage=None):
-        if self.k_fold > -1:
+        if self.k_fold > 1:
             if stage == 'fit':
-                train_indexes, test_indexes = self.all_splits[self.fold]
+                train_indexes, val_indexes = self.all_splits[self.fold]
                 self.train_dataset = Subset(self.full_dataset, train_indexes)
-                self.test_dataset = Subset(self.full_dataset, test_indexes)
+                self.val_dataset = Subset(self.full_dataset, val_indexes)
             elif stage == 'test':
+                print("Incrementing Fold Index")
                 self.fold = self.fold + 1
             
 
@@ -72,7 +72,7 @@ class SCEMILA(pl.LightningDataModule):
             train_size = train_dataset_size - val_size
             
             targets = train_dataset.get_targets()
-            train_idx, test_idx = train_test_split(
+            train_idx, val_idx = train_test_split(
                 range(len(targets)), 
                 test_size=val_size, 
                 stratify=targets, 
@@ -80,28 +80,22 @@ class SCEMILA(pl.LightningDataModule):
             )
             
             self.train_dataset = Subset(train_dataset, train_idx)
-            self.val_dataset = Subset(train_dataset, test_idx)
+            self.val_dataset = Subset(train_dataset, val_idx)
         elif self.k_fold > 1:
             self.fold = 0
-            val_percentage = 0.05
-            dataset_size = len(train_dataset)
-            val_size = int(val_percentage * dataset_size)
-            train_size = dataset_size - val_size
-            self.full_dataset,self.val_dataset = random_split(train_dataset, [train_size, val_size])
+            self.full_dataset = train_dataset
             kf = KFold(n_splits=self.k_fold, shuffle=self.shuffle_training)
             self.all_splits = [k for k in kf.split(self.full_dataset)]
+            pass
             
     def create_test_dataset(self):
-        if self.k_fold <= 1:
-            test_dataset = SCEMILA_MIL_base(training_mode= False,input_type=self.input_type,
-                encode_with_dino_bloom = self.encode_with_dino_bloom,
-                balance_dataset_classes = self.balance_dataset_classes,
-                gpu = self.gpu, grayscale= self.grayscale,
-                numpy = self.numpy,flatten = self.flatten,
-                to_tensor = self.to_tensor,
-                augmentation_settings = None)#dont augment test dataset as a general rule
-        else:
-            test_dataset = None # to be filled by kfold validation
+        test_dataset = SCEMILA_MIL_base(training_mode= False,input_type=self.input_type,
+            encode_with_dino_bloom = self.encode_with_dino_bloom,
+            balance_dataset_classes = self.balance_dataset_classes,
+            gpu = self.gpu, grayscale= self.grayscale,
+            numpy = self.numpy,flatten = self.flatten,
+            to_tensor = self.to_tensor,
+            augmentation_settings = None)#dont augment test dataset as a general rule
         return test_dataset
     
     def process_indicies(self,data,patient_bootstrap_exclude):
@@ -126,7 +120,7 @@ class SCEMILA(pl.LightningDataModule):
             self.train_dataset, 
             num_workers=self.num_workers,
             shuffle=self.shuffle_training,
-            drop_last=True,
+            drop_last=False, # does not matter because we are always on a batch_size 1, controlling batch size is through acc_grad
             persistent_workers=self.persistent_workers,
             batch_size=1
             )
@@ -134,10 +128,9 @@ class SCEMILA(pl.LightningDataModule):
     def val_dataloader(self):
         data_temp =  DataLoader(
             self.val_dataset, 
-            num_workers=self.num_workers,
+            num_workers=1,
             shuffle=False,
-            drop_last=True,
-            persistent_workers=self.persistent_workers,
+            persistent_workers=False,
             batch_size=1
             )
         return data_temp
@@ -145,9 +138,8 @@ class SCEMILA(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset, 
-            num_workers=self.num_workers,
-            drop_last=True,
-            persistent_workers=self.persistent_workers,
+            num_workers=1,
+            persistent_workers=False,
             batch_size=1
             )
 
