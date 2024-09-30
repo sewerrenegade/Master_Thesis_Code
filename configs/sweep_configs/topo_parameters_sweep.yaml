@@ -1,0 +1,51 @@
+name: topo_sweep
+program: hyperparameter_sweeper/train_injection_script.py
+project: param_sweep
+method: bayes  # or grid, random
+metric:
+  name: accuracy
+  goal: maximize
+parameters:
+  base_config_path:
+    values: ["configs/SCEMILA_approaches/topo/topo_dino_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
+  model_params.config.lam_topo:
+    distribution: log_uniform_values
+    min: 0.000001
+    max: 0.001
+  model_params.config.lam_topo_per_epoch_decay:
+    min: 1.0
+    max: 1.05
+  model_params.config.label_smoothing:
+    min: 0.05
+    max: 0.15
+  model_params.config.dropout_encoder:
+    min: 0.1
+    max: 0.3
+  dataset.config.topo_settings.normalize_distance_matricies:
+    values: [True,True,False]
+  exp_params.optimizer.config.LR:
+    distribution: log_uniform_values
+    min: 0.00001
+    max: 0.0001
+  exp_params.optimizer.config.weight_decay:
+    distribution: log_uniform_values
+    min: 0.0001
+    max: 0.001
+  exp_params.optimizer.config.factor:
+    min: 0.4
+    max: 0.6
+  exp_params.optimizer.config.patience:
+    values: [8,10]
+  trainer_params.accumulate_grad_batches:
+    values: [24]
+  trainer_params.max_epochs:
+    values: [250,350] 
+  ES_params.patience:
+    values: [250]
+  ES_params.min_delta:
+    values: [0.01]
+  dataset.config.k_fold:
+    values: [-1]
+  exp_params.class_weighting:
+    values: [False]
+

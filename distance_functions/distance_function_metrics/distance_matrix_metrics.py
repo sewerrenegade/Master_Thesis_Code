@@ -4,7 +4,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics import silhouette_score
 from sklearn.manifold import TSNE
-from sklearn.metrics import silhouette_score
 from sklearn.model_selection import cross_val_score,cross_val_predict
 import umap
 from sklearn.model_selection import LeaveOneOut

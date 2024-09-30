@@ -4,9 +4,10 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0.2
-    pretrained_encoder: False
+    dropout_encoder: 0.1
+    pretrained_encoder: True
     input_type: "images"
+    label_smoothing: 0.1
             
 dataset:
   name: 'SCEMILA'
@@ -26,18 +27,19 @@ exp_params:
     name: "Adam"
     config:
       LR: 0.0001
-      weight_decay: 0.00005
-      factor: 0.8
+      weight_decay: 0.00006
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 8
+      monitor_metric: "val_mil_loss"
     batch_size: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 150
-  accumulate_grad_batches: 6
+  max_epochs: 300
+  accumulate_grad_batches: 12
 
 
 logging_params:
@@ -49,5 +51,5 @@ logging_params:
 ES_params:
   monitor: 'val_mil_loss_epoch'
   min_delta: 0
-  patience: 75
+  patience: 200
   mode: 'min'

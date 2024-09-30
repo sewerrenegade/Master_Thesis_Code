@@ -4,6 +4,9 @@ import torch
 
 input_types = ("images","gray_images","fnl34","dino_bloom_small")
 
+def get_loss_function(function_name = "cross_entropy"):
+    pass
+
 def get_input_encoder(model,input_type = "images",pretrained = False, dropout = None):
     encoder_output_dim = 500
     

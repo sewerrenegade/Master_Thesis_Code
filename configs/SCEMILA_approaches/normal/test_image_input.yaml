@@ -4,13 +4,16 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
+    dropout_encoder: 0.1
+    pretrained_encoder: True
     input_type: "images"
+    label_smoothing: 0.1
             
 dataset:
   name: 'SCEMILA'
   config:
     num_workers: 4
-    k_fold : -1 #set to one if no cross validation wanted
+    k_fold : 5 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: True
@@ -19,32 +22,34 @@ dataset:
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
+  class_weighting: False
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
+      LR: 0.0001
+      weight_decay: 0.00006
       factor: 0.5
-      weight_decay: 0.001
       scheduler: "ReduceLROnPlateau"
-      patience: 2
+      patience: 8
+      monitor_metric: "val_mil_loss"
     batch_size: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 1
-  accumulate_grad_batches : 1
+  max_epochs: 2
+  accumulate_grad_batches: 12
 
 
 logging_params:
-  project_name: "Masters_Project"
+  project_name: "Masters_Project_Opt"
   save_dir: "logs/image_input_experiment/"
   name: "image_input_experiment"
   manual_seed: 1265
 
 ES_params:
   monitor: 'val_mil_loss_epoch'
-  min_delta: 0.1
-  patience: 15
+  min_delta: 0
+  patience: 200
   mode: 'min'
