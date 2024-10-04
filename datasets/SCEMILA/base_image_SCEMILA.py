@@ -31,7 +31,6 @@ class SCEMILA_base(BaseDataset):
             ):
         super().__init__("SCEMILA/image_data",augmentation_settings,balance_dataset_classes=balance_dataset_classes,training=training_mode)
         self.encode_with_dino_bloom = encode_with_dino_bloom
-        self.augmentation_settings = augmentation_settings
         self.preload_transforms,self.transforms = self.get_transform_function(load_tiff=True,extra_transforms=transforms_list,numpy=numpy,to_gpu = gpu and not encode_with_dino_bloom,flatten=flatten,to_tensor=to_tensor,augmentation_settings= augmentation_settings,resize=resize,grayscale=grayscale)
         if self.encode_with_dino_bloom:
             self.dino_enc = self.get_dino_bloom_transform()
@@ -151,7 +150,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
     
     
     def create_or_get_serialized_dinobloom_dataset(self):
-        print("!!!!!!!!reate_or_get_serialized_dinobloom_dataset!!!!!!!!!")
+        print("!!!!!!!!create_or_get_serialized_dinobloom_dataset!!!!!!!!!")
         recalculate = False
         assert self.encode_with_dino_bloom
         self.get_item_function = self.get_and_dino_encode_tif_bag

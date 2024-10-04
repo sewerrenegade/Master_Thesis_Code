@@ -4,7 +4,7 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0.1
+    dropout_encoder: 0.2
     pretrained_encoder: True
     input_type: "images"
     label_smoothing: 0.1
@@ -12,7 +12,7 @@ model_params:
 dataset:
   name: 'SCEMILA'
   config:
-    num_workers: 4
+    num_workers: 6
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
@@ -22,15 +22,15 @@ dataset:
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
-  class_weighting: False
+  class_weighting_factor: 0.5
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.0001
-      weight_decay: 0.00006
+      LR: 0.00005
+      weight_decay: 0.00035
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 8
+      patience: 10
       monitor_metric: "val_mil_loss"
     batch_size: 1
 
@@ -38,8 +38,8 @@ trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
-  accumulate_grad_batches: 12
+  max_epochs: 200
+  accumulate_grad_batches: 24
 
 
 logging_params:
@@ -51,5 +51,5 @@ logging_params:
 ES_params:
   monitor: 'val_mil_loss_epoch'
   min_delta: 0
-  patience: 200
+  patience: 100
   mode: 'min'

@@ -20,21 +20,20 @@ class SCEMILA_Experiment(pl.LightningModule):
         self.model = model
         self.params = params
         self.n_c = self.params.get("num_class",5)
-        self.class_weighting = self.params.get("class_weighting",False)
+        self.class_weighting = self.params.get("class_weighting_factor",0.0)
         self.curr_device = None
         self.current_data_object =  DataMatrix()        
         self.train_confusion_matrix,self.val_confusion_matrix ,self.test_confusion_matrix  = torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c)
         self.test_metrics = []
         self.indexer = SCEMILA_Indexer.get_indexer()
-        if self.class_weighting:
-            self.class_weights = self.get_class_weights()
-        pass
+        self.class_weights = self.get_class_weights(self.class_weighting)
     
-    def get_class_weights(self):
+    def get_class_weights(self,weighting_factor):
+        assert 0 <= weighting_factor <= 1
         train_class_distribution = self.indexer.class_sample_counts_in_train_set
         assert len(train_class_distribution) == self.n_c
         total_number = sum([sample_count for class_name,sample_count in train_class_distribution.items()])
-        class_weights = {self.indexer.convert_from_int_to_label_bag_level(class_key):torch.tensor(total_number/(5*class_count)) for class_key,class_count in train_class_distribution.items()}
+        class_weights = {self.indexer.convert_from_int_to_label_bag_level(class_key):torch.tensor((1 - weighting_factor)+ weighting_factor*total_number/(self.n_c*class_count)) for class_key,class_count in train_class_distribution.items()}
         return class_weights
         
     
@@ -98,6 +97,9 @@ class SCEMILA_Experiment(pl.LightningModule):
     
     def on_train_epoch_end(self) -> None:
         self.log_confusion_matrix("train",self.train_confusion_matrix)
+        is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
+        if is_diagonal:
+            self.model.remove_smoothing()
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
 
 

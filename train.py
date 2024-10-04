@@ -1,3 +1,4 @@
+import argparse
 import torch
 import datetime
 import os
@@ -69,22 +70,36 @@ def get_and_configure_callbacks(config):
         )
     return checkpoint_callback, early_stopping
 
-def get_override_args():
+def get_hydra_override_args():
+    print(sys.argv)
     overrides=[arg.lstrip('--') for arg in sys.argv][1:]
+    print(overrides)
+    hydra_overides = []
     for item in overrides:
         if item.startswith('base_config_path='):
             path = item.split('=', 1)[1]
-            overrides.remove(item)
-            print(f" dis is za way {path}")
-    print(overrides)
-    return overrides
+            print(f"base_config_path {path}")
+            continue
+
+        if item.startswith('config_folder='):
+            path = item.split('=', 1)[1]
+            print(f"config_folder {path}")
+            continue
+
+        if item.startswith('config_name='):
+            path = item.split('=', 1)[1]
+            print(f"config_name {path}")
+            continue
+        hydra_overides.append(item)
+    print(f"Hydra overrides are {hydra_overides}")
+    return hydra_overides
     
     
     #
 #@hydra.main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None)
 def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None) -> None:
     with hydra.initialize(config_path=config_path,version_base=None):
-        cfg = hydra.compose(config_name=config_name,overrides=get_override_args())
+        cfg = hydra.compose(config_name=config_name,overrides=get_hydra_override_args())
     config = OmegaConf.to_container(cfg)
     print(f"This is the config file \n  {config}")
     seed = config["logging_params"]["manual_seed"]
@@ -161,7 +176,7 @@ def setup_and_start_training(number_of_runs = 1):
     configs = [
             #["configs/SCEMILA_approaches/normal/","test_image_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","opt_image_input.yaml"],
-            ["configs/SCEMILA_approaches/normal/","opt_kfold_image_input.yaml"],
+            #["configs/SCEMILA_approaches/normal/","opt_kfold_image_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","dino_input.yaml"],
             #["configs/SCEMILA_approaches/normal/","fnl34_input.yaml"],
             # ["configs/SCEMILA_approaches/normal/","gray_image_input.yaml"],
@@ -169,7 +184,7 @@ def setup_and_start_training(number_of_runs = 1):
             #### topo methods
             #["configs/SCEMILA_approaches/topo/","topo_gray_image_image_input.yaml"],
             #["configs/SCEMILA_approaches/topo/","topo_image_image_input.yaml"],
-            #["configs/SCEMILA_approaches/topo/","topo_dino_image_input.yaml"],
+            ["configs/SCEMILA_approaches/topo/","topo_dino_image_input.yaml"],
             #["configs/SCEMILA_approaches/topo/","topo_dino_dino_input.yaml"]
             ]
     
@@ -203,4 +218,9 @@ def setup_and_start_training(number_of_runs = 1):
 
     
 if __name__ == "__main__":
-    setup_and_start_training(5)
+    parser = argparse.ArgumentParser(description="Run training with specified configuration.")
+    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/normal/" ,help="Path to the configuration folder.")
+    parser.add_argument('--config_name', type=str,default="opt_image_input.yaml", help="Name of the configuration file.")
+
+    args = parser.parse_args()
+    main(config_path=args.config_folder,config_name=args.config_name)

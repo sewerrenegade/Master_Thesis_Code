@@ -14,7 +14,7 @@ if __name__ == "__main__":
     for item in sys.argv:
         if item.startswith('--base_config_path='):
             path = item.split('=', 1)[1]
-            sys.argv.remove(item)
+            #sys.argv.remove(item)
             print(f" dis is za way {path}")
             break
     print(sys.argv)

@@ -6,10 +6,7 @@ import torch.nn.functional as F
 from models.encoder_models.encoder_model import get_input_encoder
 
 
-
-
 class AMiL(nn.Module):
-
     def __init__(self, class_count, multicolumn, device,input_type = "images",pretrained_encoder = False,dropout_encoder = None,label_smoothing = 0.0):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
@@ -63,6 +60,9 @@ class AMiL(nn.Module):
                 nn.Linear(64, 1)
             ))
         self.to(device)
+
+    def remove_smoothing(self):
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def mil_loss_function(self,prediction,label_groundtruth):
         loss = self.cross_entropy_loss(prediction,label_groundtruth.unsqueeze(0))

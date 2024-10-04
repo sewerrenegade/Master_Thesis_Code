@@ -161,9 +161,9 @@ class SCEMILA_Indexer(Indexer):
                         
         missing_data_file = 'data/SCEMILA/meta_files/missing_data_from_salome_split.json'
 
-        if not os.path.exists(missing_data_file):
-            with open(missing_data_file, 'w', encoding='utf-8') as f:
-                json.dump(missing_data, f, ensure_ascii=False, indent=4)
+        #if not os.path.exists(missing_data_file):
+        with open(missing_data_file, 'w', encoding='utf-8') as f:
+            json.dump(missing_data, f, ensure_ascii=False, indent=4)
                 
         # random.seed(42)# ensures it is split the same way
         # train_data = {}

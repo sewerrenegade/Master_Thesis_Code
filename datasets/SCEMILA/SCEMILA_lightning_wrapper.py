@@ -64,7 +64,6 @@ class SCEMILA(pl.LightningDataModule):
             numpy = self.numpy,flatten = self.flatten,
             to_tensor = self.to_tensor,
             augmentation_settings = self.augmentation_settings,topo_settings=self.topo_settings)
-
         if self.k_fold <= 1:
             train_dataset_size = len(train_dataset)
             val_size = int(self.val_split * train_dataset_size)

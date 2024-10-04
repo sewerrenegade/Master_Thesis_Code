@@ -1,4 +1,4 @@
-name: topo_sweep
+name: topo_gray_image_topo_sweep
 program: hyperparameter_sweeper/train_injection_script.py
 project: param_sweep
 method: bayes  # or grid, random
@@ -7,7 +7,7 @@ metric:
   goal: maximize
 parameters:
   base_config_path:
-    values: ["configs/SCEMILA_approaches/topo/topo_dino_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
+    values: ["configs/SCEMILA_approaches/topo/topo_eucl_gray_image_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
   model_params.config.lam_topo:
     distribution: log_uniform_values
     min: 0.000001
@@ -46,6 +46,7 @@ parameters:
     values: [0.01]
   dataset.config.k_fold:
     values: [-1]
-  exp_params.class_weighting:
-    values: [False]
+  exp_params.class_weighting_factor:
+    min: 0.0
+    max: 1.0
 

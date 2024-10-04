@@ -39,6 +39,6 @@ parameters:
     values: [0.01]
   dataset.config.k_fold:
     values: [-1]
-  exp_params.class_weighting:
-    values: [True, False, False]
-
+  exp_params.class_weighting_factor:
+    min: 0.0
+    max: 1.0

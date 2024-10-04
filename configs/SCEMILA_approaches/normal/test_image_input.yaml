@@ -22,7 +22,7 @@ dataset:
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
-  class_weighting: False
+  class_weighting_factor: 0.0
   optimizer: 
     name: "Adam"
     config:

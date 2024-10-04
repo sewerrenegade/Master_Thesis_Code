@@ -20,7 +20,7 @@ dataset:
     topo_settings:
       nb_of_grouped_bags: 5
       normalize_distance_matricies: True
-      class_weighting: False
+      class_weighting_factor: 0.0
       dataset_settings:
         grayscale: False
         encode_with_dino_bloom: False

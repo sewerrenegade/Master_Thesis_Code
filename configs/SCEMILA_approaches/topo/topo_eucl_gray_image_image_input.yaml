@@ -4,11 +4,13 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
+    dropout_encoder: 0.1
+    pretrained_encoder: True
     input_type: "images"
-    lam_topo: 1
-    dropout_encoder: 0.0
-    pretrained_encoder: False
-    lam_topo_per_epoch_decay: 0.955
+    lam_topo: 0.000025
+    label_smoothing: 0.1
+    lam_topo_per_epoch_decay: 1.008
+    max_lam: 0.01
             
 dataset:
   name: 'SCEMILA'
@@ -19,7 +21,7 @@ dataset:
     gpu: True
     input_type: "images"
     topo_settings:
-      nb_of_grouped_bags: 5
+      nb_of_grouped_bags: 1
       normalize_distance_matricies: True
       dataset_settings:
         grayscale: True
@@ -32,26 +34,27 @@ exp_type: "topo_SCEMILA_experiment"
 
 exp_params:
   num_class: 5
-  class_weighting: False
+  class_weighting_factor: 0.5
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
-      factor: 0.5
-      weight_decay: 0.001
+      LR: 0.0001
+      weight_decay: 0.00006
       scheduler: "ReduceLROnPlateau"
-      patience: 2
+      patience: 8
+      factor: 0.5
+      monitor_metric: "val_mil_loss"
     batch_size: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 50
+  max_epochs: 200
   accumulate_grad_batches : 1
 
 logging_params:
-  project_name: "Masters_Project"
+  project_name: "Masters_Project_Topo"
   save_dir: "logs/topo_gray_image_image_input_experiment/"
   name: "topo_eucl_gray_image_image_input_experiment"
   manual_seed: 1265
@@ -59,5 +62,5 @@ logging_params:
 ES_params:
   monitor: 'val_mil_loss_epoch'
   min_delta: 0.1
-  patience: 25
+  patience: 100
   mode: 'min'

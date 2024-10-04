@@ -39,8 +39,9 @@ class EmbeddingDescriptor:
         from results.results_manager import ResultsManager
         results_manager = ResultsManager.get_manager()
         if not recalculate and results_manager.check_if_result_already_exists(self):
-            pass
+            print("Embedding already exists, loading from storage...")
         else:
+            print("Embedding does NOT already exists, calculating according to configuration...")
             if self.downprojection_function is not None:
                 embedding_function = self.downprojection_function(**self.downprojection_function_settings).fit_transform
             else:

@@ -1,4 +1,3 @@
-
 from models.encoder_models.encoder_model import get_input_encoder
 from models.salome_models.topo_reg_mil import TopologicalSignatureDistance
 import torch
@@ -15,9 +14,7 @@ class TopoAMiL(nn.Module):
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
         - device: either 'cuda:0' or the corresponding cpu counterpart.
         '''
-
         super(TopoAMiL, self).__init__()
-
         # condense every image into self.L features (further encoding before
         # actual MIL starts)
         self.L = 500
@@ -68,6 +65,9 @@ class TopoAMiL(nn.Module):
                 nn.ReLU(),
                 nn.Linear(64, 1)
             ))
+            
+    def remove_smoothing(self):
+        self.cross_entropy_loss = nn.CrossEntropyLoss()
 
     def mil_loss_function(self,prediction,label_groundtruth):
         loss = self.cross_entropy_loss(prediction,label_groundtruth.unsqueeze(0))
