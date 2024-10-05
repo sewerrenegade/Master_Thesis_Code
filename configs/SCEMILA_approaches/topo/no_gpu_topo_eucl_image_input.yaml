@@ -3,10 +3,10 @@ model_params:
   config:
     multicolumn: 1
     class_count: 5
-    device: "cuda:0"
-    input_type: "images"
-    dropout_encoder: 0.0
+    device: "cpu"
+    dropout_encoder: 0.2
     pretrained_encoder: False
+    input_type: "images"
     label_smoothing: 0.1
     lam_topo: 1
     lam_topo_per_epoch_decay: 0.955
@@ -14,25 +14,22 @@ model_params:
 dataset:
   name: 'SCEMILA'
   config:
-    num_workers: 4
+    num_workers: 1
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
-    gpu: True
     input_type: "images"
+    gpu: False
+    balance_dataset_classes: 50
+    augmentation_settings: ["all",0.5]
     topo_settings:
       nb_of_grouped_bags: 1
       normalize_distance_matricies: True
       dataset_settings:
         grayscale: True
         encode_with_dino_bloom: False
-      embedding_settings:
-        function_name: "UMAP"
-        function_settings:
-          n_components: 8
 
 
 exp_type: "topo_SCEMILA_experiment"
-
 
 exp_params:
   num_class: 5
@@ -40,28 +37,28 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
-      factor: 0.5
-      weight_decay: 0.001
+      LR: 0.0001
+      weight_decay: 0.00006
       scheduler: "ReduceLROnPlateau"
-      patience: 2
+      patience: 8
+      factor: 0.5
+      monitor_metric: "val_mil_loss"
     batch_size: 1
+
 
 trainer_params:
   precision: '32'
-  accelerator: 'gpu'
-  devices: [0]
-  max_epochs: 50
-  accumulate_grad_batches : 1
+  max_epochs: 200
+  accumulate_grad_batches : 24
 
 logging_params:
-  project_name: "Masters_Project"
+  project_name: "Masters_Project_Topo"
   save_dir: "logs/topo_gray_image_image_input_experiment/"
-  name: "topo_gray_image_image_input_experiment"
+  name: "topo_eucl_gray_image_image_input_experiment"
   manual_seed: 1265
-
+  
 ES_params:
   monitor: 'val_mil_loss_epoch'
-  min_delta: 0.1
-  patience: 25
+  min_delta: 0
+  patience: 100
   mode: 'min'

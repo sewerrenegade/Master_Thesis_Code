@@ -134,7 +134,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
         
         runner.fit(experiment, data)
         
-        result =runner.test(experiment, data, ckpt_path="best")[0]
+        result =runner.test(experiment, data, ckpt_path="best")
         best_ckpt_path = checkpoint_callback.best_model_path
         wandb.run.summary["test_checkpoint_path"] = best_ckpt_path
         match = re.search(r'epoch=(\d+)', best_ckpt_path)
@@ -144,7 +144,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
             #print(f"Extracted epoch number: {epoch_number}")
         else:
             print("No epoch number found in the string.")
-        results.append(result)
+        results.append(result[0])
         wandb.finish()
 
         #debug log smthn
@@ -221,8 +221,9 @@ def setup_and_start_training(number_of_runs = 1):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run training with specified configuration.")
-    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/normal/" ,help="Path to the configuration folder.")
-    parser.add_argument('--config_name', type=str,default="no_gpu_image_input.yaml", help="Name of the configuration file.")
+    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/topo/" ,help="Path to the configuration folder.")
+    parser.add_argument('--config_name', type=str,default="no_gpu_topo_eucl_image_input.yaml", help="Name of the configuration file.")
 
     args = parser.parse_args()
     main(config_path=args.config_folder,config_name=args.config_name)
+
