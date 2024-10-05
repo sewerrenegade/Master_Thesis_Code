@@ -144,7 +144,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
                 images.append(image)
                 labels.append(label)
             return self.to_gpu_transform(images),labels
-        elif isinstance(idx,np.int64):
+        elif isinstance(idx,np.int64):  
             return self[int(idx)]
 
     

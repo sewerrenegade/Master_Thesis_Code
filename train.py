@@ -1,3 +1,4 @@
+print("Started Execution, importing...")
 import argparse
 import torch
 import datetime
@@ -17,9 +18,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 
 
-from datasets.dataset_factory import get_module as get_dataset
-from experiments.experiment_factory import get_module as get_experiment
-from models.model_factory import get_module
+
 
 
 
@@ -106,6 +105,9 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
 
     set_training_env_settings(False)
     print(f"cudnn.deterministic: {cudnn.deterministic}")
+    from datasets.dataset_factory import get_module as get_dataset
+    from experiments.experiment_factory import get_module as get_experiment
+    from models.model_factory import get_module
 
     data = get_dataset(config["dataset"]["name"], config["dataset"]["config"])
 
@@ -220,7 +222,7 @@ def setup_and_start_training(number_of_runs = 1):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run training with specified configuration.")
     parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/normal/" ,help="Path to the configuration folder.")
-    parser.add_argument('--config_name', type=str,default="opt_image_input.yaml", help="Name of the configuration file.")
+    parser.add_argument('--config_name', type=str,default="no_gpu_image_input.yaml", help="Name of the configuration file.")
 
     args = parser.parse_args()
     main(config_path=args.config_folder,config_name=args.config_name)

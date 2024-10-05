@@ -46,8 +46,9 @@ class DatasetTransforms:
 
         if self.augmentation_settings is not None:
             aug_list, db_compatible_settings = get_dataset_compatible_augmentation_function(self.augmentation_settings)
-            preload_transforms_list.extend(aug_list)
             self.augmentation_settings = db_compatible_settings                
+            preload_transforms_list.extend(aug_list)
+            
         if self.to_tensor:
             preload_transforms_list.append(transforms.ToTensor())
         if type(self.extra_transforms) is list:

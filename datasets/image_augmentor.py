@@ -1,9 +1,10 @@
+import random
 from torchvision import transforms
 import numpy as np
 import torch
 from PIL import Image
 from enum import Enum
-
+import torchvision.transforms as transforms
 
 
 class Augmentability(Enum):
@@ -59,6 +60,7 @@ class AugmentationSettings:
         gaussian_blur_aug: bool = True, 
         gaussian_noise_aug: bool = True,
         auto_generated_notes: str = "", # this input is used only for deserialization process
+        probability_of_augmenting: float = 1.0
         
     ) -> None:
         """
@@ -85,6 +87,7 @@ class AugmentationSettings:
         self.gaussian_blur_aug = gaussian_blur_aug
         self.gaussian_noise_aug = gaussian_noise_aug
         self.auto_generated_notes = auto_generated_notes
+        self.probability_of_augmenting = probability_of_augmenting
     def __eq__(self, other):
             if not isinstance(other, AugmentationSettings):
                 return False
@@ -98,7 +101,8 @@ class AugmentationSettings:
                 self.translation_aug == other.translation_aug and
                 self.gaussian_blur_aug == other.gaussian_blur_aug and
                 self.gaussian_noise_aug == other.gaussian_noise_aug and
-                self.auto_generated_notes == other.auto_generated_notes
+                self.auto_generated_notes == other.auto_generated_notes and
+                self.probability_of_augmenting == other.probability_of_augmenting
             )
 
 
@@ -119,7 +123,9 @@ class AugmentationSettings:
     @classmethod
     def get_instance_from_unknown_struct(cls,data):
         if isinstance(data,str):
-            return AugmentationSettings.create_settings_with_name(only_enabled=data)
+            return AugmentationSettings.create_settings_with_name(augmentation_name=data)
+        if isinstance(data,list):
+            return AugmentationSettings.create_settings_with_name(augmentation_name=data[0],p=data[1])
         elif isinstance(data,AugmentationSettings):
             return data
         elif isinstance(data,dict):
@@ -131,7 +137,7 @@ class AugmentationSettings:
             
     #If the input is all, then all possible augmentations will be activated
     @classmethod
-    def create_settings_with_name(cls, only_enabled: str, dataset_name: str="") -> 'AugmentationSettings':
+    def create_settings_with_name(cls, augmentation_name: str, dataset_name: str="",p = 1.0) -> 'AugmentationSettings':
         """
         Initialize with all augmentations set to False except one specified.
 
@@ -148,21 +154,35 @@ class AugmentationSettings:
             'gaussian_blur_aug', 'gaussian_noise_aug', 'all','none'
         ]
         
-        if only_enabled not in valid_augmentations:
-            raise ValueError(f"{only_enabled} is not a valid augmentation type.")
-        if only_enabled == valid_augmentations[-2]:
-            return AugmentationSettings() #ALL AUGMENTATIONS ACTIVE
-        elif only_enabled == valid_augmentations[-1]:
+        if augmentation_name not in valid_augmentations:
+            raise ValueError(f"{augmentation_name} is not a valid augmentation type.")
+        if augmentation_name == valid_augmentations[-2]:
+            x =  AugmentationSettings() #ALL AUGMENTATIONS ACTIVE
+        elif augmentation_name == valid_augmentations[-1]:
             settings = {aug: False for aug in valid_augmentations[0:-2]}
-            return cls(dataset_name, **settings)
+            x= cls(dataset_name, **settings)
         else:   
             settings = {aug: False for aug in valid_augmentations[0:-2]}
-            settings[only_enabled] = True
-            return cls(dataset_name, **settings)
-
+            settings[augmentation_name] = True
+            x = cls(dataset_name, **settings)
+        x.probability_of_augmenting = p
+        return x
 
 whiteness = 0.98
 
+class BinomialAugmentor:
+    def __init__(self, augmentation_function,p=0.5):
+        self.p = p
+        self.augmentation_function = augmentation_function
+        assert callable(self.augmentation_function)
+    def __call__(self, image):
+        if random.random() < self.p:
+            return self.augmentation_function(image)
+        else:
+            return image
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(p={self.p})"
 
 class AddGaussianNoise:
     def __init__(self, mean=0.0, std=0.2):
@@ -255,6 +275,9 @@ def get_dataset_compatible_augmentation_function(aug_settings: AugmentationSetti
             augmentations.append(AddGaussianNoise())
     if len(augmentations) == 0 or DATASET_AUGMENTABIBILITY[dataset_name] == Augmentability.UNAUGMENTABLE:
         augmentations.append(IdentityTransform())
+
+    if aug_settings.probability_of_augmenting is not None and 0 < aug_settings.probability_of_augmenting < 1.0:
+        augmentations = [BinomialAugmentor(augmentation_function=transforms.Compose(augmentations),p = aug_settings.probability_of_augmenting)]
     return augmentations,aug_settings
             
             
