@@ -9,7 +9,8 @@ class CustomModelCheckpoint(ModelCheckpoint):
         
         assert isinstance(self.save_top_k,int)
         self.best_models = []  # A list to store the top 3 models
-
+    def get_best_path(self):
+        return self.best_models[0][2]
     def _compare_metrics(self, current_metrics,trainer, pl_module):
         """
         Compare the current metrics (val_correct_epoch, val_loss_epoch) with the saved models.

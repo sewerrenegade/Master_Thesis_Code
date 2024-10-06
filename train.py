@@ -126,7 +126,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
         
         runner.fit(experiment, data)
         
-        result =runner.test(experiment, data, ckpt_path="best")
+        result =runner.test(experiment, data, ckpt_path=checkpoint_callback.get_best_path())
         best_ckpt_path = checkpoint_callback.best_model_path
         wnb_logger.experiment.summary["test_checkpoint_path"] = best_ckpt_path
         from re import search
