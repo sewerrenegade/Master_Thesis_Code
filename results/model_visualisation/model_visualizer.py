@@ -1,5 +1,3 @@
-import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from models.SCEMILA.SCEMILA_model import AMiL
 from models.SCEMILA.topo_SCEMILA_model import TopoAMiL
 from torchsummary import summary

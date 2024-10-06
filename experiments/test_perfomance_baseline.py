@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-
 from results.report_generators.report_generator import create_pdf_from_dataset_reports, produce_element_from_df, produce_pivot_table_from_dict_lists
 from results.report_generators.dataset_report_generator import DatasetReportElements
 from results.metrics_descriptor import MetricsDescriptor
@@ -18,7 +14,6 @@ import phate
 from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap, TSNE
 import copy
-from datasets.SCEMILA import *
 from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 DEFAULT_TRANSFROM_DICT = {

@@ -29,7 +29,7 @@ class TopologicalSignatureDistance(nn.Module):
     """Topological signature."""
 
     def __init__(self, sort_selected=False, use_cycles=False,
-                 match_edges=None):
+                 match_edges=None,to_gpu = True):
         """Topological signature computation.
 
         Args:
@@ -40,6 +40,7 @@ class TopologicalSignatureDistance(nn.Module):
         super().__init__()
         self.use_cycles = use_cycles
         self.match_edges = match_edges
+        self.to_gpu = to_gpu
         print('Using python to compute signatures')
         self.signature_calculator = PersistentHomologyCalculation()
 
@@ -64,10 +65,13 @@ class TopologicalSignatureDistance(nn.Module):
 
         return selected_distances
     
-    @staticmethod
-    def sig_error(signature1, signature2):
+    
+    def sig_error(self,signature1, signature2):
         """Compute distance between two topological signatures."""
-        return ((signature1.cuda() - signature2.cuda())**2).sum(dim=-1)
+        if self.to_gpu:
+            return ((signature1.cuda() - signature2.cuda())**2).sum(dim=-1)
+        else:
+            return ((signature1 - signature2)**2).sum(dim=-1)
     
     @staticmethod
     def _count_matching_pairs(pairs1, pairs2):

@@ -1,12 +1,6 @@
-import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
-
 from results.report_generators.report_generator import create_pdf_from_dataset_reports, produce_element_from_df, produce_pivot_table_from_dict_lists
 from results.report_generators.dataset_report_generator import DatasetReportElements
-import pandas as pd
-from matplotlib.backends.backend_pdf import PdfPages
 from results.metrics_descriptor import MetricsDescriptor
-from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset
 from distance_functions.distance_function_metrics.distance_matrix_metrics import DistanceMatrixMetricCalculator
 from distance_functions.functions.basic_distance_functions import EuclideanDistance
 from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
@@ -16,8 +10,6 @@ import umap
 import phate
 from sklearn.decomposition import PCA
 from sklearn.manifold import Isomap,TSNE
-import pandas as pd
-from datasets.SCEMILA import *
 from datasets.dataset_factory import BASE_MODULES as DATA_SET_MODULES
 
 DEFAULT_TRANSFROM_DICT = {

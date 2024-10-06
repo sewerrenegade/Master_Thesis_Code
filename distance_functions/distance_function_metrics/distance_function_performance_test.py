@@ -2,7 +2,7 @@ import numpy as np
 import sys
 from results.metrics_descriptor import MetricsDescriptor
 from results.results_manager import ResultsManager
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset as EmbeddingDatabase
 import matplotlib.pyplot as plt
 import os

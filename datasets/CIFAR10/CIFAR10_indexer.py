@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 import os
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import DataLoader

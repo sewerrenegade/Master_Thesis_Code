@@ -8,9 +8,6 @@ from datetime import datetime
 import numpy as np
 
 from datasets.topological_datasets.topo_dataset_desciptor import SerializableTopoDatasetDescriptor, TopoDatasetDescriptor
-
-
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from configs.global_config import GlobalConfig
 from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor, SerializableEmbeddingDescriptor
 

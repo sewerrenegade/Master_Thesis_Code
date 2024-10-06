@@ -2,7 +2,7 @@
 from collections.abc import Iterable
 import random
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 from datasets.indexer_scripts.indexer_abstraction import Indexer
 import os
 import json

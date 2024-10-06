@@ -2,8 +2,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 class CustomModelCheckpoint(ModelCheckpoint):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.save_top_k = kwargs.get("save_top_k", 3)
+        self.save_top_k = kwargs.get("top_k_to_save", 3)
+        if "top_k_to_save" in kwargs:
+            del kwargs["top_k_to_save"] 
+        super().__init__(*args, **kwargs) # avoid native checkpoint saving methods, only need inherited behavior
+        
         assert isinstance(self.save_top_k,int)
         self.best_models = []  # A list to store the top 3 models
 
@@ -40,23 +43,25 @@ class CustomModelCheckpoint(ModelCheckpoint):
             "val_correct_epoch": logs.get("val_correct_epoch").item(),
             "val_loss_epoch": logs.get("val_loss_epoch").item()
         }
-
         # Compare and update the best models
-        self._compare_metrics(current_metrics,trainer,pl_module)
+        if pl_module.current_epoch != 0:
+            self._compare_metrics(current_metrics,trainer,pl_module)
 
-        # If the model should be saved, use the usual save method
-        if any(x is None for x in self.best_models[-1]):
-            # Update the model path for the latest saved model
-            self.best_models[-1] = (self.best_models[-1][0], self.best_models[-1][1], self._save_model(trainer, pl_module))
-        self.custom_best_model_path = self.best_models[0][-1]
-        # Print best models for debugging purposes
-        print(f"Best models (sorted): {self.best_models}")
+            # If the model should be saved, use the usual save method
+            if any(x is None for x in self.best_models[-1]):
+                # Update the model path for the latest saved model
+                self.best_models[-1] = (self.best_models[-1][0], self.best_models[-1][1], self._save_model(trainer, pl_module))
+            self.custom_best_model_path = self.best_models[0][-1]
+            # Print best models for debugging purposes
+            print(f"Best models (sorted): {self.best_models}")
 
     def _save_model(self, trainer, pl_module):
         """
         Use the original ModelCheckpoint's save logic to save the model.
         """
-        filepath = self.format_checkpoint_name(trainer.current_epoch, trainer.callback_metrics)
+        name_metrics = {"epoch":trainer.current_epoch}
+        name_metrics.update( trainer.callback_metrics)
+        filepath = self.format_checkpoint_name(name_metrics)
         self._save_checkpoint(trainer, filepath)
         return filepath
 

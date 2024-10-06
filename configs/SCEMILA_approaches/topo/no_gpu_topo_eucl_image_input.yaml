@@ -14,13 +14,13 @@ model_params:
 dataset:
   name: 'SCEMILA'
   config:
-    num_workers: 1
+    num_workers: 2
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: False
-    balance_dataset_classes: 50
-    augmentation_settings: ["all",0.5]
+    balance_dataset_classes: 3
+    augmentation_settings: ["none",0.5]
     topo_settings:
       nb_of_grouped_bags: 1
       normalize_distance_matricies: True
@@ -48,7 +48,7 @@ exp_params:
 
 trainer_params:
   precision: '32'
-  max_epochs: 200
+  max_epochs: 2
   accumulate_grad_batches : 24
 
 logging_params:

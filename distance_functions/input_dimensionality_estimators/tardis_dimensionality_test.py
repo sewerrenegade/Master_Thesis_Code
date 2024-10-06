@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 import numpy as np
 from datasets.MNIST.MNIST_base import MNIST_Dataset_Referencer
 from datasets.MNIST.MNIST_base import BaseDataset as MNISTbase

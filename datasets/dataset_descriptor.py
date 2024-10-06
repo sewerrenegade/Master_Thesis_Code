@@ -4,9 +4,6 @@ import numpy as np
 import torch
 
 from datasets.embedded_datasets.dataset.embedding_base import EmbeddingBaseDataset
-
-
-sys.path.append("/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code")
 from datasets.data_synthesizers.data_sythesizer import SinglePresenceMILSynthesizer
 from datasets.Acevedo.acevedo_base import Acevedo_MIL_base
 import json

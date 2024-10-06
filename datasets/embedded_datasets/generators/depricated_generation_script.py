@@ -1,7 +1,7 @@
 import sys
 
 
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 from datasets.embedded_datasets.generators.embedding_descriptor import EmbeddingDescriptor
 
 from configs.global_config import GlobalConfig

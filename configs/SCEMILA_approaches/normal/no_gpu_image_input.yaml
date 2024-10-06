@@ -17,7 +17,7 @@ dataset:
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: False
-    balance_dataset_classes: 50
+    balance_dataset_classes: 3
     augmentation_settings: ["all",0.5]
 
 
@@ -38,7 +38,7 @@ exp_params:
 
 trainer_params:
   precision: '32'
-  max_epochs: 200
+  max_epochs: 2
   accumulate_grad_batches : 24
 
 

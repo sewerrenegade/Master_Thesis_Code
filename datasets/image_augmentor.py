@@ -48,6 +48,11 @@ DATASET_RGB = {
 #assert DATASET_AUGMENTABIBILITY.keys() == BASE_MODULES.keys()
 
 class AugmentationSettings:
+    ValidAugmentationNames = [
+            'color_jitter', 'sharpness_aug', 'horizontal_flip_aug', 
+            'vertical_flip_aug', 'rotation_aug', 'translation_aug', 
+            'gaussian_blur_aug', 'gaussian_noise_aug', 'all','none'
+        ]
     def __init__(
         self, 
         dataset_name: str ="", 
@@ -134,8 +139,14 @@ class AugmentationSettings:
             return AugmentationSettings.create_settings_with_name("none")
         else:
             raise TypeError("unsupoorted tpye to create augmentation settings settings")
-            
-    #If the input is all, then all possible augmentations will be activated
+    def is_no_augmentations_setting(self):  
+    #If the input is all, then all possible augmentations will be activated``
+        no_augmentations = True
+        for aug in AugmentationSettings.ValidAugmentationNames[0:-2]:
+            no_augmentations = no_augmentations and not getattr(self,aug)
+        return no_augmentations
+
+
     @classmethod
     def create_settings_with_name(cls, augmentation_name: str, dataset_name: str="",p = 1.0) -> 'AugmentationSettings':
         """
@@ -148,12 +159,8 @@ class AugmentationSettings:
         Returns:
         - AugmentationSettings instance with only one augmentation enabled.
         """
-        valid_augmentations = [
-            'color_jitter', 'sharpness_aug', 'horizontal_flip_aug', 
-            'vertical_flip_aug', 'rotation_aug', 'translation_aug', 
-            'gaussian_blur_aug', 'gaussian_noise_aug', 'all','none'
-        ]
-        
+
+        valid_augmentations = AugmentationSettings.ValidAugmentationNames
         if augmentation_name not in valid_augmentations:
             raise ValueError(f"{augmentation_name} is not a valid augmentation type.")
         if augmentation_name == valid_augmentations[-2]:

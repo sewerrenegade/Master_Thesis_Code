@@ -1,7 +1,7 @@
 import math
 import random
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 from datasets.mil_dataset_abstraction import BaseMILDataset
 from results.report_generators.report_generator import create_pdf_from_dataset_reports, produce_element_from_df, produce_pivot_table_from_dict_lists
 from results.report_generators.dataset_report_generator import DatasetReportElements

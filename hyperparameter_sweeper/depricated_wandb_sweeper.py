@@ -5,7 +5,7 @@
 
 
 # def sweep_parameters(sweep_config ="configs/sweep_configs/sweepv1.yaml",project_name="param_sweeper"):
-#     from train import main
+#     from train import ma1in
 #     with open(sweep_config, 'r') as file:
 #         try:
 #             config = yaml.safe_load(file)

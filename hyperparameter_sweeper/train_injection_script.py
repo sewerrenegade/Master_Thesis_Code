@@ -1,15 +1,10 @@
-import sys
-import os
-
-# Get the parent directory (one level up)
-parent_dir = os.path.abspath(os.path.join(os.getcwd(), '.'))
-
-# Append the parent directory to sys.path
-sys.path.append(parent_dir)
-from train import main
-
-
 if __name__ == "__main__":
+    import sys
+    import os
+
+    # Append the parent directory to sys.path
+    sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '.')))
+    from train import main
     base_config_path = None
     for item in sys.argv:
         if item.startswith('--base_config_path='):
