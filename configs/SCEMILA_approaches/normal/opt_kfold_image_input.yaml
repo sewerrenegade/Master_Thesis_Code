@@ -17,12 +17,14 @@ dataset:
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: True
+    balance_dataset_classes: 50
+    augmentation_settings: ["all",0.5]
 
 
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
-  class_weighting_factor: 0.5
+  class_weighting_factor: 0
   optimizer: 
     name: "Adam"
     config:

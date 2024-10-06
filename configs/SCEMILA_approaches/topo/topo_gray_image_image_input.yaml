@@ -5,10 +5,12 @@ model_params:
     class_count: 5
     device: "cuda:0"
     input_type: "images"
-    dropout_encoder: 0.0
-    pretrained_encoder: False
-    lam_topo: 1
-    lam_topo_per_epoch_decay: 0.955
+    dropout_encoder: 0.2
+    pretrained_encoder: True
+    lam_topo: 0.000025
+    label_smoothing: 0.1
+    lam_topo_per_epoch_decay: 1.008
+    max_lam: 0.01
             
 dataset:
   name: 'SCEMILA'
@@ -16,6 +18,8 @@ dataset:
     num_workers: 4
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
+    balance_dataset_classes: 40
+    augmentation_settings: ["none",0.0]
     gpu: True
     input_type: "images"
     topo_settings:
@@ -41,17 +45,18 @@ exp_params:
     config:
       LR: 0.00005
       factor: 0.5
-      weight_decay: 0.001
+      weight_decay: 0.00035
       scheduler: "ReduceLROnPlateau"
-      patience: 2
+      patience: 10
+      monitor_metric: "val_mil_loss"
     batch_size: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 50
-  accumulate_grad_batches : 1
+  max_epochs: 200
+  accumulate_grad_batches : 24
 
 logging_params:
   project_name: "Masters_Project"
@@ -62,5 +67,5 @@ logging_params:
 ES_params:
   monitor: 'val_mil_loss_epoch'
   min_delta: 0.1
-  patience: 25
+  patience: 100
   mode: 'min'
