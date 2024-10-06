@@ -1,6 +1,6 @@
 import typing
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
  
 
 from datasets.SCEMILA.base_image_SCEMILA import SCEMILA_base

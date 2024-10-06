@@ -1,10 +1,7 @@
 import typing
-import sys
-from datasets.SCEMILA.base_image_SCEMILA import SCEMILA_MIL_base, SCEMILA_base
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
- 
+from datasets.SCEMILA.base_image_SCEMILA import SCEMILA_MIL_base, SCEMILA_base 
 from datasets.SCEMILA.base_fnl34_features import SCEMILA_fnl34_feature_base
-from datasets.data_synthesizers.data_sythesizer import SinglePresenceMILSynthesizer, DoublePresenceSythesizer
+from datasets.data_synthesizers.data_sythesizer import SinglePresenceMILSynthesizer
 from datasets.MNIST.MNIST_dataloader import MNIST
 from datasets.FashionMNIST.FashionMNIST_base import FashionMNIST_MIL_base, FashionMNIST_base
 from datasets.MNIST.MNIST_base import MNIST_MIL_base, MNISTBase

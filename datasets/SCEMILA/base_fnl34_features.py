@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 from datasets.base_dataset_abstraction import BaseDataset
 import random
 from collections.abc import Iterable

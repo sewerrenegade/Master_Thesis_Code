@@ -1,11 +1,6 @@
-import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 from datasets.base_dataset_abstraction import BaseDataset
 from collections.abc import Iterable
 import os
-from PIL import Image
-import numpy as np
-import torch
 import torchvision.transforms as transforms
 
 from datasets.data_synthesizers.data_sythesizer import SinglePresenceMILSynthesizer

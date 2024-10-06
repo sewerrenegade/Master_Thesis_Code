@@ -75,8 +75,8 @@ class BaseMILDataset(Dataset, ABC):
                 labels.extend([key]*len(value))
             return list(zip(paths,labels)),new_class_indicies, BaseMILDataset.count_per_class_samples(new_class_indicies)
         
-        if self.augmentation_settings is None and min(list(self.per_class_count.values())) < self.number_of_per_class_instances:
-            raise ValueError(f"You have requested a balanced version of {self.name}, however the smallest class (size of {min(list(self.per_class_count.values()))}) in the natural dataset is smaller than the requested balance {self.per_class_count} and the augmentation of")
+        if (self.augmentation_settings.is_no_augmentations_setting() or self.augmentation_settings is None) and min(list(self.per_class_count.values())) < self.number_of_per_class_instances:
+            print(f"WARNING: You have requested a balanced version of {self.name}, however the smallest class (size of {min(list(self.per_class_count.values()))}) in the natural dataset is smaller than the requested balance {self.per_class_count}; therefore normal resampling will occur")
         
         new_class_indicies = {}
         paths = []

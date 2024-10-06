@@ -1,15 +1,9 @@
-import sys
-
-
-
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import pandas as pd
 from reportlab.lib.units import inch
 from results.report_generators.common_report_functions import append_pdf_page
 from results.report_generators.common_report_data import NORMAL_STYLE,HEADING_STYLES,TABLE_STYLE,TITLE_STYLE
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table,  Paragraph, Image, PageBreak
-from datasets.SCEMILA import *
+from reportlab.platypus import SimpleDocTemplate, Table,  Paragraph, PageBreak
 
 
 descriptors = []

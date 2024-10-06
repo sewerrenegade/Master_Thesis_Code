@@ -1,18 +1,6 @@
-import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
-from pathlib import Path
-# PCA for feature inferred
-from sklearn.decomposition import PCA
-from skimage.filters import threshold_otsu
-import os
-import random
-from glob import glob
 #from datasets.SCEMILA.base_SCEMILA import SCEMILAimage_base
 
 DINOBLOOM_DEFAULT_MEAN = (0.485, 0.456, 0.406)

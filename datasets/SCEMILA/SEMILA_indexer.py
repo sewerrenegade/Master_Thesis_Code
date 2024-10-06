@@ -2,7 +2,7 @@ import glob
 import json
 import os
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 import pandas as pd
 import random
 import re

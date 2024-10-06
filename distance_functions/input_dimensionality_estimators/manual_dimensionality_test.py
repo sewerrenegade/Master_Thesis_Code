@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 import matplotlib.pyplot as plt
 import os
 from configs.global_config import GlobalConfig

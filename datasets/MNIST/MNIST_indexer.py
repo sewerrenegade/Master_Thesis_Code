@@ -1,6 +1,6 @@
 
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 import os
 from datasets.indexer_scripts.indexer_abstraction import Indexer
 from torchvision.datasets import MNIST

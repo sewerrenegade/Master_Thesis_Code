@@ -1,6 +1,6 @@
 
 import sys
-sys.path.append('/home/milad/Desktop/Master_Thesis/code/Master_Thesis_Code')
+
 from datasets.base_dataset_abstraction import BaseDataset
 from datasets.mil_dataset_abstraction import BaseMILDataset
 import numpy as np

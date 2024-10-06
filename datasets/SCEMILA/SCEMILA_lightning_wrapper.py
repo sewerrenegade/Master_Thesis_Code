@@ -1,5 +1,5 @@
 import pytorch_lightning as pl
-from sklearn.model_selection import KFold, train_test_split,StratifiedKFold
+from sklearn.model_selection import  train_test_split,StratifiedKFold
 from torch.utils.data.dataloader import DataLoader
 from datasets.SCEMILA.base_image_SCEMILA import SCEMILA_MIL_base
 from datasets.image_augmentor import AugmentationSettings
@@ -65,11 +65,12 @@ class SCEMILA(pl.LightningDataModule):
             to_tensor = self.to_tensor,
             augmentation_settings = self.augmentation_settings,topo_settings=self.topo_settings)
         if self.k_fold <= 1:
+            targets = train_dataset.get_targets()
             train_dataset_size = len(train_dataset)
-            val_size = int(self.val_split * train_dataset_size)
+            val_size = max(int(self.val_split * train_dataset_size),len(set(targets)))
             train_size = train_dataset_size - val_size
             
-            targets = train_dataset.get_targets()
+            
             train_idx, val_idx = train_test_split(
                 range(len(targets)), 
                 test_size=val_size, 
@@ -93,7 +94,7 @@ class SCEMILA(pl.LightningDataModule):
     def create_test_dataset(self):
         test_dataset = SCEMILA_MIL_base(training_mode= False,input_type=self.input_type,
             encode_with_dino_bloom = self.encode_with_dino_bloom,
-            balance_dataset_classes = self.balance_dataset_classes,
+            balance_dataset_classes = None,
             gpu = self.gpu, grayscale= self.grayscale,
             numpy = self.numpy,flatten = self.flatten,
             to_tensor = self.to_tensor,
@@ -130,7 +131,7 @@ class SCEMILA(pl.LightningDataModule):
     def val_dataloader(self):
         data_temp =  DataLoader(
             self.val_dataset, 
-            num_workers=1,
+            num_workers=0,
             shuffle=False,
             persistent_workers=False,
             batch_size=1
@@ -140,7 +141,7 @@ class SCEMILA(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset, 
-            num_workers=1,
+            num_workers=0,
             persistent_workers=False,
             batch_size=1
             )

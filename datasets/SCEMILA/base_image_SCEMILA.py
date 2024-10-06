@@ -194,7 +194,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
             
         dataset = SCEMILA_MIL_base(training_mode= True,
             gpu = False, 
-            numpy = True, **topo_dataset_settings["dataset_settings"])
+            numpy = True,balance_dataset_classes=self.number_of_per_class_instances, **topo_dataset_settings["dataset_settings"])
         
         embedding_function = EmbeddingFunction(**topo_dataset_settings.get("embedding_settings",{"function_name": None,"function_settings" : None}))
         nb_of_grouped_bags=topo_dataset_settings["nb_of_grouped_bags"]

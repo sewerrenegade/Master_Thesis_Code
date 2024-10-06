@@ -23,7 +23,7 @@ dataset:
     gpu: True
     input_type: "images"
     topo_settings:
-      nb_of_grouped_bags: 5
+      nb_of_grouped_bags: 1
       normalize_distance_matricies: True
       dataset_settings:
         grayscale: True

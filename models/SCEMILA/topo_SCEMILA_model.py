@@ -28,7 +28,7 @@ class TopoAMiL(nn.Module):
         self.multicolumn = multicolumn
         self.device = device
         self.cross_entropy_loss = nn.CrossEntropyLoss(label_smoothing = label_smoothing)
-        self.topo_sig = TopologicalSignatureDistance(match_edges='symmetric')
+        self.topo_sig = TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device!="cpu")
 
         # feature extractor before multiple instance learning starts
         
