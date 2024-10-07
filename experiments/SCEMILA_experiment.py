@@ -99,6 +99,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         p = 0.95
         self.log_confusion_matrix("train",self.train_confusion_matrix)
         #is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
+        x = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix)
         is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
         if is_p_diagonal:
             self.model.remove_smoothing()
