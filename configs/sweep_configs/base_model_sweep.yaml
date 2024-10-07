@@ -16,6 +16,8 @@ parameters:
     max: 0.4
   model_params.config.pretrained_encoder:
     values: [True,True,False]
+  dataset.config.augmentation_settings:
+    values: [["all",0.0],["all",0.1],["all",0.4],["all",0.5]]
   exp_params.optimizer.config.LR:
     distribution: log_uniform_values
     min: 0.00001
