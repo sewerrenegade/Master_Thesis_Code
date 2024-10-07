@@ -128,9 +128,11 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.val_confusion_matrix = torch.zeros(self.n_c, self.n_c)
         
     def on_train_epoch_end(self) -> None:
+        p = 0.95
         self.log_confusion_matrix("train",self.train_confusion_matrix)
-        is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
-        if is_diagonal:
+        #is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
+        is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
+        if is_p_diagonal:
             self.model.remove_smoothing()
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
 
