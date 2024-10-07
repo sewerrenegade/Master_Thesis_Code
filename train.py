@@ -125,9 +125,9 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
         terminal_logger.info(f"======= Training {config['model_params']['name']} =======")
         
         runner.fit(experiment, data)
+        best_ckpt_path = checkpoint_callback.get_best_path()
+        result =runner.test(experiment, data, ckpt_path=best_ckpt_path)
         
-        result =runner.test(experiment, data, ckpt_path=checkpoint_callback.get_best_path())
-        best_ckpt_path = checkpoint_callback.best_model_path
         wnb_logger.experiment.summary["test_checkpoint_path"] = best_ckpt_path
         from re import search
         match = search(r'epoch=(\d+)', best_ckpt_path)
