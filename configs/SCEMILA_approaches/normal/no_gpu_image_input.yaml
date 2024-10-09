@@ -18,7 +18,7 @@ dataset:
     input_type: "images"
     gpu: False
     balance_dataset_classes: 3
-    augmentation_settings: ["all",0.5]
+    augmentation_settings: null
 
 
 exp_type: "SCEMILA_experiment"
