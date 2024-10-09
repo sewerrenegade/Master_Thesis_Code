@@ -41,6 +41,7 @@ trainer_params:
   accelerator: 'gpu'
   devices: [0]
   max_epochs: 200
+  enable_progress_bar: False
   accumulate_grad_batches: 24
 
 

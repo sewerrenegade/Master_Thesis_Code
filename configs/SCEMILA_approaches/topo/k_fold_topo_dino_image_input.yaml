@@ -52,6 +52,7 @@ exp_params:
 
 trainer_params:
   precision: '32'
+  enable_progress_bar: False
   accelerator: 'gpu'
   devices: [0]
   max_epochs: 200

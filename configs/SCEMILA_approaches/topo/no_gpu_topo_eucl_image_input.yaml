@@ -8,8 +8,6 @@ model_params:
     pretrained_encoder: False
     input_type: "images"
     label_smoothing: 0.1
-    lam_topo: 1
-    lam_topo_per_epoch_decay: 0.955
             
 dataset:
   name: 'SCEMILA'
@@ -22,11 +20,15 @@ dataset:
     balance_dataset_classes: 3
     augmentation_settings: ["none",0.5]
     topo_settings:
-      nb_of_grouped_bags: 1
+      nb_of_grouped_bags: 3
       normalize_distance_matricies: True
       dataset_settings:
         grayscale: True
         encode_with_dino_bloom: False
+      embedding_settings:
+        function_name: "UMAP"
+        function_settings:
+          n_components: 2
 
 
 exp_type: "topo_SCEMILA_experiment"
@@ -44,6 +46,29 @@ exp_params:
       factor: 0.5
       monitor_metric: "val_mil_loss"
     batch_size: 1
+  topo_scheduler:
+    # type: "constant"
+    # lam: 0.0001
+
+    # type: "exp_epoch"
+    # lam_topo_per_epoch_decay: 1.0069
+    # max_lam: 0.00201
+    # lam: 0.00001
+
+    type: "match_mil_loss"
+    tracked_metric: "train_correct_epoch"
+    metric_threshold: 0.1
+    active_high: True
+    match_on_step: False
+    default_value: 0.0
+    
+    
+
+    # type: "on_off"
+    # tracked_metric: "train_correct_epoch"
+    # metric_threshold: 0.25
+    # lam_high: 0.01
+    # lam_low: 0.000001
 
 
 trainer_params:

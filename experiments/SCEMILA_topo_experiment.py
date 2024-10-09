@@ -12,39 +12,80 @@ import seaborn as sns
 from functools import partial
 
 class TopoScheduler:
-    def __init__(self,experiment: pl.LightningModule = None,*args):
-        sched_type = args["type"]
+    DEFAULT = 0.0
+    def __init__(self,experiment: pl.LightningModule = None,dict_args:dict={}):
+        sched_type = dict_args.get("type", "constant")  # Default to empty string if "type" not found
         self.type = sched_type
         self.experiment = experiment
-        self.args = args
+        self.args = dict_args
+
         if self.type == "constant":
-            self.function = partial(self.constant_fnc,lam = args["lam"])
+            self.function = partial(self.constant_fnc, lam=dict_args.get("lam", 0.001))  # Default to None if "lam" not found
         if self.type == "exp_epoch":
-            self.function = partial(self.exp_schedule,lam_topo = args["lam_topo"],lam_topo_per_epoch_decay = args["lam_topo_per_epoch_decay"],max_lam = args["max_lam"])
+            self.function = partial(
+                self.exp_schedule,
+                lam_topo=dict_args.get("lam", 0.000025),  # Default to None if "lam_topo" not found
+                lam_topo_per_epoch_decay=dict_args.get("lam_topo_per_epoch_decay", 1.008),  # Default to None if "lam_topo_per_epoch_decay" not found
+                max_lam=dict_args.get("max_lam", 0.01)  # Default to None if "max_lam" not found
+            )
         elif self.type == "on_off":
-            self.function = partial(self.on_off,tracked_metric = args["tracked_metric"],metric_threshold = args["metric_threshold"],lam_high = args["lam_high"],lam_low = args["lam_low"])
+            self.function = partial(
+                self.on_off,
+                tracked_metric=dict_args.get("tracked_metric", "train_correct_epoch"),  # Default to None if "tracked_metric" not found
+                metric_threshold=dict_args.get("metric_threshold", 0.95),  # Default to None if "metric_threshold" not found
+                lam_high=dict_args.get("lam_high", 0.001),  # Default to None if "lam_high" not found
+                lam_low=dict_args.get("lam_low", 0.0)  # Default to None if "lam_low" not found
+            )
         elif self.type == "match_mil_loss":
-            self.function = partial(self.match_mil_loss_with_trigger,tracked_metric = args["tracked_metric"],metric_threshold = args["metric_threshold"],active_high = args["active_high"])
+            self.function = partial(
+                self.match_mil_loss_with_trigger,
+                tracked_metric=dict_args.get("tracked_metric", "train_correct_epoch"),  # Default to None if "tracked_metric" not found
+                metric_threshold=dict_args.get("metric_threshold", 0.95),  # Default to None if "metric_threshold" not found
+                active_high=dict_args.get("active_high", True),  # Default to None if "active_high" not found
+                match_on_step=dict_args.get("match_on_step", True),  # If true match loss on a step level, if false matches it on an epoch level
+                default_value=dict_args.get("default_value", TopoScheduler.DEFAULT)
+            )
         else:
             raise ValueError("This type of Topo scheduling is not supported")
-        
+                
     def __call__(self, step_metrics):
-        self.function(step_metrics=step_metrics)
+        return self.function(step_metrics=step_metrics)
 
     def constant_fnc(self,lam):
         return lam
     
     def on_off(self,step_metrics, tracked_metric, metric_threshold, lam_high, lam_low):
-        if step_metrics[tracked_metric] > metric_threshold:
-            return lam_high
+        metric = self.experiment.trainer.callback_metrics.get(tracked_metric,None)
+        if metric is not None:
+            if (metric > metric_threshold):
+                print("high")
+                return lam_high
+            else:
+                print("low")
+                return lam_low
         else:
-            return lam_low
+            return TopoScheduler.DEFAULT #if user requested an on_epoch metric, then it is not accessable during first epoch
         
-    def match_mil_loss_with_trigger(self, step_metrics, tracked_metric, metric_threshold,active_high = True):
-        if (step_metrics[tracked_metric] > metric_threshold) == active_high:
-            return float(step_metrics["mil_loss"])/float(step_metrics["topo_loss"])
+    def match_mil_loss_with_trigger(self, step_metrics, tracked_metric, metric_threshold,default_value,match_on_step,active_high):
+        metric = self.experiment.trainer.callback_metrics.get(tracked_metric,None) 
+        if metric is not None:
+            if match_on_step:
+                if (metric > metric_threshold) == active_high:
+                    with torch.no_grad():
+                        result = step_metrics["mil_loss"] / step_metrics["topo_loss"]
+                    return result
+                else:
+                    return default_value
+            else:
+                if (metric > metric_threshold) == active_high:
+                    with torch.no_grad():
+                        result = self.experiment.trainer.callback_metrics.get("train_mil_loss_epoch",0.0)  / self.experiment.trainer.callback_metrics.get("train_topo_loss_epoch",1.0) 
+                    return result
+                else:
+                    return default_value
+                
         else:
-            return 0.0
+            return TopoScheduler.DEFAULT #if user requested an on_epoch metric, then it is not accessable during first epoch
 
     def exp_schedule(self,step_metrics,lam_topo,lam_topo_per_epoch_decay,max_lam):
         return min(lam_topo * (lam_topo_per_epoch_decay**self.experiment.current_epoch),max_lam)
@@ -102,7 +143,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             latent_distance_matrix=model_output[-1], input_distance_matrix=dist_mat
         )
         train_joint_loss.update(train_step_topo_loss)
-        train_joint_loss["topo_loss_weight"] = min(self.model.lam_topo * (self.model.lam_topo_per_epoch_decay**self.current_epoch),self.model.max_lam)
+        train_joint_loss["topo_loss_weight"] = self.topo_scheduler(train_joint_loss)
         train_joint_loss["loss"] = train_joint_loss["mil_loss"] + train_joint_loss["topo_loss_weight"] * train_joint_loss["topo_loss"]
         self.train_confusion_matrix[
             train_joint_loss["label"], train_joint_loss["prediction_int"]
@@ -121,7 +162,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         if "LR" in step_loss and phase == "train":
             self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
         if "topo_loss_weight" in step_loss and phase == "train":
-            self.log("topo_loss_weight",step_loss["topo_loss_weight"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+            self.log("topo_loss_weight",step_loss["topo_loss_weight"],on_step=True,on_epoch= False,prog_bar= False,logger = True)
         self.logger.log_metrics({f"{phase}_label_int":step_loss["label"]})
         self.logger.log_metrics({f"{phase}_pred_int":step_loss["prediction_int"]})
        
@@ -142,7 +183,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             latent_distance_matrix=model_output[-1], input_distance_matrix=dist_mat
         )
         val_step_joint_loss.update(val_step_topo_loss)
-        val_step_joint_loss["topo_loss_weight"] = min(self.model.lam_topo * (self.model.lam_topo_per_epoch_decay**self.current_epoch),self.model.max_lam)
+        val_step_joint_loss["topo_loss_weight"] = self.topo_scheduler(val_step_joint_loss)
         val_step_joint_loss["loss"] = (
             val_step_joint_loss["mil_loss"] + val_step_joint_loss["topo_loss_weight"] * val_step_joint_loss["topo_loss"]
         )

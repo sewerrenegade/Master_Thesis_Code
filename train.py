@@ -25,7 +25,6 @@ def initialize_logger(config,split_num = -1,k_folds = -1):
                             project=config["logging_params"]["project_name"],
                             config = config,
                             entity = "milad-research")
-    wnb_logger.experiment.summary["version_number_sum"] = "wandb lightning STAYOUBID"
     wnb_logger.experiment.summary["version_number_sum"] = wnb_logger.version
 
     return wnb_logger
@@ -145,68 +144,11 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
     global output_results
     output_results= results #returns the results of every split permutation
 
-    
-# def save_important_results_next_to_config(results,config):
-#         current_datetime = datetime.now()
-#         formatted_datetime = current_datetime.strftime("%H.%M.%d.%m")
-#         file_name = (
-#             f"{config[0]}{config[1]}_{formatted_datetime}.txt"
-#         )
-#         table = tabulate(results, headers=["Metric", "Mean", "Std"], tablefmt="grid")
-#         with open(file_name, "w") as file:
-#             file.write(table)
-
-
-# def setup_and_start_training(number_of_runs = 1):
-#     configs = [
-#             #["configs/SCEMILA_approaches/normal/","test_image_input.yaml"],
-#             #["configs/SCEMILA_approaches/normal/","opt_image_input.yaml"],
-#             #["configs/SCEMILA_approaches/normal/","opt_kfold_image_input.yaml"],
-#             #["configs/SCEMILA_approaches/normal/","dino_input.yaml"],
-#             #["configs/SCEMILA_approaches/normal/","fnl34_input.yaml"],
-#             # ["configs/SCEMILA_approaches/normal/","gray_image_input.yaml"],
-#             #["configs/SCEMILA_approaches/normal/","image_input.yaml"],
-#             #### topo methods
-#             #["configs/SCEMILA_approaches/topo/","topo_gray_image_image_input.yaml"],
-#             #["configs/SCEMILA_approaches/topo/","topo_image_image_input.yaml"],
-#             ["configs/SCEMILA_approaches/topo/","topo_dino_image_input.yaml"],
-#             #["configs/SCEMILA_approaches/topo/","topo_dino_dino_input.yaml"]
-#             ]
-    
-#     for test_index in range(len(configs)):
-#         #set_config_file_environment_variable(configs[test_index][0],configs[test_index][1])
-#         all_metrics = []
-#         print(f"Running the configuration {configs[test_index][0]}{configs[test_index][1]}")
-#         for run in range(number_of_runs):
-#             print(f"Starting {run+1}th run")
-#             main(config_path=configs[test_index][0],config_name=configs[test_index][1])
-#             all_metrics.extend(output_results)
-
-#         mean_metrics = {
-#             metric: mean(tensor([m[metric] for m in all_metrics]))
-#             for metric in all_metrics[0]
-#         }
-#         std_metrics = {
-#             metric: std(tensor([m[metric] for m in all_metrics]))
-#             for metric in all_metrics[0]
-#         }
-#         results = []
-#         for metric in mean_metrics:
-#             results.append(
-#                 [
-#                     metric,
-#                     f"{mean_metrics[metric]:.4f}",
-#                     f"+/- {std_metrics[metric]:.4f}",
-#                 ]
-#             )
-#         save_important_results_next_to_config(results,configs[test_index])
-
-    
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Run training with specified configuration.")
-    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/normal/" ,help="Path to the configuration folder.")
-    parser.add_argument('--config_name', type=str,default="no_gpu_image_input.yaml", help="Name of the configuration file.")
+    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/topo/" ,help="Path to the configuration folder.")
+    parser.add_argument('--config_name', type=str,default="no_gpu_topo_eucl_image_input.yaml", help="Name of the configuration file.")
     args = parser.parse_args()
 
     main(config_path=args.config_folder,config_name=args.config_name)

@@ -18,7 +18,7 @@ dataset:
     input_type: "images"
     gpu: False
     balance_dataset_classes: 3
-    augmentation_settings: null
+    augmentation_settings: ["all",0.07]
 
 
 exp_type: "SCEMILA_experiment"
@@ -35,6 +35,12 @@ exp_params:
       patience: 2
       monitor_metric: "val_mil_loss"
     batch_size: 1
+  topo_scheduler:
+    type: "on_off"
+    tracked_metric: "train_mil_loss_epoch"
+    metric_threshold: 0.95
+    max_lam: 0.01
+    min_lam: 0.000001
 
 trainer_params:
   precision: '32'
