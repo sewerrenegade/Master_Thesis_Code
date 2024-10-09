@@ -86,7 +86,7 @@ class Adam:
         LR,
         weight_decay=0,
         scheduler = None,
-        monitor_metric = "val_mil_loss",
+        monitor_metric = "val_mil_loss_epoch",
         mode = "min",
         factor=0.5,
         patience=5

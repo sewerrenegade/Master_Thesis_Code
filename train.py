@@ -25,8 +25,9 @@ def initialize_logger(config,split_num = -1,k_folds = -1):
                             project=config["logging_params"]["project_name"],
                             config = config,
                             entity = "milad-research")
-    
+    wnb_logger.experiment.summary["version_number_sum"] = "wandb lightning STAYOUBID"
     wnb_logger.experiment.summary["version_number_sum"] = wnb_logger.version
+
     return wnb_logger
 
 def get_and_configure_callbacks(config):

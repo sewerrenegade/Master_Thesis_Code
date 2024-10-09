@@ -17,14 +17,14 @@ dataset:
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: True
-    balance_dataset_classes: 40
-    augmentation_settings: ["all",0.0]
+    balance_dataset_classes: 50
+    augmentation_settings: null
 
 
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
-  class_weighting_factor: 0.0
+  class_weighting_factor: 0
   optimizer: 
     name: "Adam"
     config:
@@ -33,14 +33,14 @@ exp_params:
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 10
-      monitor_metric: "val_mil_loss"
+      monitor_metric: "val_correct_epoch"
     batch_size: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
+  max_epochs: 200
   accumulate_grad_batches: 24
 
 
@@ -52,6 +52,6 @@ logging_params:
 
 ES_params:
   monitor: 'val_correct_epoch'
-  min_delta: 0.001
+  min_delta: 0
   patience: 100
   mode: 'min'

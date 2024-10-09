@@ -1,6 +1,6 @@
 name: rgb_res18_sweep
 program: hyperparameter_sweeper/train_injection_script.py
-project: param_sweep
+project: new_param_sweep
 method: bayes  # or grid, random
 metric:
   name: accuracy
@@ -17,7 +17,7 @@ parameters:
   model_params.config.pretrained_encoder:
     values: [True,True,False]
   dataset.config.augmentation_settings:
-    values: [["all",0.0],["all",0.1],["all",0.4],["all",0.5]]
+    values: [null,["all",0.025],["all",0.05],["all",0.1]]
   exp_params.optimizer.config.LR:
     distribution: log_uniform_values
     min: 0.00001
@@ -27,20 +27,20 @@ parameters:
     min: 0.00001
     max: 0.001
   exp_params.optimizer.config.factor:
+    distribution: log_uniform_values
     min: 0.4
     max: 0.7
   exp_params.optimizer.config.patience:
     values: [8,10]
   trainer_params.accumulate_grad_batches:
-    values: [1, 6, 12, 24]
+    values: [1, 18, 36]
   trainer_params.max_epochs:
     values: [300,350] 
   ES_params.patience:
-    values: [250]
+    values: [100]
   ES_params.min_delta:
     values: [0.01]
   dataset.config.k_fold:
     values: [-1]
   exp_params.class_weighting_factor:
-    min: 0.0
-    max: 1.0
+    values: [0.0,0.5,1.0]

@@ -176,7 +176,20 @@ class AugmentationSettings:
         return x
 
 whiteness = 0.98
-
+class PerAugmentationBinomialAugmentor:
+    def __init__(self, augmentation_list,per_augmentation_p = 0.1):
+        self.per_augmentation_p = per_augmentation_p
+        self.augmentation_list = augmentation_list
+        self.augmentation_function = []
+        for single_augmentation in self.augmentation_list:
+            self.augmentation_function.append(BinomialAugmentor(single_augmentation,p=self.per_augmentation_p))
+        self.augmentation_function = transforms.Compose(self.augmentation_function)
+    def __call__(self,image):
+        return self.augmentation_function(image)
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}(p={self.per_augmentation_p})"
+    
 class BinomialAugmentor:
     def __init__(self, augmentation_function,p=0.5):
         self.p = p
@@ -283,8 +296,11 @@ def get_dataset_compatible_augmentation_function(aug_settings: AugmentationSetti
     if len(augmentations) == 0 or DATASET_AUGMENTABIBILITY[dataset_name] == Augmentability.UNAUGMENTABLE:
         augmentations.append(IdentityTransform())
 
-    if aug_settings.probability_of_augmenting is not None and 0 < aug_settings.probability_of_augmenting < 1.0:
-        augmentations = [BinomialAugmentor(augmentation_function=transforms.Compose(augmentations),p = aug_settings.probability_of_augmenting)]
+    if aug_settings.probability_of_augmenting is not None and 0 < aug_settings.probability_of_augmenting <= 1.0:
+        augmentations = [PerAugmentationBinomialAugmentor(augmentation_list=augmentations,p = aug_settings.probability_of_augmenting)]
+    else:
+        print(f"WARNING: No augmentations are applied")
+        augmentations = [IdentityTransform()]
     return augmentations,aug_settings
             
             
