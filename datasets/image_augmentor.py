@@ -183,9 +183,12 @@ class BinomialAugmentor:
         self.augmentation_function = augmentation_function
         assert callable(self.augmentation_function)
     def __call__(self, image):
+        print("called a bino")
         if random.random() < self.p:
+            print("yes")
             return self.augmentation_function(image)
         else:
+            print("no")
             return image
 
     def __repr__(self):
