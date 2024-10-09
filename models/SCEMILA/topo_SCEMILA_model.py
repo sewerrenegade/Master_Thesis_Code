@@ -8,7 +8,7 @@ from torchvision import models
 
 
 class TopoAMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",label_smoothing = 0.0,lam_topo = 1.0,max_lam = 0.1,lam_topo_per_epoch_decay = 1.0,pretrained_encoder = False,dropout_encoder = None):
+    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",label_smoothing = 0.0,pretrained_encoder = False,dropout_encoder = None):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -20,9 +20,6 @@ class TopoAMiL(nn.Module):
         self.L = 500
         self.D = 128                    # hidden layer size for attention network
         self.input_type =input_type
-        self.lam_topo = lam_topo
-        self.lam_topo_per_epoch_decay = lam_topo_per_epoch_decay
-        self.max_lam = max_lam
         self.class_count = class_count
         self.label_smoothing = label_smoothing
         self.multicolumn = multicolumn

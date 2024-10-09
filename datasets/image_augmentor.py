@@ -159,7 +159,8 @@ class AugmentationSettings:
         Returns:
         - AugmentationSettings instance with only one augmentation enabled.
         """
-
+        if augmentation_name is None:
+            augmentation_name = "none"
         valid_augmentations = AugmentationSettings.ValidAugmentationNames
         if augmentation_name not in valid_augmentations:
             raise ValueError(f"{augmentation_name} is not a valid augmentation type.")
@@ -297,7 +298,7 @@ def get_dataset_compatible_augmentation_function(aug_settings: AugmentationSetti
         augmentations.append(IdentityTransform())
 
     if aug_settings.probability_of_augmenting is not None and 0 < aug_settings.probability_of_augmenting <= 1.0:
-        augmentations = [PerAugmentationBinomialAugmentor(augmentation_list=augmentations,p = aug_settings.probability_of_augmenting)]
+        augmentations = [PerAugmentationBinomialAugmentor(augmentation_list=augmentations,per_augmentation_p = aug_settings.probability_of_augmenting)]
     else:
         print(f"WARNING: No augmentations are applied")
         augmentations = [IdentityTransform()]
