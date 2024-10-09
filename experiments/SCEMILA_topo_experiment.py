@@ -9,7 +9,45 @@ from models.SCEMILA.topo_SCEMILA_model import TopoAMiL
 from models.model_factory import get_module
 import matplotlib.pyplot as plt
 import seaborn as sns
+from functools import partial
 
+class TopoScheduler:
+    def __init__(self,experiment: pl.LightningModule = None,*args):
+        sched_type = args["type"]
+        self.type = sched_type
+        self.experiment = experiment
+        self.args = args
+        if self.type == "constant":
+            self.function = partial(self.constant_fnc,lam = args["lam"])
+        if self.type == "exp_epoch":
+            self.function = partial(self.exp_schedule,lam_topo = args["lam_topo"],lam_topo_per_epoch_decay = args["lam_topo_per_epoch_decay"],max_lam = args["max_lam"])
+        elif self.type == "on_off":
+            self.function = partial(self.on_off,tracked_metric = args["tracked_metric"],metric_threshold = args["metric_threshold"],lam_high = args["lam_high"],lam_low = args["lam_low"])
+        elif self.type == "match_mil_loss":
+            self.function = partial(self.match_mil_loss_with_trigger,tracked_metric = args["tracked_metric"],metric_threshold = args["metric_threshold"],active_high = args["active_high"])
+        else:
+            raise ValueError("This type of Topo scheduling is not supported")
+        
+    def __call__(self, step_metrics):
+        self.function(step_metrics=step_metrics)
+
+    def constant_fnc(self,lam):
+        return lam
+    
+    def on_off(self,step_metrics, tracked_metric, metric_threshold, lam_high, lam_low):
+        if step_metrics[tracked_metric] > metric_threshold:
+            return lam_high
+        else:
+            return lam_low
+        
+    def match_mil_loss_with_trigger(self, step_metrics, tracked_metric, metric_threshold,active_high = True):
+        if (step_metrics[tracked_metric] > metric_threshold) == active_high:
+            return float(step_metrics["mil_loss"])/float(step_metrics["topo_loss"])
+        else:
+            return 0.0
+
+    def exp_schedule(self,step_metrics,lam_topo,lam_topo_per_epoch_decay,max_lam):
+        return min(lam_topo * (lam_topo_per_epoch_decay**self.experiment.current_epoch),max_lam)
 
 class TopoSCEMILA_Experiment(pl.LightningModule):
     def __init__(self, model: TopoAMiL, params: typing.Dict[str, typing.Any]) -> None:
@@ -26,6 +64,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.indexer = SCEMILA_Indexer.get_indexer()
         if self.class_weighting_factor:
             self.class_weights = self.get_class_weights(self.class_weighting_factor)
+        self.topo_scheduler = TopoScheduler(self,params["topo_scheduler"])
         pass
     
     def get_class_weights(self,weighting_factor):
@@ -52,6 +91,8 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         plt.title("Confusion Matrix")
         wandb.log({f"{phase} confusion matrix": wandb.Image(plt)})
         plt.close()
+
+
 
     def training_step(self, batch, batch_idx):
         bag, bag_label, dist_mat = batch

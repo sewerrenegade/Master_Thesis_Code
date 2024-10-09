@@ -7,10 +7,6 @@ model_params:
     dropout_encoder: 0.2
     pretrained_encoder: True
     input_type: "images"
-    lam_topo: 0.000025
-    label_smoothing: 0.1
-    lam_topo_per_epoch_decay: 1.008
-    max_lam: 0.01
             
 dataset:
   name: 'SCEMILA'
@@ -45,6 +41,12 @@ exp_params:
       patience: 10
       monitor_metric: "val_mil_loss"
     batch_size: 1
+  topo_scheduler:
+    type: "on_off"
+    tracked_metric: "train_mil_loss_epoch"
+    metric_threshold: 0.95
+    max_lam: 0.01
+    min_lam: 0.000001
 
 trainer_params:
   precision: '32'

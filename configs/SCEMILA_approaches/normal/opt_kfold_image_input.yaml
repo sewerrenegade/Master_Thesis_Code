@@ -13,12 +13,12 @@ dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
-    k_fold : 10 #set to one if no cross validation wanted
+    k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: True
     balance_dataset_classes: 50
-    augmentation_settings: ["all",0.0]
+    augmentation_settings: null
 
 
 exp_type: "SCEMILA_experiment"
@@ -33,7 +33,7 @@ exp_params:
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 10
-      monitor_metric: "val_mil_loss"
+      monitor_metric: "val_correct_epoch"
     batch_size: 1
 
 trainer_params:
@@ -51,7 +51,7 @@ logging_params:
   manual_seed: 1265
 
 ES_params:
-  monitor: 'val_mil_loss_epoch'
+  monitor: 'val_correct_epoch'
   min_delta: 0
   patience: 100
   mode: 'min'
