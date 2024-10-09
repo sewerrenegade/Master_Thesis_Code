@@ -20,7 +20,7 @@ class TopoScheduler:
         self.args = dict_args
 
         if self.type == "constant":
-            self.function = partial(self.constant_fnc, lam=dict_args.get("lam", 0.001))  # Default to None if "lam" not found
+            self.function = partial(self.constant_fnc, lam=dict_args.get("lam", 0.0005))  # Default to None if "lam" not found
         if self.type == "exp_epoch":
             self.function = partial(
                 self.exp_schedule,
@@ -105,7 +105,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.indexer = SCEMILA_Indexer.get_indexer()
         if self.class_weighting_factor:
             self.class_weights = self.get_class_weights(self.class_weighting_factor)
-        self.topo_scheduler = TopoScheduler(self,params["topo_scheduler"])
+        self.topo_scheduler = TopoScheduler(self,params.get("topo_scheduler",{}))
         pass
     
     def get_class_weights(self,weighting_factor):

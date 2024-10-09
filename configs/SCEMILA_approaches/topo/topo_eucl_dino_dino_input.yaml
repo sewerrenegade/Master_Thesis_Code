@@ -5,8 +5,6 @@ model_params:
     class_count: 5
     device: "cuda:0"
     input_type: "dino_bloom_small"
-    lam_topo: 1
-    lam_topo_per_epoch_decay: 0.955
             
 dataset:
   name: 'SCEMILA'

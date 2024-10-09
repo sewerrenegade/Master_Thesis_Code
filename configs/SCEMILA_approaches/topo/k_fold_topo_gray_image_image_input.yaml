@@ -7,10 +7,7 @@ model_params:
     input_type: "images"
     dropout_encoder: 0.2
     pretrained_encoder: True
-    lam_topo: 0.000025
-    label_smoothing: 0.1
-    lam_topo_per_epoch_decay: 1.008
-    max_lam: 0.01
+
             
 dataset:
   name: 'SCEMILA'

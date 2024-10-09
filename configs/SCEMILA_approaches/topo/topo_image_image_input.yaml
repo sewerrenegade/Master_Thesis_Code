@@ -5,10 +5,6 @@ model_params:
     class_count: 5
     device: "cuda:0"
     input_type: "images"
-    lam_topo: 1
-    dropout_encoder: 0.0
-    pretrained_encoder: False
-    lam_topo_per_epoch_decay: 0.955
             
 dataset:
   name: 'SCEMILA'

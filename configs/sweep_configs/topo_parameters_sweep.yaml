@@ -8,13 +8,6 @@ metric:
 parameters:
   base_config_path:
     values: ["configs/SCEMILA_approaches/topo/topo_eucl_gray_image_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
-  model_params.config.lam_topo:
-    distribution: log_uniform_values
-    min: 0.000001
-    max: 0.001
-  model_params.config.lam_topo_per_epoch_decay:
-    min: 1.0
-    max: 1.05
   model_params.config.label_smoothing:
     min: 0.05
     max: 0.15
