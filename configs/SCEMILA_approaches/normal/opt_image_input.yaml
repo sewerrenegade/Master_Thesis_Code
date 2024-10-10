@@ -13,6 +13,7 @@ dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
+    val_split: 0.25
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
@@ -33,6 +34,7 @@ exp_params:
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 10
+      #mode: "max"
       monitor_metric: "val_correct_epoch"
     batch_size: 1
 
@@ -42,7 +44,7 @@ trainer_params:
   devices: [0]
   max_epochs: 200
   accumulate_grad_batches: 24
-
+  enable_progress_bar: False
 
 logging_params:
   project_name: "Masters_Project_Opt"
@@ -52,6 +54,6 @@ logging_params:
 
 ES_params:
   monitor: 'val_correct_epoch'
-  min_delta: 0
+  mode: 'max'
+  min_delta: 0.01
   patience: 100
-  mode: 'min'
