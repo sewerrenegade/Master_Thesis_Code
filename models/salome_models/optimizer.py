@@ -87,7 +87,7 @@ class Adam:
         weight_decay=0,
         scheduler = None,
         monitor_metric = "val_correct_epoch",
-        mode = "min",
+        mode = "max",
         factor=0.5,
         patience=5
     ):

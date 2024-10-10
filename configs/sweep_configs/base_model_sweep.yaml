@@ -10,14 +10,16 @@ parameters:
     values: ["configs/SCEMILA_approaches/normal/opt_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
   model_params.config.label_smoothing:
     min: 0.0
-    max: 0.15
+    max: 0.3
   model_params.config.dropout_encoder:
     min: 0.05
     max: 0.4
   model_params.config.pretrained_encoder:
     values: [True,True,False]
   dataset.config.augmentation_settings:
-    values: [null,["all",0.025],["all",0.05],["all",0.1]]
+    values: ["none",["all",0.025],["all",0.05],["all",0.1]]
+  dataset.config.balance_dataset_classes:
+    values: [30,40,50]
   exp_params.optimizer.config.LR:
     distribution: log_uniform_values
     min: 0.00001
@@ -37,10 +39,10 @@ parameters:
   trainer_params.max_epochs:
     values: [300,350] 
   ES_params.patience:
-    values: [100]
+    values: [30,60,90]
   ES_params.min_delta:
     values: [0.01]
   dataset.config.k_fold:
     values: [-1]
   exp_params.class_weighting_factor:
-    values: [0.0,0.5,1.0]
+    values: [0.0,0.0,0.5]
