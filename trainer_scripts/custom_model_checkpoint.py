@@ -8,7 +8,7 @@ class CustomModelCheckpoint(ModelCheckpoint):
         super().__init__(*args, **kwargs) # avoid native checkpoint saving methods, only need inherited behavior
         
         assert isinstance(self.save_top_k,int)
-        self.best_models = []  # A list to store the top 3 models
+        self.best_models = []  # A list to store the top 3 models !!!!!this is not working 100% it only stores best model, best is always overwriting other!!!!!!
     def get_best_path(self):
         return self.best_models[0][2]
     def _compare_metrics(self, current_metrics,trainer, pl_module):
