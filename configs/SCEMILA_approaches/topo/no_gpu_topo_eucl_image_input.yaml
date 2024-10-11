@@ -50,30 +50,32 @@ exp_params:
     per_epoch_decay: 0.95
     train_correct_threshold: 0.95
   topo_scheduler:
-    type: "match_mil_loss"
-    tracked_metric: "train_correct_epoch"
-    metric_threshold: 0.1
-    active_high: True
-    match_on_step: False
-    default_value: 0.0
-    # type: "constant"
-    # lam: 0.0001
+
+    type: "constant"
+    lam: 0.0001
 
     # type: "exp_epoch"
-    # lam_topo_per_epoch_decay: 1.0069
-    # max_lam: 0.00201
+    lam_topo_per_epoch_decay: 1.0069
+    max_lam: 0.00201
     # lam: 0.00001
 
 
     
     
-    
 
     # type: "on_off"
-    # tracked_metric: "train_correct_epoch"
-    # metric_threshold: 0.25
-    # lam_high: 0.01
-    # lam_low: 0.000001
+    tracked_metric: "train_correct_epoch"
+    metric_threshold: 0.25
+    lam_high: 0.01
+    lam_low: 0.000001
+
+
+    #type: "match_mil_loss"
+    #tracked_metric: "train_correct_epoch"
+    #metric_threshold: 0.1
+    active_high: True
+    match_on_step: False
+    default_value: 0.0
 
 
 trainer_params:

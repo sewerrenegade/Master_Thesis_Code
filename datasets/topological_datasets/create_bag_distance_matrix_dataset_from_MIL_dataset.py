@@ -93,7 +93,7 @@ def generate_subsets(n,nb_of_bags_per_calc):
     subsets = []
     for i in range(m - 1):
         subsets.append(initial_set[i*nb_of_bags_per_calc : (i+1)*nb_of_bags_per_calc])
-    if n % 5 == 0:
+    if n % nb_of_bags_per_calc == 0:
         last_subset = initial_set[(m-1)*nb_of_bags_per_calc : m*nb_of_bags_per_calc]
     else:
         recycled_elements_needed = (m*nb_of_bags_per_calc) - n

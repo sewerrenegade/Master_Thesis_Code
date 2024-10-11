@@ -2,6 +2,7 @@ import glob
 import json
 import os
 import sys
+sys.path.append('C:/Users\MiladBassil/Desktop/Master_Thesis/code\Master_Thesis_Code')
 
 import pandas as pd
 import random
@@ -176,6 +177,7 @@ class SCEMILA_Indexer(Indexer):
         df = pd.read_csv(self.image_level_annotations_file)
         labels = df["mll_annotation"] 
         patient_ids = df["ID"]
+        #print(patient_ids.unique())
         image_names = df["im_tiffname"]
         class_paths = {}
         paths = []
@@ -303,6 +305,7 @@ class SCEMILA_Indexer(Indexer):
 
 
 if __name__ == "__main__":
+
     x = SCEMILA_Indexer()
     #a = x.get_image_class_structure_from_indexer_instance_level()
     print(f"mean and std bag size {x.calculate_avg_std_bag_size()}")

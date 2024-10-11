@@ -22,7 +22,7 @@ class TopoScheduler:
 
         if self.type == "constant":
             self.function = partial(self.constant_fnc, lam=dict_args.get("lam", 0.0005))  # Default to None if "lam" not found
-        if self.type == "exp_epoch":
+        elif self.type == "exp_epoch":
             self.function = partial(
                 self.exp_schedule,
                 lam_topo=dict_args.get("lam", 0.000025),  # Default to None if "lam_topo" not found
@@ -52,7 +52,7 @@ class TopoScheduler:
     def __call__(self, step_metrics):
         return self.function(step_metrics=step_metrics)
 
-    def constant_fnc(self,lam):
+    def constant_fnc(self,step_metrics, lam):
         return lam
     
     def on_off(self,step_metrics, tracked_metric, metric_threshold, lam_high, lam_low):

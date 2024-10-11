@@ -1,28 +1,76 @@
 name: topo_gray_image_topo_sweep
 program: hyperparameter_sweeper/train_injection_script.py
-project: param_sweep
+project: topo_param_sweep
 method: bayes  # or grid, random
 metric:
   name: accuracy
   goal: maximize
 parameters:
   base_config_path:
-    values: ["configs/SCEMILA_approaches/topo/topo_eucl_gray_image_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
+    values: ["configs/SCEMILA_approaches/topo/no_gpu_topo_eucl_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
   dataset.config.topo_settings.normalize_distance_matricies:
     values: [True,True,False]
-  exp_params.optimizer.config.factor:
-    min: 0.4
-    max: 0.6
-  exp_params.optimizer.config.patience:
-    values: [8,10]
-  trainer_params.accumulate_grad_batches:
-    values: [24]
-  trainer_params.max_epochs:
-    values: [300,350] 
-  ES_params.patience:
-    values: [50]
-  ES_params.min_delta:
-    values: [0.01]
-  dataset.config.k_fold:
-    values: [-1]
+  dataset.config.topo_settings.nb_of_grouped_bags:
+    values: [2,5,10]
+
+  exp_params.topo_scheduler.type:
+    values: ["on_off"]  # "constant", "exp_epoch", "match_mil_loss", 
+    
+  # "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" "on_off" 
+  exp_params.topo_scheduler.lam_high:
+    distribution: log_uniform_values
+    min: 0.0001
+    max: 0.01
+  exp_params.topo_scheduler.metric_threshold:
+    min: 0.85
+    max: 0.99
+
+  exp_params.topo_scheduler.tracked_metric:
+    values: ["train_correct_epoch"]
+
+  exp_params.topo_scheduler.lam_low:
+    values: [0.0]
+
+
+
+  # # Parameters for "constant" type
+  # exp_params.topo_scheduler.lam:
+  #   distribution: log_uniform_values
+  #   min: 0.00001
+  #   max: 0.01
+
+
+
+
+
+  # # "exp_epoch" "exp_epoch" "exp_epoch" "exp_epoch" "exp_epoch" "exp_epoch" "exp_epoch" "exp_epoch" 
+  # exp_params.topo_scheduler.lam:
+  #   distribution: log_uniform_values
+  #   min: 0.000001
+  #   max: 0.001
+
+  # exp_params.topo_scheduler.lam_topo_per_epoch_decay:
+  #   distribution: log_uniform_values
+  #   min: 1.001
+  #   max: 1.02
+
+  # exp_params.topo_scheduler.max_lam:
+  #   values: [0.01]
+
+  # # "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" "match_mil_loss" 
+  # exp_params.topo_scheduler.tracked_metric:
+  #   values: ["train_correct_epoch"]
+
+  # exp_params.topo_scheduler.metric_threshold:
+  #   distribution: uniform
+  #   min: 0.85
+  #   max: 0.99
+      
+  # # exp_params.topo_scheduler.active_high:
+  # #   values: [True]
+
+  # exp_params.topo_scheduler.match_on_step:
+  #   values: [False]
+
+
 

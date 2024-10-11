@@ -4,7 +4,7 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0.2
+    dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
             
@@ -18,36 +18,37 @@ dataset:
     input_type: "images"
     gpu: True
     balance_dataset_classes: 50
-    augmentation_settings: null
+    augmentation_settings: ["all",0.05]
 
 
 exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
-  class_weighting_factor: 0
+  class_weighting_factor: 0.0
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
+      LR: 0.00003
       weight_decay: 0.00035
-      factor: 0.5
+      factor: 0.45
       scheduler: "ReduceLROnPlateau"
-      patience: 10
-      mode: "max"
+      patience: 8
       monitor_metric: "val_correct_epoch"
+      mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.4
-    per_epoch_decay: 0.9
-    train_correct_threshold: 0.95
+    smoothing: 0.6
+    per_epoch_decay: 0.96
+    train_correct_threshold: 0.97
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
   max_epochs: 200
-  accumulate_grad_batches: 24
   enable_progress_bar: False
+  accumulate_grad_batches: 36
+
 
 logging_params:
   project_name: "Masters_Project_Opt"
@@ -57,6 +58,6 @@ logging_params:
 
 ES_params:
   monitor: 'val_correct_epoch'
-  mode: 'max'
   min_delta: 0.01
-  patience: 100
+  patience: 60
+  mode: 'max'
