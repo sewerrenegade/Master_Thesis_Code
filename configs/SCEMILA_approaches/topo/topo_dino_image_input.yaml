@@ -12,6 +12,7 @@ dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
+    val_split: 0.25
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
@@ -39,27 +40,27 @@ exp_params:
       LR: 0.00003
       weight_decay: 0.00035
       scheduler: "ReduceLROnPlateau"
-      patience: 10
-      factor: 0.5
+      patience: 8
+      factor: 0.45
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
+  label_smoothing:
+    smoothing: 0.4
+    per_epoch_decay: 0.94
+    train_correct_threshold: 0.97
   topo_scheduler:
     type: "on_off"
     tracked_metric: "train_mil_loss_epoch"
     metric_threshold: 0.95
     max_lam: 0.01
-    min_lam: 0.000001
-  label_smoothing:
-    smoothing: 0.6
-    per_epoch_decay: 0.96
-    train_correct_threshold: 0.97
+    min_lam: 0.0
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 200
+  max_epochs: 300
   enable_progress_bar: False
   accumulate_grad_batches : 36
 
@@ -72,5 +73,5 @@ logging_params:
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
-  patience: 60
+  patience: 90
   mode: 'max'

@@ -25,6 +25,7 @@ def initialize_logger(config,split_num = -1,k_folds = -1):
                             project=config["logging_params"]["project_name"],
                             config = config,
                             entity = "milad-research")
+    wnb_logger.experiment.summary["version_number_sum"] = "i <3 light"
     wnb_logger.experiment.summary["version_number_sum"] = wnb_logger.version
 
     return wnb_logger

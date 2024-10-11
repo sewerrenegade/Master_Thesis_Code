@@ -46,7 +46,7 @@ exp_params:
     tracked_metric: "train_mil_loss_epoch"
     metric_threshold: 0.95
     max_lam: 0.01
-    min_lam: 0.000001
+    min_lam: 0.0
   label_smoothing:
     smoothing: 0.4
     per_epoch_decay: 0.9

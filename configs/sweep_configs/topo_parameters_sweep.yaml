@@ -7,7 +7,7 @@ metric:
   goal: maximize
 parameters:
   base_config_path:
-    values: ["configs/SCEMILA_approaches/topo/no_gpu_topo_eucl_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
+    values: ["configs/SCEMILA_approaches/topo/topo_dino_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
   dataset.config.topo_settings.normalize_distance_matricies:
     values: [True,True,False]
   dataset.config.topo_settings.nb_of_grouped_bags:
