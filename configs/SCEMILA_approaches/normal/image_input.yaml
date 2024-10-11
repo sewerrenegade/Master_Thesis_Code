@@ -33,6 +33,10 @@ exp_params:
       scheduler: "ReduceLROnPlateau"
       patience: 2
     batch_size: 1
+  label_smoothing:
+    smoothing: 0.4
+    per_epoch_decay: 0.9
+    train_correct_threshold: 0.95
 
 trainer_params:
   precision: '32'

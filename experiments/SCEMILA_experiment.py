@@ -9,6 +9,8 @@ from models.SCEMILA.SCEMILA_model import AMiL
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from trainer_scripts.label_smoothing_scheduler import LabelSmoothingScheduler
+
 
 class SCEMILA_Experiment(pl.LightningModule):
     def __init__(
@@ -20,13 +22,17 @@ class SCEMILA_Experiment(pl.LightningModule):
         self.model = model
         self.params = params
         self.n_c = self.params.get("num_class",5)
-        self.class_weighting = self.params.get("class_weighting_factor",0.0)
+        self.class_weighting_factor = self.params.get("class_weighting_factor",0.0)
+        self.label_smoothing_settings = self.params.get("label_smoothing",{"smoothing":0.0,"per_epoch_decay":1.0,"train_correct_threshold":1.01})#keep smoothing on all the time >1.0
         self.curr_device = None
         self.current_data_object =  DataMatrix()        
         self.train_confusion_matrix,self.val_confusion_matrix ,self.test_confusion_matrix  = torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c)
         self.test_metrics = []
+        self.label_smoothing_scheduler = LabelSmoothingScheduler(experiment=self,**self.label_smoothing_settings)
+        self.model.set_mil_smoothing(self.label_smoothing_scheduler.get_current_smoothing())
         self.indexer = SCEMILA_Indexer.get_indexer()
-        self.class_weights = self.get_class_weights(self.class_weighting)
+        if self.class_weighting_factor:
+            self.class_weights = self.get_class_weights(self.class_weighting_factor)
     
     def get_class_weights(self,weighting_factor):
         assert 0 <= weighting_factor <= 1
@@ -63,7 +69,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         train_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
         self.train_confusion_matrix[train_step_output["label"], train_step_output["prediction_int"]] += 1
         train_step_output["LR"] = self.trainer.optimizers[0].param_groups[0]['lr']
-        if self.class_weighting:
+        if self.class_weighting_factor:
             train_step_output["loss"] = train_step_output["loss"] * self.class_weights[train_step_output["label"]]
         self.log_step(train_step_output,"train",progress_bar= True)
         return train_step_output
@@ -77,7 +83,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         model_output  = self.model(bag)
         validation_step_output = self.model.mil_loss_function(model_output[0],bag_label[0])
         self.val_confusion_matrix[validation_step_output["label"], validation_step_output["prediction_int"]] += 1
-        if self.class_weighting:
+        if self.class_weighting_factor:
             validation_step_output["loss"] = validation_step_output["loss"] * self.class_weights[validation_step_output["label"]]
         self.log_step(validation_step_output,"val")
         return validation_step_output
@@ -99,9 +105,12 @@ class SCEMILA_Experiment(pl.LightningModule):
         p = 0.95
         self.log_confusion_matrix("train",self.train_confusion_matrix)
         #is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
-        is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
-        if is_p_diagonal:
-            self.model.remove_smoothing()
+        # is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
+        # if is_p_diagonal:
+        #     self.model.remove_smoothing()
+        current_smoothing = self.label_smoothing_scheduler.get_current_smoothing()
+        self.model.set_mil_smoothing(current_smoothing)
+        self.log("train_label_smoothing_epoch",current_smoothing,on_epoch=True)
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
 
 

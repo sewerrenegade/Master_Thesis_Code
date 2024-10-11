@@ -7,7 +7,6 @@ model_params:
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-    label_smoothing: 0.1
             
 dataset:
   name: 'SCEMILA'

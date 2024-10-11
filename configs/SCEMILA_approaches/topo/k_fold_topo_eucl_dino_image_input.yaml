@@ -47,7 +47,11 @@ exp_params:
     metric_threshold: 0.95
     max_lam: 0.01
     min_lam: 0.000001
-
+  label_smoothing:
+    smoothing: 0.4
+    per_epoch_decay: 0.9
+    train_correct_threshold: 0.95
+    
 trainer_params:
   enable_progress_bar: False
   precision: '32'

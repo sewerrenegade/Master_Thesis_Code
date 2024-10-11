@@ -7,7 +7,6 @@ model_params:
     dropout_encoder: 0.2
     pretrained_encoder: False
     input_type: "images"
-    label_smoothing: 0.1
             
 dataset:
   name: 'SCEMILA'
@@ -46,7 +45,17 @@ exp_params:
       factor: 0.5
       monitor_metric: "val_mil_loss"
     batch_size: 1
+  label_smoothing:
+    smoothing: 0.4
+    per_epoch_decay: 0.95
+    train_correct_threshold: 0.95
   topo_scheduler:
+    type: "match_mil_loss"
+    tracked_metric: "train_correct_epoch"
+    metric_threshold: 0.1
+    active_high: True
+    match_on_step: False
+    default_value: 0.0
     # type: "constant"
     # lam: 0.0001
 
@@ -55,12 +64,8 @@ exp_params:
     # max_lam: 0.00201
     # lam: 0.00001
 
-    type: "match_mil_loss"
-    tracked_metric: "train_correct_epoch"
-    metric_threshold: 0.1
-    active_high: True
-    match_on_step: False
-    default_value: 0.0
+
+    
     
     
 

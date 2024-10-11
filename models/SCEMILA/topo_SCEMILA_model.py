@@ -8,7 +8,7 @@ from torchvision import models
 
 
 class TopoAMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",label_smoothing = 0.0,pretrained_encoder = False,dropout_encoder = None):
+    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",pretrained_encoder = False,dropout_encoder = None):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -21,16 +21,15 @@ class TopoAMiL(nn.Module):
         self.D = 128                    # hidden layer size for attention network
         self.input_type =input_type
         self.class_count = class_count
-        self.label_smoothing = label_smoothing
         self.multicolumn = multicolumn
-        self.device = device
-        self.cross_entropy_loss = nn.CrossEntropyLoss(label_smoothing = label_smoothing)
-        self.topo_sig = TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device!="cpu")
+        self.device_name = device
+        self.cross_entropy_loss = None
+        self.topo_sig = TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device_name!="cpu")
 
         # feature extractor before multiple instance learning starts
         
         self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
-        self.to(device)
+        self.to(self.device_name)
 
 
         # Networks for single attention approach
@@ -62,7 +61,9 @@ class TopoAMiL(nn.Module):
                 nn.ReLU(),
                 nn.Linear(64, 1)
             ))
-            
+    def set_mil_smoothing(self,smoothing):
+        self.cross_entropy_loss = nn.CrossEntropyLoss(label_smoothing=smoothing)
+        
     def remove_smoothing(self):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 

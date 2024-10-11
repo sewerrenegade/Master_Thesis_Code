@@ -10,6 +10,7 @@ from models.model_factory import get_module
 import matplotlib.pyplot as plt
 import seaborn as sns
 from functools import partial
+from trainer_scripts.label_smoothing_scheduler import LabelSmoothingScheduler
 
 class TopoScheduler:
     DEFAULT = 0.0
@@ -99,9 +100,11 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.class_weighting_factor = self.params.get("class_weighting_factor",0.0)
         self.curr_device = None
         self.current_data_object = DataMatrix()
-        
+        self.label_smoothing_settings = self.params.get("label_smoothing",{"smoothing":0.0,"per_epoch_decay":1.0,"train_correct_threshold":1.01})#keep smoothing on all the time >1.0        
         self.train_confusion_matrix,self.val_confusion_matrix,self.test_confusion_matrix = torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c),
         self.test_metrics = []
+        self.label_smoothing_scheduler = LabelSmoothingScheduler(experiment=self,**self.label_smoothing_settings)
+        self.model.set_mil_smoothing(self.label_smoothing_scheduler.get_current_smoothing())
         self.indexer = SCEMILA_Indexer.get_indexer()
         if self.class_weighting_factor:
             self.class_weights = self.get_class_weights(self.class_weighting_factor)
@@ -213,9 +216,12 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         p = 0.95
         self.log_confusion_matrix("train",self.train_confusion_matrix)
         #is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
-        is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
-        if is_p_diagonal:
-            self.model.remove_smoothing()
+        # is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
+        # if is_p_diagonal:
+        #     self.model.remove_smoothing()
+        current_smoothing = self.label_smoothing_scheduler.get_current_smoothing()
+        self.model.set_mil_smoothing(current_smoothing)
+        self.log("train_label_smoothing_epoch",current_smoothing,on_epoch=True)
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
 
     def on_test_epoch_end(

@@ -7,7 +7,6 @@ model_params:
     dropout_encoder: 0.2
     pretrained_encoder: True
     input_type: "images"
-    label_smoothing: 0.1
             
 dataset:
   name: 'SCEMILA'
@@ -34,9 +33,13 @@ exp_params:
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 10
-      #mode: "max"
+      mode: "max"
       monitor_metric: "val_correct_epoch"
     batch_size: 1
+  label_smoothing:
+    smoothing: 0.4
+    per_epoch_decay: 0.9
+    train_correct_threshold: 0.95
 
 trainer_params:
   precision: '32'
