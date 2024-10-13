@@ -1,6 +1,7 @@
 import os
 
 from datasets.indexer_scripts.indexer_abstraction import Indexer
+from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
 
 def set_training_env_settings():
     import torch.backends.cudnn as cudnn
@@ -117,7 +118,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
         experiment = get_experiment(config["exp_type"],config["exp_params"],model)
         terminal_logger = getLogger(__name__)
         terminal_logger.info(f"The logging path is {wnb_logger.save_dir}") 
-        get_bag_and_instance_level_2D_embeddings(model= model,dataset=data)
+
         runner = Trainer(
             logger=wnb_logger,
             callbacks=[early_stopping,checkpoint_callback],
@@ -133,6 +134,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
         result =runner.test(experiment, data, ckpt_path=best_ckpt_path)
         
         wnb_logger.experiment.summary["test_checkpoint_path"] = best_ckpt_path
+
         from re import search
         match = search(r'epoch=(\d+)', best_ckpt_path)
         if match:
@@ -141,6 +143,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
             #print(f"Extracted epoch number: {epoch_number}")
         else:
             print("No epoch number found in the string.")
+        get_bag_and_instance_level_2D_embeddings(model= model,dataset=data)
         results.append(result[0])
         wnb_logger.experiment.finish()
         #debug log smthn
@@ -148,70 +151,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
     global output_results
     output_results= results #returns the results of every split permutation
 
-def get_bag_and_instance_level_2D_embeddings(model,dataset):
-    from torch import flatten
-    import numpy as np
-    indexer:Indexer = dataset.indexer
-    instance_level_annotations_by_class,instance_level_class_count,instance_classes = indexer.get_instance_level_annotations(as_is = True)
 
-    _,per_class_test_patients_paths = indexer.seperate_test_train_data()
-
-
-    single_cell_embeddings = []  
-    single_cell_labels = []     
-    for cell_label,cells in instance_level_annotations_by_class.items():
-        for cell_path in cells:
-            x  = dataset.test_dataset.get_single_tiff_image_using_path(cell_path,cell_label)
-            single_cell_embeddings.append(flatten(model.get_instance_level_encoding(x[0])).numpy())
-            single_cell_labels.append(cell_label)
-    single_cell_embeddings = np.array(single_cell_embeddings)
-    plot_and_log_2D_embedding(embedding=single_cell_embeddings,labels=single_cell_labels,plot_name = "Single Cell Encoder Embeddings")
-
-    patient_embeddings = []
-    patient_labels = []
-    for patient_label,patients in per_class_test_patients_paths.items():
-        for patient_path in patients:
-            x  = dataset.test_dataset.get_single_tiff_bag_using_path(patient_path,patient_label)
-            patient_embeddings.append(flatten(model.get_bag_level_encoding(x[0])).numpy())
-            patient_labels.append(patient_label)
-    patient_embeddings = np.array(patient_embeddings)
-    plot_and_log_2D_embedding(embedding= patient_embeddings,labels= patient_labels,plot_name= "Patient Encoder Embeddings")
-
-
-def plot_and_log_2D_embedding(embedding,labels,plot_name):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import umap  # You can use PHATE instead if you prefer
-    from sklearn.preprocessing import LabelEncoder
-    from matplotlib.colors import ListedColormap
-    import wandb
-    assert len(embedding) == len(labels)
-    le = LabelEncoder()
-    y = le.fit_transform(labels)  # Convert labels to integers
-    label_names = le.classes_  # Get label names for the legend
-    reducer = umap.UMAP(n_components=2, random_state=42)
-    embedding_2D = reducer.fit_transform(embedding)
-
-    # Create a scatter plot with matplotlib
-    plt.figure(figsize=(10, 7))
-
-    # Generate color map
-    # colors = cm.rainbow(np.linspace(0, 1, len(np.unique(y))))
-    cmap = ListedColormap(plt.cm.tab20.colors + plt.cm.tab20b.colors[:5])
-
-    # Plot each label with a specific color
-    for i, label in enumerate(np.unique(y)):
-        plt.scatter(embedding_2D[y == label, 0], embedding_2D[y == label, 1], 
-                    color=cmap(i), label=label_names[label], alpha=0.7, s=40)
-
-    # Add legend to map colors to labels
-    plt.legend(title="Labels", bbox_to_anchor=(1.05, 1), loc='upper left')  
-    plt.title(plot_name)
-    plt.xlabel("UMAP Dimension 1")
-    plt.ylabel("UMAP Dimension 2")
-    plt.tight_layout()
-    wandb.log({plot_name: wandb.Image(plt)})
-    plt.close()
 
 
 
