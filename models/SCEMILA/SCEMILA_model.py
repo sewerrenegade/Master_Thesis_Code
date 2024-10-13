@@ -110,6 +110,30 @@ class AMiL(nn.Module):
             prediction = self.classifier(bag_features)
             return prediction, att_raw, att_softmax, bag_features
         
+    def get_instance_level_encoding(self,x):
+        with torch.no_grad():
+            x = x.unsqueeze(0)
+            return self.ftr_proc(x)
+    
+    def get_bag_level_encoding(self,x):
+        with torch.no_grad():
+            ft = self.ftr_proc(x)
+            
+            # switch sum_lossbetween multi- and single attention classification
+            if(self.multicolumn):
+                att_raw = self.attention_multi_column(ft)
+                att_raw = torch.transpose(att_raw, 1, 0)
+                bag_feature_stack = torch.empty((self.class_count, ft.size(1)), device=ft.device, dtype=ft.dtype)
+
+                for a in range(self.class_count):
+                    # softmax + Matrix multiplication
+                    att_softmax = F.softmax(att_raw[a, ...][None, ...], dim=1)
+                    bag_features = torch.mm(att_softmax, ft)
+
+                    # Store bag features directly
+                    bag_feature_stack[a, :] = bag_features.squeeze(0)
+            return bag_feature_stack
+
     def get_encoder_architecture(self,input_type = "images",pretrained = False):
         encoder_output_dim = 500
         

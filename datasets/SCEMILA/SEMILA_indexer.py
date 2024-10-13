@@ -26,7 +26,7 @@ class SCEMILA_Indexer(Indexer):
         self.avg_bag_size,self.std_bag_size =430.6797,107.3914
 
         #instance level indexing
-        self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.read_csv_instance_level_annotations(include_other_and_ambiguous= False)
+        self.instance_level_annotations_by_class,self.instance_level_class_count,self.instance_classes = self.get_instance_level_annotations(include_other_and_ambiguous= False)
         self.instance_level_datset_size = sum([value for _,value in self.instance_level_class_count.items()])
     
     
@@ -173,7 +173,7 @@ class SCEMILA_Indexer(Indexer):
         #     train_data[label], test_data[label] = self.split_train_test(self.per_class_bag_level_paths[label])
         return train_data,test_data
     
-    def read_csv_instance_level_annotations(self,number_of_classes  =10,include_other_and_ambiguous = False):
+    def get_instance_level_annotations(self,number_of_classes  =10,include_other_and_ambiguous = False,as_is = False):
         df = pd.read_csv(self.image_level_annotations_file)
         labels = df["mll_annotation"] 
         patient_ids = df["ID"]
@@ -189,8 +189,11 @@ class SCEMILA_Indexer(Indexer):
             except KeyError:
                 class_paths[label]=[path]
         length_dict = {key: len(value) for key, value in class_paths.items()}
-        class_paths,length_dict,class_order = self.reformulate_dataset_k_class_including_other(class_paths,length_dict,number_of_classes,include_other_and_ambiguous)
+        if as_is:
+            return class_paths,length_dict,None
 
+        class_paths,length_dict,class_order = self.reformulate_dataset_k_class_including_other(class_paths,length_dict,number_of_classes,include_other_and_ambiguous)
+    
         return class_paths,length_dict,class_order
 
     def get_image_path_from_ID_image_name(self,ID,image_name):

@@ -246,6 +246,21 @@ class SCEMILA_MIL_base(BaseMILDataset):
             x = self.convert_bag_list(bag_data), self.indexer.convert_from_int_to_label_bag_level(self.indicies_list[idx][1]), self.topo_labels[idx]
         return x
     
+    def get_single_tiff_image_using_path(self, img_path,label):
+        image = self.transforms(self.preload_transforms(img_path))        
+        return self.to_gpu_transform(image),label
+    
+    def get_single_tiff_bag_using_path(self, bag_path,label):
+        #if idx not in self.loaded_data:
+        instances_in_bag_paths = [f for f in glob.glob(os.path.join(bag_path, '*.tif'))]
+        instances_in_bag_paths.sort()
+        bag_data = []
+        for img_path in instances_in_bag_paths: 
+            image = self.transforms(self.preload_transforms(img_path))
+            bag_data.append(image)
+        x = self.convert_bag_list(bag_data), self.indexer.convert_from_int_to_label_bag_level(label)
+        return self.to_gpu_transform(x)
+    
     def get_single_tiff_image_without_post_trans(self, idx):
         instances_in_bag_paths = self.get_image_paths_from_index(idx)
         image = self.preload_transforms(instances_in_bag_paths[0])
