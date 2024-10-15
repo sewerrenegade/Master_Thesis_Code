@@ -30,7 +30,7 @@ exp_params:
     config:
       LR: 0.00003
       weight_decay: 0.00035
-      factor: 0.45
+      factor: 0.99
       scheduler: "ReduceLROnPlateau"
       patience: 8
       monitor_metric: "val_correct_epoch"

@@ -4,23 +4,23 @@ model_params:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0.2
+    dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-
             
 dataset:
   name: 'SCEMILA'
   config:
-    num_workers: 4
-    k_fold : 10 #set to one if no cross validation wanted
+    num_workers: 6
+    val_split: 0.25
+    k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
-    balance_dataset_classes: 40
-    augmentation_settings: ["none",0.0]
+    balance_dataset_classes: 50
+    augmentation_settings: ["all",0.05]
     topo_settings:
       normalize_distance_matricies: True
-      nb_of_grouped_bags: 5
+      nb_of_grouped_bags: 20
       dataset_settings:
         grayscale: False
         encode_with_dino_bloom: True
@@ -31,48 +31,47 @@ dataset:
 
 
 exp_type: "topo_SCEMILA_experiment"
-
-
 exp_params:
   num_class: 5
   class_weighting_factor: 0.0
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
+      LR: 0.00003
       weight_decay: 0.00035
       scheduler: "ReduceLROnPlateau"
-      patience: 10
-      factor: 0.5
-      monitor_metric: "val_mil_loss"
+      patience: 8
+      factor: 0.45
+      monitor_metric: "val_correct_epoch"
+      mode: "max"
     batch_size: 1
-  topo_scheduler:
-    type: "on_off"
-    tracked_metric: "train_mil_loss_epoch"
-    metric_threshold: 0.95
-    max_lam: 0.01
-    min_lam: 0.0
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.9
-    train_correct_threshold: 0.95
+    per_epoch_decay: 0.94
+    train_correct_threshold: 0.97
+  topo_scheduler:
+    type: "on_off"
+    tracked_metric: "train_correct_epoch"
+    metric_threshold: 0.75
+    lam_high: 0.00001
+    lam_low: 0.0000001
 
 trainer_params:
   precision: '32'
-  enable_progress_bar: False
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 200
-  accumulate_grad_batches : 24
+  max_epochs: 300
+  enable_progress_bar: False
+  accumulate_grad_batches : 36
 
 logging_params:
-  project_name: "Masters_Project_Topo"
+  project_name: "Masters_Project_Topo_Opt_kfold"
   save_dir: "logs/topo_dino_image_input_experiment/"
   name: "topo_dino_image_input_experiment"
   manual_seed: 1265
 
 ES_params:
-  monitor: 'val_mil_loss_epoch'
-  min_delta: 0
-  patience: 100
-  mode: 'min'
+  monitor: 'val_correct_epoch'
+  min_delta: 0.01
+  patience: 90
+  mode: 'max'
