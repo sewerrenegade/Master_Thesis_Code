@@ -4,13 +4,19 @@ from datasets.indexer_scripts.indexer_abstraction import Indexer
 from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
 
 def set_training_env_settings():
+    seed = 42
     import torch.backends.cudnn as cudnn
     print(f"cudnn.enabled: {cudnn.enabled}")
     cudnn.deterministic = True #was true
     cudnn.benchmark = False #was false3
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    from torch import set_float32_matmul_precision
+    from torch import set_float32_matmul_precision,manual_seed
+    from numpy.random import seed as  np_seed
+    from random import seed as rng_seed
     set_float32_matmul_precision('medium')
+    manual_seed(seed)
+    np_seed(seed)
+    rng_seed(seed)
     #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 def initialize_logger(config,split_num = -1,k_folds = -1):
@@ -18,7 +24,7 @@ def initialize_logger(config,split_num = -1,k_folds = -1):
     from pytorch_lightning.loggers import WandbLogger
     os.makedirs(save_dir, exist_ok=True)
     if k_folds > 1:
-        run_name= config["logging_params"]["name"]+f"_split_{split_num}_of_{k_folds}"
+        run_name= config["logging_params"]["name"]+f"_split_{split_num + 1}_of_{k_folds}"
     else:
         run_name= config["logging_params"]["name"]
         
@@ -30,7 +36,8 @@ def initialize_logger(config,split_num = -1,k_folds = -1):
                             entity = "milad-research")
     wnb_logger.experiment.summary["version_number_sum"] = "i <3 light"
     wnb_logger.experiment.summary["version_number_sum"] = wnb_logger.version
-
+    if k_folds > 1:
+        wnb_logger.experiment.summary["split_index"] = split_num + 1
     return wnb_logger
 
 def get_and_configure_callbacks(config):
@@ -91,8 +98,8 @@ def get_hydra_override_args():
 #@hydra.main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None)
 def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None) -> None:
     from hydra import initialize, compose
-
     from omegaconf import OmegaConf
+
     with initialize(config_path=config_path,version_base=None):
         cfg = compose(config_name=config_name,overrides=get_hydra_override_args())
     config = OmegaConf.to_container(cfg)
@@ -158,8 +165,8 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Run training with specified configuration.")
-    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/normal/" ,help="Path to the configuration folder.")
-    parser.add_argument('--config_name', type=str,default="no_gpu_image_input.yaml", help="Name of the configuration file.")
+    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/topo/" ,help="Path to the configuration folder.")
+    parser.add_argument('--config_name', type=str,default="no_gpu_topo_eucl_image_input.yaml", help="Name of the configuration file.")
     args = parser.parse_args()
 
     main(config_path=args.config_folder,config_name=args.config_name)

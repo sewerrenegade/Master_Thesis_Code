@@ -59,10 +59,8 @@ class TopoScheduler:
         metric = self.experiment.trainer.callback_metrics.get(tracked_metric,None)
         if metric is not None:
             if (metric > metric_threshold):
-                print("high")
                 return lam_high
             else:
-                print("low")
                 return lam_low
         else:
             return TopoScheduler.DEFAULT #if user requested an on_epoch metric, then it is not accessable during first epoch

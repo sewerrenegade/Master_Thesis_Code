@@ -133,6 +133,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
     def __getitem__(self, idx):
         '''returns specific item from this dataset'''
         #print("get")
+        print(f"get data: {idx}")
         if type(idx) is int:
             x = self.get_item_function(idx)
             return self.to_gpu_transform(x)
