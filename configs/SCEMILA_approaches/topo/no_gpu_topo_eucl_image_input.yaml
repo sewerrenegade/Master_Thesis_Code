@@ -14,10 +14,11 @@ dataset:
     num_workers: 2
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
+    val_split: 0.25
     input_type: "images"
     gpu: False
     balance_dataset_classes: 3
-    augmentation_settings: ["none",0.5]
+    augmentation_settings: ["all",0.5]
     topo_settings:
       nb_of_grouped_bags: 3
       normalize_distance_matricies: True

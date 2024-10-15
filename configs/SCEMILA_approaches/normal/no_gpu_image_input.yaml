@@ -12,11 +12,11 @@ dataset:
   name: 'SCEMILA'
   config:
     num_workers: 1
-    k_fold : -1 #set to one if no cross validation wanted
+    k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: False
-    balance_dataset_classes: 3
+    balance_dataset_classes: 10
     augmentation_settings: null
 
 

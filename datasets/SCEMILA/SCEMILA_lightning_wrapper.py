@@ -9,7 +9,7 @@ from datasets.indexer_scripts.indexer_utils import get_dataset_indexer
 class SCEMILA(pl.LightningDataModule):
     def __init__(
             self,
-            input_type = "fnl34",#images      
+            input_type = "images",#images      
             num_workers: int = 2,
             val_split = 0.1,
             k_fold = -1,
@@ -85,7 +85,7 @@ class SCEMILA(pl.LightningDataModule):
             self.full_dataset = train_dataset
             paths,labels = zip(*self.full_dataset.indicies_list)
             indicies = list(range(len(labels)))
-            skf = StratifiedKFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state = 42)
+            skf = StratifiedKFold(n_splits=self.k_fold)
             self.all_splits = [(train_idx, val_idx) for train_idx, val_idx in skf.split(indicies, labels)]
             # kf = KFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state= 42)
             # all_splits = [k for k in kf.split(self.full_dataset)]
@@ -143,7 +143,8 @@ class SCEMILA(pl.LightningDataModule):
             self.test_dataset, 
             num_workers=0,
             persistent_workers=False,
-            batch_size=1
+            batch_size=1,
+            shuffle= False
             )
 
     def predict_dataloader(self):
