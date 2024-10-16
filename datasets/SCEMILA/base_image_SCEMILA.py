@@ -1,6 +1,7 @@
+import numpy as np
 import glob
 import os
-import numpy as np
+
 
 
 from datasets.mil_dataset_abstraction import BaseMILDataset
@@ -110,7 +111,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
             augmentation_settings = None,
             topo_settings = None
             ):
-        import numpy
+        import numpy as np
         super().__init__("MIL_SCEMILA",training = training_mode,augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes)      
         self.input_type = input_type
         self.gpu = gpu
