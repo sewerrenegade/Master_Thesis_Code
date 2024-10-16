@@ -198,7 +198,7 @@ class SCEMILA_Indexer(Indexer):
 
     def get_image_path_from_ID_image_name(self,ID,image_name):
         label_folder_name = self.bag_meta_df.loc[ID,"bag_label"]
-        return os.path.join(self.path_data,"image_data",label_folder_name,ID,f"image_{image_name}")
+        return os.path.join(self.path_data,"image_data",label_folder_name,ID,image_name)
 
     # Function to split a list into two parts
     def split_train_test(self,data, split_ratio=0.20):

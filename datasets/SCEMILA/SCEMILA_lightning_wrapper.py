@@ -85,7 +85,7 @@ class SCEMILA(pl.LightningDataModule):
             self.full_dataset = train_dataset
             paths,labels = zip(*self.full_dataset.indicies_list)
             indicies = list(range(len(labels)))
-            skf = StratifiedKFold(n_splits=self.k_fold)
+            skf = StratifiedKFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state = 42)
             self.all_splits = [(train_idx, val_idx) for train_idx, val_idx in skf.split(indicies, labels)]
             # kf = KFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state= 42)
             # all_splits = [k for k in kf.split(self.full_dataset)]
