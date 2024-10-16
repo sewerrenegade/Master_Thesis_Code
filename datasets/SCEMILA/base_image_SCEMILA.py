@@ -110,6 +110,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
             augmentation_settings = None,
             topo_settings = None
             ):
+        import numpy
         super().__init__("MIL_SCEMILA",training = training_mode,augmentation_settings=augmentation_settings,balance_dataset_classes=balance_dataset_classes)      
         self.input_type = input_type
         self.gpu = gpu
@@ -132,8 +133,6 @@ class SCEMILA_MIL_base(BaseMILDataset):
             
     def __getitem__(self, idx):
         '''returns specific item from this dataset'''
-        #print("get")
-        print(f"get data: {idx}")
         if type(idx) is int:
             x = self.get_item_function(idx)
             return self.to_gpu_transform(x)

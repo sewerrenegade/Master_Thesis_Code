@@ -1,0 +1,32 @@
+name: rgb_res18_sweep
+program: hyperparameter_sweeper/train_injection_script.py
+project: new_param_sweep
+method: bayes  # or grid, random
+metric:
+  name: accuracy
+  goal: maximize
+parameters:
+  base_config_path:
+    values: ["configs/SCEMILA_approaches/normal/opt_image_input.yaml"] # "configs/SCEMILA_approaches/normal/opt_image_input.yaml"
+  dataset.config.augmentation_settings:
+    values: ["none",["all",0.025],["all",0.05],["all",0.2]]
+  exp_params.optimizer.config.LR:
+    distribution: log_uniform_values
+    min: 0.00001
+    max: 0.01
+  exp_params.optimizer.config.factor:
+    distribution: log_uniform_values
+    min: 0.4
+    max: 1.0
+  exp_params.optimizer.config.patience:
+    values: [10,25]
+  trainer_params.accumulate_grad_batches:
+    values: [30,60]
+  trainer_params.max_epochs:
+    values: [300,350] 
+  ES_params.patience:
+    values: [90]
+  ES_params.min_delta:
+    values: [0.01]
+  dataset.config.k_fold:
+    values: [-1]

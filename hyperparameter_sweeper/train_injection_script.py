@@ -1,6 +1,7 @@
 if __name__ == "__main__":
     import sys
     import os
+    import numpy
 
     # Append the parent directory to sys.path
     sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '.')))

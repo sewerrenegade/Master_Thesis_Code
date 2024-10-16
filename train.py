@@ -1,22 +1,21 @@
 import os
 
-from datasets.indexer_scripts.indexer_abstraction import Indexer
-from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
 
 def set_training_env_settings():
     seed = 42
+    from numpy.random import seed as np_seed
+    from random import seed as rng_seed
+    from torch import set_float32_matmul_precision,manual_seed
+    manual_seed(seed)
+    np_seed(seed)
+    rng_seed(seed)
     import torch.backends.cudnn as cudnn
     print(f"cudnn.enabled: {cudnn.enabled}")
     cudnn.deterministic = True #was true
     cudnn.benchmark = False #was false3
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    from torch import set_float32_matmul_precision,manual_seed
-    from numpy.random import seed as  np_seed
-    from random import seed as rng_seed
     set_float32_matmul_precision('medium')
-    manual_seed(seed)
-    np_seed(seed)
-    rng_seed(seed)
+
     #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 def initialize_logger(config,split_num = -1,k_folds = -1):
@@ -150,6 +149,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
             #print(f"Extracted epoch number: {epoch_number}")
         else:
             print("No epoch number found in the string.")
+        from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
         get_bag_and_instance_level_2D_embeddings(model= model,dataset=data)
         results.append(result[0])
         wnb_logger.experiment.finish()
