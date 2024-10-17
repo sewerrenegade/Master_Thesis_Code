@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 import torch
 import torchmetrics.functional as tf
 import wandb
+from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
 from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
 from models.model_factory import get_module
 from models.SCEMILA.SCEMILA_model import AMiL
@@ -15,7 +16,7 @@ from trainer_scripts.label_smoothing_scheduler import LabelSmoothingScheduler
 class SCEMILA_Experiment(pl.LightningModule):
     def __init__(
         self, 
-        model: AMiL, 
+        model: AMiL,
         params: typing.Dict[str, typing.Any]
     ) -> None:
         super(SCEMILA_Experiment, self).__init__()
@@ -25,6 +26,7 @@ class SCEMILA_Experiment(pl.LightningModule):
         self.class_weighting_factor = self.params.get("class_weighting_factor",0.0)
         self.label_smoothing_settings = self.params.get("label_smoothing",{"smoothing":0.0,"per_epoch_decay":1.0,"train_correct_threshold":1.01})#keep smoothing on all the time >1.0
         self.curr_device = None
+        self.dataset = None
         self.current_data_object =  DataMatrix()        
         self.train_confusion_matrix,self.val_confusion_matrix ,self.test_confusion_matrix  = torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c),torch.zeros(self.n_c, self.n_c)
         self.test_metrics = []
@@ -34,6 +36,10 @@ class SCEMILA_Experiment(pl.LightningModule):
         if self.class_weighting_factor:
             self.class_weights = self.get_class_weights(self.class_weighting_factor)
     
+    def set_dataset_for_latent_visualization(self,dataset):
+        assert isinstance(dataset,SCEMILA)
+        self.dataset = dataset
+
     def get_class_weights(self,weighting_factor):
         assert 0 <= weighting_factor <= 1
         train_class_distribution = self.indexer.class_sample_counts_in_train_set
@@ -156,6 +162,13 @@ class SCEMILA_Experiment(pl.LightningModule):
         for key, value in metrics_dict.items():
             wandb.run.summary[key] = value
         self.log_dict(metrics_dict)  # this is what creates the table in the console, i guess the on_test_end hook is doing this
+        try:
+            if self.dataset is not None:
+                from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
+                get_bag_and_instance_level_2D_embeddings(model= self.model,dataset=self.dataset)
+        except Exception as e:
+            print("failed latent viz:")
+            print(e)
 
     def predict_step(
             self, 

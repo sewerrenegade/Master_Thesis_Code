@@ -29,7 +29,6 @@ class TopoAMiL(nn.Module):
         # feature extractor before multiple instance learning starts
         
         self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
-        self.to(self.device_name)
 
 
         # Networks for single attention approach
@@ -61,6 +60,8 @@ class TopoAMiL(nn.Module):
                 nn.ReLU(),
                 nn.Linear(64, 1)
             ))
+        self.to(torch.device(self.device_name))
+
     def set_mil_smoothing(self,smoothing):
         self.cross_entropy_loss = nn.CrossEntropyLoss(label_smoothing=smoothing)
         

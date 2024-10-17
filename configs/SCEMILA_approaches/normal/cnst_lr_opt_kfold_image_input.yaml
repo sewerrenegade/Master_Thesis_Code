@@ -3,7 +3,7 @@ model_params:
   config:
     multicolumn: 1
     class_count: 5
-    device: "cuda:0"
+    device: "cuda"
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
@@ -28,11 +28,11 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00003
+      LR: 0.0001
       weight_decay: 0.00035
-      factor: 0.99
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 8
+      patience: 20
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
@@ -45,7 +45,7 @@ trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 200
+  max_epochs: 250
   enable_progress_bar: False
   accumulate_grad_batches: 36
 
@@ -58,6 +58,6 @@ logging_params:
 
 ES_params:
   monitor: 'val_correct_epoch'
-  min_delta: 0
-  patience: 90
+  min_delta: 0.01
+  patience: 100
   mode: 'max'
