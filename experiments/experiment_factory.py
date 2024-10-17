@@ -15,11 +15,14 @@ NAME_KEY: str = "name"
 CONFIG_KEY: str = "config"
 
 
-def get_module(name: str, config: typing.Dict[str, typing.Any],model):
+def get_module(name: str, config: typing.Dict[str, typing.Any],model,data=None):
     """Recursively deserializes objects registered in MODULES."""
     if name not in MODULES:
         raise KeyError(
             f"{name} not found in registered modules. Available are {MODULES.keys()}."
         )
     cls = MODULES[name]
-    return cls(model,config)
+    exp= cls(model,config)
+    if data is not None and hasattr(exp,"set_dataset_for_latent_visualization"):
+        exp.set_dataset_for_latent_visualization(data)
+    return exp

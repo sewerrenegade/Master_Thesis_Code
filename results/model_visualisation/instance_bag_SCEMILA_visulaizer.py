@@ -22,7 +22,7 @@ def get_bag_and_instance_level_2D_embeddings(model,dataset):
     for cell_label,cells in instance_level_annotations_by_class.items():
         for cell_path in cells:
             x  = dataset.test_dataset.get_single_tiff_image_using_path(cell_path,cell_label)
-            single_cell_embeddings.append(flatten(model.get_instance_level_encoding(x[0])).numpy())
+            single_cell_embeddings.append(flatten(model.get_instance_level_encoding(x[0])).cpu().numpy())
             single_cell_labels.append(cell_label)
     single_cell_embeddings = np.array(single_cell_embeddings)
     plot_and_log_2D_embedding(embedding=single_cell_embeddings,labels=single_cell_labels,plot_name = "Single Cell Encoder Embeddings")
@@ -32,7 +32,7 @@ def get_bag_and_instance_level_2D_embeddings(model,dataset):
     for patient_label,patients in per_class_test_patients_paths.items():
         for patient_path in patients:
             x  = dataset.test_dataset.get_single_tiff_bag_using_path(patient_path,patient_label)
-            patient_embeddings.append(flatten(model.get_bag_level_encoding(x[0])).numpy())
+            patient_embeddings.append(flatten(model.get_bag_level_encoding(x[0])).cpu().numpy())
             patient_labels.append(patient_label)
     patient_embeddings = np.array(patient_embeddings)
     plot_and_log_2D_embedding(embedding= patient_embeddings,labels= patient_labels,plot_name= "Patient Encoder Embeddings")

@@ -124,9 +124,10 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
         checkpoint_callback, early_stopping = get_and_configure_callbacks(config)
         
         model = get_module(config["model_params"]["name"], config["model_params"]["config"])
-        experiment = get_experiment(config["exp_type"],config["exp_params"],model)
+        experiment = get_experiment(config["exp_type"],config["exp_params"],model,data=data)
         terminal_logger = getLogger(__name__)
         terminal_logger.info(f"The logging path is {wnb_logger.save_dir}") 
+
 
         runner = Trainer(
             logger=wnb_logger,
@@ -137,12 +138,12 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
 
 
         terminal_logger.info(f"======= Training {config['model_params']['name']} =======")
-        
+
         runner.fit(experiment, data)
         best_ckpt_path = checkpoint_callback.get_best_path()
-        result =runner.test(experiment, data, ckpt_path=best_ckpt_path)
-        
+        result =runner.test(experiment, data, ckpt_path=best_ckpt_path)        
         wnb_logger.experiment.summary["test_checkpoint_path"] = best_ckpt_path
+        
 
         from re import search
         match = search(r'epoch=(\d+)', best_ckpt_path)
@@ -152,8 +153,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
             #print(f"Extracted epoch number: {epoch_number}")
         else:
             print("No epoch number found in the string.")
-        from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
-        get_bag_and_instance_level_2D_embeddings(model= model,dataset=data)
+
         results.append(result[0])
         wnb_logger.experiment.finish()
         #debug log smthn

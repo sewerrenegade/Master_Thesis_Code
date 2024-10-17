@@ -59,7 +59,7 @@ class AMiL(nn.Module):
                 nn.ReLU(),
                 nn.Linear(64, 1)
             ))
-        self.to(device)
+        self.to(torch.device(self.device_name))
 
     def set_mil_smoothing(self,smoothing):
         self.cross_entropy_loss = nn.CrossEntropyLoss(label_smoothing=smoothing)
