@@ -99,6 +99,7 @@ class Adam:
         self.factor = factor
         self.patience = patience
         self.verbose = True
+        
 
     def __call__(self, model):
         optims = []
@@ -111,7 +112,7 @@ class Adam:
             return optims
         else:
             if self.scheduler == "ReduceLROnPlateau":
-                sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer= optims, mode=self.metric_mode,factor=self.factor,patience= self.patience, threshold=0.01, verbose= self.verbose,min_lr=0.0000001)
+                sched = optim.lr_scheduler.ReduceLROnPlateau(optimizer= optims, mode=self.metric_mode,factor=self.factor,patience= self.patience,cooldown=3, threshold=0.01, verbose= self.verbose,min_lr=0.0000001)
                 scheduler = {
                     'scheduler': sched, 
                     'monitor': self.monitor_metric
