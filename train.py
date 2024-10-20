@@ -13,7 +13,7 @@ def set_training_env_settings():
     rng_seed(seed)
     import torch.backends.cudnn as cudnn
     print(f"cudnn.enabled: {cudnn.enabled}")
-    cudnn.deterministic = True #was true
+    cudnn.deterministic = False #was true
     cudnn.benchmark = False #was false3
     os.environ["HYDRA_FULL_ERROR"] = "1"
     set_float32_matmul_precision('medium')

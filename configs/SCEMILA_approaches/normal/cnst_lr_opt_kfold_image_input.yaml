@@ -28,18 +28,19 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.0001
+      LR: 0.00005
       weight_decay: 0.00035
-      factor: 0.5
+      factor: 0.8
       scheduler: "ReduceLROnPlateau"
       patience: 20
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.4
-    per_epoch_decay: 0.94
+    smoothing: 0.15
+    per_epoch_decay: 1.0
     train_correct_threshold: 0.97
+    default_value: 0.15
 
 trainer_params:
   precision: '32'
