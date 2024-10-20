@@ -21,7 +21,7 @@ dataset:
     augmentation_settings: ["all",0.5]
     topo_settings:
       nb_of_grouped_bags: 3
-      normalize_distance_matricies: True
+      normalize_distance_matricies: False
       dataset_settings:
         grayscale: True
         encode_with_dino_bloom: False
