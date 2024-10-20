@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
+from models.topology_models.custom_topo_tools.connectivity_topo_regularizer import TopologicalZeroOrderLoss
+
 
 
 class TopoAMiL(nn.Module):
@@ -24,7 +26,7 @@ class TopoAMiL(nn.Module):
         self.multicolumn = multicolumn
         self.device_name = device
         self.cross_entropy_loss = None
-        self.topo_sig = TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device_name!="cpu")
+        self.topo_sig = TopologicalZeroOrderLoss() #TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device_name!="cpu")
 
         # feature extractor before multiple instance learning starts
         
