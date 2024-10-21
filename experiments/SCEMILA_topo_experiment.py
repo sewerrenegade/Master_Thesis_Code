@@ -70,7 +70,10 @@ class TopoScheduler:
                 return lam_high
             else:
                 return lam_low
+        elif self.experiment.current_epoch == 0:
+            return lam_low
         else:
+            print(f"WARNING: Could not find metric {tracked_metric} reverting to default value {TopoScheduler.DEFAULT}")
             return TopoScheduler.DEFAULT #if user requested an on_epoch metric, then it is not accessable during first epoch
         
     def match_mil_loss_with_trigger(self, step_metrics, tracked_metric, metric_threshold,default_value,match_on_step,active_high):
