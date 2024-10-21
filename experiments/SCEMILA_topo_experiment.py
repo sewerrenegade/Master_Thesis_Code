@@ -157,8 +157,8 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             latent_distance_matrix=model_output[-1], input_distance_matrix=dist_mat
         )
         train_joint_loss.update(train_step_topo_loss)
-        train_joint_loss["topo_loss_weight"] = self.topo_scheduler(train_joint_loss)
-        train_joint_loss["loss"] = train_joint_loss["mil_loss"] + train_joint_loss["topo_loss_weight"] * train_joint_loss["topo_loss"]
+        train_joint_loss["topo_weight_loss_epoch"] = self.topo_scheduler(train_joint_loss)
+        train_joint_loss["loss"] = train_joint_loss["mil_loss"] + train_joint_loss["topo_weight_loss_epoch"] * train_joint_loss["topo_loss"]
         self.train_confusion_matrix[
             train_joint_loss["label"], train_joint_loss["prediction_int"]
         ] += int(1)
