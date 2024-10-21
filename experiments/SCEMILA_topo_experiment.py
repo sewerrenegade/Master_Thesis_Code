@@ -36,7 +36,8 @@ class TopoScheduler:
                 tracked_metric=dict_args.get("tracked_metric", "train_correct_epoch"),  # Default to None if "tracked_metric" not found
                 metric_threshold=dict_args.get("metric_threshold", 0.95),  # Default to None if "metric_threshold" not found
                 lam_high=dict_args.get("lam_high", 0.001),  # Default to None if "lam_high" not found
-                lam_low=dict_args.get("lam_low", 0.0)  # Default to None if "lam_low" not found
+                lam_low=dict_args.get("lam_low", 0.0),  # Default to None if "lam_low" not found
+                stay_on=dict_args.get("stay_on",True)
             )
         elif self.type == "match_mil_loss":
             self.function = partial(
@@ -57,10 +58,15 @@ class TopoScheduler:
     def constant_fnc(self,step_metrics, lam):
         return lam
     
-    def on_off(self,step_metrics, tracked_metric, metric_threshold, lam_high, lam_low):
+    def on_off(self,step_metrics, tracked_metric, metric_threshold, lam_high, lam_low,stay_on):
+        if not hasattr(self,"stay_on"):
+            self.stay_on = stay_on
+            self.activated = False
         metric = self.experiment.trainer.callback_metrics.get(tracked_metric,None)
         if metric is not None:
-            if (metric > metric_threshold):
+            if (metric > metric_threshold) or self.activated:
+                if self.stay_on:
+                    self.activated = True
                 return lam_high
             else:
                 return lam_low

@@ -39,8 +39,6 @@ def generate_n_points_around_center_with_avg_radius(number_of_points,center_coor
         point /= np.linalg.norm(point)
         rng_radius = ((0.9 + 0.1*np.random.rand())**(1/dimension_of_space)) * radius
         points.append(center_coordinates + rng_radius * point)
-
-    # Step 4: Scale the normalized point by the random radius
     return points
 
 
@@ -50,16 +48,11 @@ if __name__ == "__main__":
     x_coords = [arr[0] for arr in x]
     y_coords = [arr[1] for arr in x]
 
-    # Create the plot
     plt.figure(figsize=(6, 6))
     plt.scatter(x_coords, y_coords, color='blue', label='Points')
-
-    # Add labels and a title
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('Scatter Plot of [x, y] Points')
     plt.legend()
-
-    # Show the plot
     plt.grid(True)
     plt.show()
