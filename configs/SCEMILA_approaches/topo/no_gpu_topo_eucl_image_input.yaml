@@ -53,7 +53,7 @@ exp_params:
   topo_scheduler:
 
     type: "constant"
-    lam: 0.0001
+    lam: 1000
 
     # type: "exp_epoch"
     lam_topo_per_epoch_decay: 1.0069
@@ -64,7 +64,7 @@ exp_params:
     
     
 
-    # type: "on_off"
+    #type: "on_off"
     tracked_metric: "train_correct_epoch"
     metric_threshold: 0.25
     lam_high: 0.01

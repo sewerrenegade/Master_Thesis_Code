@@ -16,11 +16,13 @@ def set_training_env_settings():
     cudnn.deterministic = False #was true
     cudnn.benchmark = False #was false3
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    set_float32_matmul_precision('medium')
-
+    matrix_multiplication_precision = 'medium'
+    set_float32_matmul_precision(matrix_multiplication_precision)
+    training_env_settings = {"cudnn_deterministic":cudnn.deterministic,"cudnn_benchmark": cudnn.benchmark,"seed_rng_generator": seed,"matrix_multiplication_precision":matrix_multiplication_precision}
+    return training_env_settings
     #os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-def initialize_logger(config,split_num = -1,k_folds = -1):
+def initialize_logger(config,split_num = -1,k_folds = -1, train_env_setting_dict= {}):
     save_dir = os.path.join(config["logging_params"]["save_dir"])
     from pytorch_lightning.loggers import WandbLogger
     os.makedirs(save_dir, exist_ok=True)
@@ -39,6 +41,7 @@ def initialize_logger(config,split_num = -1,k_folds = -1):
     wnb_logger.experiment.summary["version_number_sum"] = wnb_logger.version
     if k_folds > 1:
         wnb_logger.experiment.summary["split_index"] = split_num + 1
+    wnb_logger.experiment.summary.update(train_env_setting_dict)
     return wnb_logger
 
 def get_and_configure_callbacks(config):
@@ -108,7 +111,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
     print(f"This is the config file \n  {config}")
     seed = config["logging_params"]["manual_seed"]
 
-    set_training_env_settings()
+    train_env_setting_dict = set_training_env_settings()
     from datasets.dataset_factory import get_module as get_dataset
     from experiments.experiment_factory import get_module as get_experiment
     from models.model_factory import get_module
@@ -119,7 +122,7 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
     k_folds = config["dataset"]["config"]["k_fold"]
     results = []
     for split_index in range(abs(k_folds)):
-        wnb_logger  = initialize_logger(config,split_index,k_folds)
+        wnb_logger  = initialize_logger(config,split_index,k_folds,train_env_setting_dict = train_env_setting_dict)
         print(wnb_logger.version)
         checkpoint_callback, early_stopping = get_and_configure_callbacks(config)
         
