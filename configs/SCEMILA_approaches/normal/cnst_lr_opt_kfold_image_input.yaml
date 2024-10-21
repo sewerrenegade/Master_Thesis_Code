@@ -17,7 +17,7 @@ dataset:
     encode_with_dino_bloom: False
     input_type: "images"
     gpu: True
-    balance_dataset_classes: 40
+    balance_dataset_classes: 50
     augmentation_settings: ["all",0.05]
 
 
@@ -37,10 +37,10 @@ exp_params:
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.15
-    per_epoch_decay: 1.0
-    train_correct_threshold: 0.97
-    default_value: 0.15
+    smoothing: 0.02
+    per_epoch_decay: 0.9
+    train_correct_threshold: 1.0
+    default_value: 0.02
 
 trainer_params:
   precision: '32'
@@ -54,7 +54,7 @@ trainer_params:
 logging_params:
   project_name: "Masters_Project_Opt"
   save_dir: "logs/image_input_experiment/"
-  name: "image_input_experiment"
+  name: "light_smoothing_image_input_experiment"
   manual_seed: 1265
 
 ES_params:

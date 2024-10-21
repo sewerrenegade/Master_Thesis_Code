@@ -29,7 +29,6 @@ dataset:
         function_settings:
           n_components: 8
 
-
 exp_type: "topo_SCEMILA_experiment"
 exp_params:
   num_class: 5
@@ -37,18 +36,18 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00003
+      LR: 0.00005
       weight_decay: 0.00035
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 8
-      factor: 0.45
+      patience: 20
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.94
-    train_correct_threshold: 0.97
+    per_epoch_decay: 0.92
+    train_correct_threshold: 1.01 #never
   topo_scheduler:
     type: "on_off"
     tracked_metric: "train_correct_epoch"
@@ -60,12 +59,12 @@ trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
+  max_epochs: 250
   enable_progress_bar: False
-  accumulate_grad_batches : 36
+  accumulate_grad_batches: 36
 
 logging_params:
-  project_name: "Masters_Project_Topo_Opt_kfold"
+  project_name: "kfold_showdown"
   save_dir: "logs/topo_dino_image_input_experiment/"
   name: "topo_dino_image_input_experiment"
   manual_seed: 1265

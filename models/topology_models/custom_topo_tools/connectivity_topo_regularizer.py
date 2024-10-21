@@ -55,7 +55,7 @@ class TopologicalZeroOrderLoss(nn.Module):
             equivalent_feature_in_space_2 = topo_encoding_space_2.what_connected_these_two_points(edge_indices[0], edge_indices[1])
             equivalent_edge_in_space_2 = equivalent_feature_in_space_2["persistence_pair"]
             if self.scale_matching_method == TopologicalZeroOrderLoss.PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS[0]:
-                scale_of_edge_in_space_1 = tensor(topo_encoding_space_2.scales[index])
+                scale_of_edge_in_space_1 = tensor(topo_encoding_space_2.scales[index]).to(distances1.device) #will break numpy inputs
             elif self.scale_matching_method == TopologicalZeroOrderLoss.PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS[1]:
                 scale_of_edge_in_space_1 = distances1[edge_indices[0], edge_indices[1]] / topo_encoding_space_1.distance_of_persistence_pairs[-1]
 
