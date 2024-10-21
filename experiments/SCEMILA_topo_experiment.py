@@ -178,8 +178,8 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.log(f"{phase}_topo_loss",step_loss["topo_loss"].data,on_step=True,on_epoch= True,prog_bar= progress_bar,logger = True)
         if "LR" in step_loss and phase == "train":
             self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-        if "topo_loss_weight" in step_loss and phase == "train":
-            self.log("topo_loss_weight",step_loss["topo_loss_weight"],on_step=True,on_epoch= False,prog_bar= False,logger = True)
+        if "topo_weight_loss_epoch" in step_loss and phase == "train":
+            self.log("topo_weight_loss_epoch",step_loss["topo_weight_loss_epoch"],on_step=True,on_epoch= False,prog_bar= False,logger = True)
         self.logger.log_metrics({f"{phase}_label_int":step_loss["label"]})
         self.logger.log_metrics({f"{phase}_pred_int":step_loss["prediction_int"]})
        
@@ -200,9 +200,9 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             latent_distance_matrix=model_output[-1], input_distance_matrix=dist_mat
         )
         val_step_joint_loss.update(val_step_topo_loss)
-        val_step_joint_loss["topo_loss_weight"] = self.topo_scheduler(val_step_joint_loss)
+        val_step_joint_loss["topo_weight_loss_epoch"] = self.topo_scheduler(val_step_joint_loss)
         val_step_joint_loss["loss"] = (
-            val_step_joint_loss["mil_loss"] + val_step_joint_loss["topo_loss_weight"] * val_step_joint_loss["topo_loss"]
+            val_step_joint_loss["mil_loss"] + val_step_joint_loss["topo_weight_loss_epoch"] * val_step_joint_loss["topo_loss"]
         )
         self.val_confusion_matrix[
             val_step_joint_loss["label"], val_step_joint_loss["prediction_int"]
