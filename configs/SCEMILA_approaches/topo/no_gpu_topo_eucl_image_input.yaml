@@ -54,7 +54,7 @@ exp_params:
     train_correct_threshold: 0.95
   topo_scheduler:
 
-    type: "constant"
+    #type: "constant"
     lam: 1000
 
     # type: "exp_epoch"
@@ -66,11 +66,11 @@ exp_params:
     
     
 
-    #type: "on_off"
-    tracked_metric: "train_correct_epoch"
-    metric_threshold: 0.25
-    lam_high: 0.01
-    lam_low: 0.000001
+    type: "on_off"
+    tracked_metric: "train_mil_loss_epoch"
+    metric_threshold: 0.1
+    lam_high: 0.000001
+    lam_low: 0.01 
 
 
     #type: "match_mil_loss"

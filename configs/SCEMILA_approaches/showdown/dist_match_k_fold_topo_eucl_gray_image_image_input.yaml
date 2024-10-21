@@ -1,5 +1,5 @@
 model_params:
-  name: 'SCEMILA'
+  name: 'TopoSCEMILA'
   config:
     multicolumn: 1
     class_count: 5
@@ -7,21 +7,28 @@ model_params:
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-            
+    topological_regularizer_settings:
+      method: "match_scale_distribution" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method"] "og_moor"
+                                  
 dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
-    val_split: 0.25 # is a dummy variable in this cae since kfold is set
+    val_split: 0.25
     k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
-    gpu: True
     balance_dataset_classes: 50
     augmentation_settings: ["all",0.05]
+    topo_settings:
+      nb_of_grouped_bags: 1
+      normalize_distance_matricies: True
+      dataset_settings:
+        grayscale: True
+        encode_with_dino_bloom: False
 
 
-exp_type: "SCEMILA_experiment"
+exp_type: "topo_SCEMILA_experiment"
 exp_params:
   num_class: 5
   class_weighting_factor: 0.0
@@ -40,24 +47,33 @@ exp_params:
     smoothing: 0.4
     per_epoch_decay: 0.92
     train_correct_threshold: 1.01 #never
+  topo_scheduler:
+    type: "on_off"
+    tracked_metric: "train_mil_loss_epoch"
+    metric_threshold: 0.1
+    lam_high: 0.1
+    lam_low: 10
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 250
+  max_epochs: 300
   enable_progress_bar: False
-  accumulate_grad_batches: 36
+  accumulate_grad_batches : 36
 
 
 logging_params:
-  project_name: "Masters_Project_Opt"
-  save_dir: "logs/image_input_experiment/"
-  name: "base_run"
+  project_name: "kfold_showdown"
+  save_dir: "logs/topo_gray_image_image_input_experiment/"
+  name: "og_moor_eucl_gray_image_experiment"
   manual_seed: 1265
+
 
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
   patience: 90
   mode: 'max'
+
+

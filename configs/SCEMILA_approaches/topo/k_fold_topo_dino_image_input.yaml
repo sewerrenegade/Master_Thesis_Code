@@ -7,7 +7,9 @@ model_params:
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-            
+    topological_regularizer_settings:
+      method: "og_moor" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method"] "og_moor"
+                      
 dataset:
   name: 'SCEMILA'
   config:
@@ -59,12 +61,12 @@ trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 250
+  max_epochs: 300
   enable_progress_bar: False
   accumulate_grad_batches: 36
 
 logging_params:
-  project_name: "kfold_showdown"
+  project_name: "Masters_Project_Topo_Opt_kfold"
   save_dir: "logs/topo_dino_image_input_experiment/"
   name: "topo_dino_image_input_experiment"
   manual_seed: 1265

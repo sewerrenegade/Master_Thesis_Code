@@ -51,7 +51,7 @@ trainer_params:
 
 
 logging_params:
-  project_name: "Masters_Project_Opt"
+  project_name: "kfold_showdown"
   save_dir: "logs/image_input_experiment/"
   name: "base_run"
   manual_seed: 1265

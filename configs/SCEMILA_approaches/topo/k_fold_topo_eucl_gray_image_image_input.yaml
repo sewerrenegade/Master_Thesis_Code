@@ -1,6 +1,3 @@
-
-
-
 model_params:
   name: 'TopoSCEMILA'
   config:
@@ -10,7 +7,9 @@ model_params:
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-            
+    topological_regularizer_settings:
+      method: "og_moor" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method"] "og_moor"
+                                  
 dataset:
   name: 'SCEMILA'
   config:
@@ -36,18 +35,18 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00003
+      LR: 0.00005
       weight_decay: 0.00035
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 8
-      factor: 0.45
+      patience: 20
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.94
-    train_correct_threshold: 0.97
+    per_epoch_decay: 0.92
+    train_correct_threshold: 1.01 #never
   topo_scheduler:
     type: "on_off"
     tracked_metric: "train_correct_epoch"

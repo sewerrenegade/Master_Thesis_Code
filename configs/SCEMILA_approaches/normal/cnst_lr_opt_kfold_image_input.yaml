@@ -37,10 +37,9 @@ exp_params:
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.02
-    per_epoch_decay: 0.9
-    train_correct_threshold: 1.0
-    default_value: 0.02
+    smoothing: 0.4
+    per_epoch_decay: 0.92
+    train_correct_threshold: 1.01 #never
 
 trainer_params:
   precision: '32'
