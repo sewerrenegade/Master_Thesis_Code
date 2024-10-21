@@ -48,8 +48,8 @@ exp_params:
     type: "on_off"
     tracked_metric: "train_correct_epoch"
     metric_threshold: 0.75
-    lam_high: 0.00001
-    lam_low: 0.0000001
+    lam_high: 100
+    lam_low: 10
 
 trainer_params:
   precision: '32'
