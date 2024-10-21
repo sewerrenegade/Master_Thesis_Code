@@ -63,9 +63,9 @@ trainer_params:
   accumulate_grad_batches: 36
 
 logging_params:
-  project_name: "Masters_Project_Topo_Opt_kfold"
+  project_name: "kfold_showdown"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "topo_eucl_dino_image_input_experiment"
+  name: "og_moor_eucl_dino_image_input_experiment"
   manual_seed: 1265
 
 
