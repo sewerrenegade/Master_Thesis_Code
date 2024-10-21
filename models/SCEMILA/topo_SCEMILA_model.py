@@ -1,16 +1,16 @@
 from models.encoder_models.encoder_model import get_input_encoder
-from models.salome_models.topo_reg_mil import TopologicalSignatureDistance
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
 from models.topology_models.custom_topo_tools.connectivity_topo_regularizer import TopologicalZeroOrderLoss
+from models.topology_models.topo_tools.moor_topo_reg import TopologicalSignatureDistance
 
 
 
 class TopoAMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",pretrained_encoder = False,dropout_encoder = None):
+    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",pretrained_encoder = False,dropout_encoder = None,topological_regularizer_settings = {}):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -26,8 +26,8 @@ class TopoAMiL(nn.Module):
         self.multicolumn = multicolumn
         self.device_name = device
         self.cross_entropy_loss = None
-        self.topo_sig = TopologicalZeroOrderLoss() #TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device_name!="cpu")
-
+        self.topo_reg_settings = topological_regularizer_settings
+        self.topo_sig = self.get_topo_regularizer()
         # feature extractor before multiple instance learning starts
         
         self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
@@ -63,6 +63,12 @@ class TopoAMiL(nn.Module):
                 nn.Linear(64, 1)
             ))
         self.to(torch.device(self.device_name))
+
+    def get_topo_regularizer(self):
+        if self.topo_reg_settings.get("method",None)== "og_moor":
+            return TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device_name!="cpu")
+        else:
+            return TopologicalZeroOrderLoss(**self.topo_reg_settings)
 
     def get_bag_level_encoding(self,x):
         with torch.no_grad():
