@@ -83,7 +83,7 @@ class SummaryStatisticLoss(torch.nn.Module):
 
 class SignatureLoss(torch.nn.Module):
     """Implement topological signature loss.
-    This module implements the topological signature loss first
+    This module imples the topological signature loss first
     described in [Moor20a]_. In contrast to the original code provided
     by the authors, this module also provides extensions to
     higher-dimensional generators if desired.
@@ -106,7 +106,7 @@ class SignatureLoss(torch.nn.Module):
             Exponent for the `p`-norm calculation of distances.
         normalise : bool
             If set, normalises distances for each point cloud. This can
-            be useful when working with batches.
+            be useful when working with batches.ment
         dimensions : int or tuple of int
             Dimensions to use in the signature calculation. Following
             [Moor20a]_, this is set by default to `0`.

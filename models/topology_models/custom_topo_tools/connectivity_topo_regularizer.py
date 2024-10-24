@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch import stack,tensor,Tensor
 from numpy import ndarray
 
-from models.topology_models.custom_topo_tools.milad_topo import ConnectivityEncoderCalculator
+from Desktop.Master_Thesis_Code.models.topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
 # topo function
 class TopologicalZeroOrderLoss(nn.Module):
     """Topological signature."""
