@@ -1,14 +1,15 @@
 
 import torch.nn as nn
-from torch import stack,tensor,Tensor
+from torch import stack,tensor,Tensor,long,abs
 from numpy import ndarray
+import numpy as np
 
 from models.topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
 # topo function
 class TopologicalZeroOrderLoss(nn.Module):
     """Topological signature."""
     LOSS_ORDERS = [1,2]
-    PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS =["match_scale_order","match_scale_distribution","moor_method","modified_moor_method"]
+    PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS =["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"]
 
     def __init__(self,method="match_scale_distribution",p=1):
         """Topological signature computation.
@@ -25,6 +26,36 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
 
+    def deep_scale_distribution_matching_loss_of_s1_on_s2(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
+        if True:#distances2.requires_grad:
+            loss = tensor(0.0, device=distances2.device)
+            pairwise_distances_influenced = 0
+            for index,edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
+                component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
+                scale_in_s1 = topo_encoding_space_1.scales[index]
+                index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
+                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(relevant_points= component_birth_in_s1_due_to_pers_pair,index_of_scale= index_of_scale_in_s1)
+                to_push_out_at_this_scale = []
+                healthy_subsets = {}
+                for component_in_s2_name,member_verticies in relevant_sets_in_s2.items():
+                    good_verticies = np.intersect1d(member_verticies,component_birth_in_s1_due_to_pers_pair)
+                    healthy_subsets[component_in_s2_name] = good_verticies
+                    for vertex in member_verticies:
+                        if not vertex in component_birth_in_s1_due_to_pers_pair:
+                            to_push_out_at_this_scale.append(topo_encoding_space_2.what_connected_this_point_to_this_set(point=vertex,set=good_verticies)["persistence_pair"])
+                pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
+                unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
+                important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
+                if len(important_pairs) != 0:
+                    pairwise_distances_influenced = pairwise_distances_influenced + len(important_pairs)
+                    important_pairs = tensor(important_pairs, dtype=long) 
+                    selected_diff_distances = distances2[important_pairs[:, 0], important_pairs[:, 1]]/ topo_encoding_space_2.distance_of_persistence_pairs[-1]
+                    loss_at_this_scale = abs(selected_diff_distances - scale_in_s1)**self.p
+                    loss = loss + loss_at_this_scale.sum()
+
+            return loss/pairwise_distances_influenced
+        else:
+            return tensor(0.0, device=distances2.device)
 
 
     def forward(self, distances1, distances2):
@@ -64,6 +95,8 @@ class TopologicalZeroOrderLoss(nn.Module):
             topo_fnc =  self.moor_method_calculate_loss_of_s1_on_s2
         elif self.method == TopologicalZeroOrderLoss.PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS[3]:
             topo_fnc =  self.modified_moor_method_calculate_loss_of_s1_on_s2
+        elif self.method == TopologicalZeroOrderLoss.PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS[4]:
+            topo_fnc = self.deep_scale_distribution_matching_loss_of_s1_on_s2
         print(f"Using {self.method} to calculate per topo feature loss")
         return topo_fnc
 
@@ -143,6 +176,7 @@ class TopologicalZeroOrderLoss(nn.Module):
         differentiable_scale_of_equivalent_edges_in_space_1 = stack(differentiable_scale_of_equivalent_edges_in_space_1)
         differentiable_scale_of_equivalent_edges_in_space_2 = stack(differentiable_scale_of_equivalent_edges_in_space_2)
         return self.loss_fnc(differentiable_scale_of_equivalent_edges_in_space_1,differentiable_scale_of_equivalent_edges_in_space_2)
+    
 
 
     

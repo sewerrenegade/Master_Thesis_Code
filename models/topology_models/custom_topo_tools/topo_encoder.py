@@ -1,5 +1,5 @@
 import numpy as np
-
+import bisect
 
 #WARNING: none of this is differentiable, torch can not track gradients through this... use this only to calculate and match topological features
 class ConnectivityEncoderCalculator:
@@ -18,6 +18,52 @@ class ConnectivityEncoderCalculator:
         self.distance_of_persistence_pairs = None
         self.sanity_checker = []
 
+    def estimate_distance_from_scale(self,scale):
+        return scale * self.scales[-1]
+    def get_component_birthed_at_index(self,index):
+        state = self.topo_scale_evolution[index + 1]
+        pers_pair = self.persistence_pairs[index]
+        assert state[pers_pair[0]] == state[pers_pair[1]]
+        return np.where(state == state[pers_pair[0]])[0] #assuming 1d array
+    
+    def get_index_of_scale_closest_to(self,scale):
+        index = min(bisect.bisect_right(self.scales, scale),len(self.scales)-1)
+        return index
+
+    def what_edges_needed_to_connect_these_components(self,set_dict:dict):
+        nb_of_sets = len(set_dict)
+        set_to_edge_mapping = {}
+        index_keys = {index:set_name for index,set_name in enumerate(set_dict.keys())}
+        dist_mat = np.zeros((nb_of_sets, nb_of_sets))
+        for i in range(nb_of_sets):
+            for j in range(i+1,nb_of_sets):
+                edge,distance = self.get_shortest_distance_between_2_sets_ignoring_all_other_points(set_dict[index_keys[i]],set_dict[index_keys[j]])
+                dist_mat[i,j] = distance
+                dist_mat[j,i] = distance
+                set_to_edge_mapping[(i,j)] = edge
+        smaller_homology_problem = ConnectivityEncoderCalculator(distance_mat=dist_mat)
+        smaller_homology_problem.calculate_connectivity()
+        pers_pairs = smaller_homology_problem.persistence_pairs
+        real_pers_pairs = [set_to_edge_mapping[pers_pair] for pers_pair in pers_pairs]
+        return real_pers_pairs
+
+    def get_shortest_distance_between_2_sets_ignoring_all_other_points(self,set1,set2):
+        A, B = np.meshgrid(set1, set2, indexing='ij')
+        combinations = np.vstack([A.ravel(), B.ravel()]).T
+        distances = self.distance_matrix[combinations[:,0],combinations[:,1]]
+        shortest_index =np.argmin(distances)
+        shortest_edge = combinations[shortest_index]
+        return shortest_edge,distances[shortest_index]
+
+
+    def get_components_that_contain_these_points_at_this_index_or_scale(self,relevant_points,index_of_scale):
+        state_at_index_or_scale = self.topo_scale_evolution[index_of_scale + 1]
+        groups_included = {} #the key is the group name (ie point with largest index in comp) and value is a list of included points in component
+        for point in relevant_points:
+            grp_name = state_at_index_or_scale[point]
+            if not state_at_index_or_scale[point] in groups_included:
+                groups_included[grp_name] = np.where(state_at_index_or_scale == grp_name)[0]
+        return groups_included
     def calculate_connectivity(self):
         tri_strict_upper_indices = np.triu_indices_from(self.distance_matrix,k=1)
         edge_weights = self.distance_matrix[tri_strict_upper_indices]
@@ -73,6 +119,14 @@ class ConnectivityEncoderCalculator:
     def what_connected_these_two_points(self,u,v):
         for index,connectivity in enumerate(self.topo_scale_evolution):
             if connectivity[u] == connectivity[v]:
+                connecting_index = index - 1 # this is because the s=0 topology encoding is inserted automatically
+                break
+        connecting_info = {"index": connecting_index,"persistence_pair": self.persistence_pairs[connecting_index],"scale": self.scales[connecting_index],"median_order":connecting_index/len(self.persistence_pairs)}
+        return connecting_info
+    
+    def what_connected_this_point_to_this_set(self,point,set):
+        for index,connectivity in enumerate(self.topo_scale_evolution):
+            if connectivity[point] in connectivity[set]:
                 connecting_index = index - 1 # this is because the s=0 topology encoding is inserted automatically
                 break
         connecting_info = {"index": connecting_index,"persistence_pair": self.persistence_pairs[connecting_index],"scale": self.scales[connecting_index],"median_order":connecting_index/len(self.persistence_pairs)}
