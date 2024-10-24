@@ -28,7 +28,8 @@ class TopoScheduler:
                 self.exp_schedule,
                 lam_topo=dict_args.get("lam", 0.000025),  # Default to None if "lam_topo" not found
                 lam_topo_per_epoch_decay=dict_args.get("lam_topo_per_epoch_decay", 1.008),  # Default to None if "lam_topo_per_epoch_decay" not found
-                max_lam=dict_args.get("max_lam", 0.01)  # Default to None if "max_lam" not found
+                max_lam=dict_args.get("max_lam", float('inf')),  # Default to inf if "max_lam" not found
+                min_lam=dict_args.get("min_lam", -float('inf'))  # Default to -inf if "min_lam" not found
             )
         elif self.type == "on_off":
             self.function = partial(
@@ -98,8 +99,8 @@ class TopoScheduler:
         else:
             return TopoScheduler.DEFAULT #if user requested an on_epoch metric, then it is not accessable during first epoch
 
-    def exp_schedule(self,step_metrics,lam_topo,lam_topo_per_epoch_decay,max_lam):
-        return min(lam_topo * (lam_topo_per_epoch_decay**self.experiment.current_epoch),max_lam)
+    def exp_schedule(self,step_metrics,lam_topo,lam_topo_per_epoch_decay,max_lam,min_lam):
+        return max(min(lam_topo * (lam_topo_per_epoch_decay**self.experiment.current_epoch),max_lam),min_lam)
 
 class TopoSCEMILA_Experiment(pl.LightningModule):
     def __init__(self, model: TopoAMiL, params: typing.Dict[str, typing.Any]) -> None:
@@ -120,6 +121,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         if self.class_weighting_factor:
             self.class_weights = self.get_class_weights(self.class_weighting_factor)
         self.topo_scheduler = TopoScheduler(self,params.get("topo_scheduler",{}))
+        self.kill_mil_loss = params.get("kill_mil_loss",False)
         pass
 
     def set_dataset_for_latent_visualization(self,dataset):
@@ -162,7 +164,9 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         )
         train_joint_loss.update(train_step_topo_loss)
         train_joint_loss["topo_weight_loss_epoch"] = self.topo_scheduler(train_joint_loss)
+        
         train_joint_loss["loss"] = train_joint_loss["mil_loss"] + train_joint_loss["topo_weight_loss_epoch"] * train_joint_loss["topo_loss"]
+        
         self.train_confusion_matrix[
             train_joint_loss["label"], train_joint_loss["prediction_int"]
         ] += int(1)
@@ -205,6 +209,8 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         val_step_joint_loss["loss"] = (
             val_step_joint_loss["mil_loss"] + val_step_joint_loss["topo_weight_loss_epoch"] * val_step_joint_loss["topo_loss"]
         )
+        if self.kill_mil_loss:
+            val_step_joint_loss["loss"] = val_step_joint_loss["topo_weight_loss_epoch"] * val_step_joint_loss["topo_loss"]
         self.val_confusion_matrix[
             val_step_joint_loss["label"], val_step_joint_loss["prediction_int"]
         ] += int(1)

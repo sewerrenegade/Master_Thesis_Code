@@ -48,12 +48,8 @@ exp_params:
     per_epoch_decay: 0.92
     train_correct_threshold: 1.01 #never
   topo_scheduler:
-    type: "on_off"
-    tracked_metric: "train_mil_loss_epoch"
-    metric_threshold: 0.1
-    lam_high: 10
-    lam_low: 0.1
-    active_high: False
+    type: "constant"
+    lam: 1
 
 trainer_params:
   precision: '32'
@@ -64,11 +60,10 @@ trainer_params:
   accumulate_grad_batches: 36
 
 logging_params:
-  project_name: "kfold_showdown"
+  project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "match_dist_dino_image_input_experiment"
+  name: "cnst_1_of_topo_loss_dist_dino_image_input"
   manual_seed: 1265
-
 
 ES_params:
   monitor: 'val_correct_epoch'
