@@ -51,8 +51,9 @@ exp_params:
     type: "on_off"
     tracked_metric: "train_mil_loss_epoch"
     metric_threshold: 0.1
-    lam_high: 0.1
-    lam_low: 10
+    lam_high: 10
+    lam_low: 0.1
+    active_high: False
 
 trainer_params:
   precision: '32'
