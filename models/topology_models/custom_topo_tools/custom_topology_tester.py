@@ -1,5 +1,5 @@
 from pointcloud_generator import calculate_distance_matrix_for_pointcloud
-from milad_topo import ConnectivityEncoderCalculator
+from topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
 
 
 if __name__ == "__main__":
