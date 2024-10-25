@@ -126,6 +126,8 @@ class ConnectivityEncoderCalculator:
     
     def what_connected_this_point_to_this_set(self,point,set):
         for index,connectivity in enumerate(self.topo_scale_evolution):
+            x = connectivity[point]
+            y =connectivity[set]
             if connectivity[point] in connectivity[set]:
                 connecting_index = index - 1 # this is because the s=0 topology encoding is inserted automatically
                 break

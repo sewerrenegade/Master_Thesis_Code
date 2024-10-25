@@ -25,12 +25,76 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.signature_calculator = ConnectivityEncoderCalculator
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
+        import torch
 
     def deep_scale_distribution_matching_loss_of_s1_on_s2(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
+        if distances2.requires_grad:
+            # Initialize loss on the GPU
+            loss = tensor(0.0, device=distances2.device)
+            pairwise_distances_influenced = 0
+
+            important_edge_for_each_scale = []
+            # Iterate over persistence pairs in space 1
+            for index, edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
+                print(f"{index}/{len(topo_encoding_space_1.persistence_pairs)}")
+                
+                component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
+                scale_in_s1 = topo_encoding_space_1.scales[index]
+                index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
+                
+                # Fetch relevant sets in space 2 for the current scale
+                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(
+                    relevant_points=component_birth_in_s1_due_to_pers_pair, index_of_scale=index_of_scale_in_s1
+                )
+                
+                to_push_out_at_this_scale = []
+                healthy_subsets = {}
+
+                for component_in_s2_name, member_verticies in relevant_sets_in_s2.items():
+                    # Intersect sets directly on the GPU if possible
+                    good_verticies = np.intersect1d(member_verticies, component_birth_in_s1_due_to_pers_pair)
+                    # Find vertices not in the birth component, append the persistence pair
+                    for vertex in member_verticies:
+                        if vertex not in component_birth_in_s1_due_to_pers_pair:
+                            pair_info = topo_encoding_space_2.what_connected_this_point_to_this_set(
+                                point=vertex, set=good_verticies
+                            )["persistence_pair"]
+                            to_push_out_at_this_scale.append(pair_info)
+                    healthy_subsets[component_in_s2_name] = tensor(good_verticies, dtype=long, device=distances2.device)
+
+                # Get edges needed to connect the components
+                pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
+                unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
+                
+                # Combine important pairs
+                important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
+                
+                # If there are important pairs, perform loss calculation
+                if len(important_pairs) != 0:
+                    pairwise_distances_influenced += len(important_pairs)
+                    important_edge_for_each_scale.append((scale_in_s1,important_pairs))
+            for scale_edges_pair in important_edge_for_each_scale:
+                # Convert important pairs to a tensor on GPU for indexing
+                important_pairs_tensor =tensor(np.array(scale_edges_pair[1]), dtype=long, device=distances2.device)
+                scale = tensor(scale_edges_pair[0], device=distances2.device)
+                # Select and compute the differences on GPU
+                selected_diff_distances = distances2[important_pairs_tensor[:, 0], important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
+
+                # Compute the loss at this scale and accumulate
+                loss_at_this_scale = abs(selected_diff_distances - scale) ** self.p
+                loss = loss + loss_at_this_scale.sum()
+
+            # Normalize the loss by the total number of pairs influenced
+            return loss / pairwise_distances_influenced if pairwise_distances_influenced > 0 else tensor(0.0, device=distances2.device)
+        else:
+            return tensor(0.0, device=distances2.device)
+
+    def deep_scale_distribution_matching_loss_of_s1_on_s2_old(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
         if True:#distances2.requires_grad:
             loss = tensor(0.0, device=distances2.device)
             pairwise_distances_influenced = 0
             for index,edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
+                print(f"{index}/{len(topo_encoding_space_1.persistence_pairs)}")
                 component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
                 scale_in_s1 = topo_encoding_space_1.scales[index]
                 index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
