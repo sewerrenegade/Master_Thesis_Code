@@ -60,7 +60,7 @@ class TopologicalZeroOrderLoss(nn.Module):
                                 point=vertex, set=good_verticies
                             )["persistence_pair"]
                             to_push_out_at_this_scale.append(pair_info)
-                    healthy_subsets[component_in_s2_name] = tensor(good_verticies, dtype=long, device=distances2.device)
+                    healthy_subsets[component_in_s2_name] = tensor(good_verticies, dtype=long)#, device=distances2.device
 
                 # Get edges needed to connect the components
                 pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
