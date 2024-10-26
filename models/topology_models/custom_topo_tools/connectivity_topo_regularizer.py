@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch import stack,tensor,Tensor,long,abs
 from numpy import ndarray
 import numpy as np
-
+import time
 from models.topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
 # topo function
 class TopologicalZeroOrderLoss(nn.Module):
@@ -26,8 +26,85 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
         import torch
+    def deep_scale_match(self, topo_encoding_space_1: ConnectivityEncoderCalculator,topo_encoding_space_2: ConnectivityEncoderCalculator):
+        pairwise_distances_influenced = 0
+        important_edge_for_each_scale = []
+        # Profiling times for different sections
+        total_time_section_1 = 0
+        total_time_section_2 = 0
+        total_time_section_4 = 0
+        total_time_section_5 = 0
+        # Iterate over persistence pairs in space 1
+        for index, edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
+            # Time Section 1: Component Birth and Scale Fetching
+            start_time = time.time()
+            component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
+            scale_in_s1 = topo_encoding_space_1.scales[index]
+            index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
+            total_time_section_1 += time.time() - start_time
 
-    def deep_scale_distribution_matching_loss_of_s1_on_s2(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
+            # Time Section 2: Relevant Sets Fetching and Processing
+            start_time = time.time()
+            relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(
+                relevant_points=component_birth_in_s1_due_to_pers_pair, index_of_scale=index_of_scale_in_s1 
+            )
+            to_push_out_at_this_scale = []
+            healthy_subsets = {}
+            total_time_section_2 += time.time() - start_time
+            start_time = time.time()
+            for component_in_s2_name, member_vertices in relevant_sets_in_s2.items():
+                good_vertices = np.intersect1d(member_vertices, component_birth_in_s1_due_to_pers_pair)
+                for vertex in member_vertices:
+                    if vertex not in component_birth_in_s1_due_to_pers_pair:
+                        pair_info = topo_encoding_space_2.what_connected_this_point_to_this_set(
+                            point=vertex, vertex_set=good_vertices
+                        )["persistence_pair"]
+                        to_push_out_at_this_scale.append(pair_info)
+                healthy_subsets[component_in_s2_name] = good_vertices#tensor(good_vertices, dtype=long, device=distances2.device)
+            total_time_section_4 += time.time() - start_time
+
+
+            start_time = time.time()
+            pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
+            unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
+            important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
+            total_time_section_5 += time.time() - start_time
+
+            if len(important_pairs) != 0:
+                pairwise_distances_influenced += len(important_pairs)
+                important_edge_for_each_scale.append((scale_in_s1, important_pairs))
+            print(f"{index}/{len(topo_encoding_space_1.persistence_pairs)}; important_edges_#:{len(important_pairs)}")
+        # Final output of total times
+        print(f"Total time for Section 1 (Component Birth and Scale Fetching): {total_time_section_1:.4f} seconds")
+        print(f"Total time for Section 2 (Finding Relevant Sets in Other Space): {total_time_section_2:.4f} seconds")
+        print(f"Total time for Section 4 (Push Out Edges Calculation): {total_time_section_4:.4f} seconds")
+        print(f"Total time for Section 5 (Pull Edges Calculation): {total_time_section_5:.4f} seconds")
+        print(f"Overall Total Computation Time: {total_time_section_1 + total_time_section_2 +  total_time_section_4+ total_time_section_5:.4f} seconds")
+        return important_edge_for_each_scale
+    
+    def deep_scale_distribution_matching_loss_of_s1_on_s2(self, topo_encoding_space_1: ConnectivityEncoderCalculator, distances1, topo_encoding_space_2: ConnectivityEncoderCalculator, distances2):
+        if distances2.requires_grad:
+            # Initialize loss on the GPU
+            loss = tensor(0.0, device=distances2.device)
+            important_edge_for_each_scale = self.deep_scale_match(topo_encoding_space_1=topo_encoding_space_1,topo_encoding_space_2=topo_encoding_space_2)
+            # Process each scale's important pairs
+            pairwise_distances_influenced = 0
+            for scale_edges_pair in important_edge_for_each_scale:
+                start_time = time.time()
+                important_pairs_tensor = tensor(np.array(scale_edges_pair[1]), dtype=long, device=distances2.device)
+                scale = tensor(scale_edges_pair[0], device=distances2.device)
+
+                selected_diff_distances = distances2[important_pairs_tensor[:, 0], important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
+                loss_at_this_scale = abs(selected_diff_distances - scale) ** self.p
+                loss = loss + loss_at_this_scale.sum()
+                pairwise_distances_influenced = pairwise_distances_influenced + len(scale_edges_pair[1])
+
+
+            # Normalize the loss by the total number of pairs influenced
+            return loss / pairwise_distances_influenced if pairwise_distances_influenced > 0 else tensor(0.0, device=distances2.device)
+        else:
+            return tensor(0.0, device=distances2.device)
+    def deep_scale_distribution_matching_loss_of_s1_on_s2_no_b(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
         if distances2.requires_grad:
             # Initialize loss on the GPU
             loss = tensor(0.0, device=distances2.device)
@@ -57,7 +134,7 @@ class TopologicalZeroOrderLoss(nn.Module):
                     for vertex in member_verticies:
                         if vertex not in component_birth_in_s1_due_to_pers_pair:
                             pair_info = topo_encoding_space_2.what_connected_this_point_to_this_set(
-                                point=vertex, set=good_verticies
+                                point=vertex, vertex_set=good_verticies
                             )["persistence_pair"]
                             to_push_out_at_this_scale.append(pair_info)
                     healthy_subsets[component_in_s2_name] = tensor(good_verticies, dtype=long, device=distances2.device)
@@ -106,7 +183,7 @@ class TopologicalZeroOrderLoss(nn.Module):
                     healthy_subsets[component_in_s2_name] = good_verticies
                     for vertex in member_verticies:
                         if not vertex in component_birth_in_s1_due_to_pers_pair:
-                            to_push_out_at_this_scale.append(topo_encoding_space_2.what_connected_this_point_to_this_set(point=vertex,set=good_verticies)["persistence_pair"])
+                            to_push_out_at_this_scale.append(topo_encoding_space_2.what_connected_this_point_to_this_set(point=vertex,vertex_set=good_verticies)["persistence_pair"])
                 pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
                 unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
                 important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
