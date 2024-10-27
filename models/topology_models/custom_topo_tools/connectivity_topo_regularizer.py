@@ -1,17 +1,68 @@
 
+import threading
 import torch.nn as nn
 from torch import stack,tensor,Tensor,long,abs
 from numpy import ndarray
 import numpy as np
 import time
+from random import shuffle
+from concurrent.futures import ThreadPoolExecutor, as_completed,TimeoutError
+from math import ceil
 from models.topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
+from numbers import Number
 # topo function
+
+class Timer:
+    def __init__(self, timeout=2):
+        self.timeout = timeout
+        self.start_time = time.time()
+    def clear(self):
+        self.start_time = time.time()
+    def set(self):
+        pass #this is nothing, just to mkae it compatible with mutithreading approach
+    def is_set(self):
+        """Check if the timer has exceeded the set timeout."""
+        return (time.time() - self.start_time) > self.timeout
+    
+def deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,s1_scale_indices,stop_event):
+        scale_edges_pairings = []
+        for s1_scale_index in s1_scale_indices:
+            if not stop_event.is_set():
+                assert isinstance(s1_scale_index,int)
+                assert 0<= s1_scale_index< len(topo_encoding_space_1.scales)
+                component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(s1_scale_index)
+                scale_in_s1 = topo_encoding_space_1.scales[s1_scale_index]
+                index_of_scale_in_s2 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
+                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(
+                    relevant_points=component_birth_in_s1_due_to_pers_pair, index_of_scale=index_of_scale_in_s2 
+                )
+                to_push_out_at_this_scale = []
+                healthy_subsets = {}
+
+                for component_in_s2_name, member_vertices in relevant_sets_in_s2.items():
+                    good_vertices = np.intersect1d(member_vertices, component_birth_in_s1_due_to_pers_pair)
+                    for vertex in member_vertices:
+                        if vertex not in component_birth_in_s1_due_to_pers_pair:
+                            pair_info = topo_encoding_space_2.what_connected_this_point_to_this_set(
+                                point=vertex, vertex_set=good_vertices
+                            )["persistence_pair"]
+                            to_push_out_at_this_scale.append(pair_info)
+                    healthy_subsets[component_in_s2_name] = good_vertices#tensor(good_vertices, dtype=long, device=distances2.device)
+
+                pairs_to_pull = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
+                unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
+                scale_edges_pairings.append((scale_in_s1, pairs_to_pull,unique_to_push_out_at_this_scale))
+            else:
+                return scale_edges_pairings
+        return scale_edges_pairings
+
+
 class TopologicalZeroOrderLoss(nn.Module):
     """Topological signature."""
     LOSS_ORDERS = [1,2]
     PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS =["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"]
 
-    def __init__(self,method="match_scale_distribution",p=1):
+    def __init__(self,method="match_scale_distribution",p=2,timeout = 5,multithreading = True):
         """Topological signature computation.
 
         Args:
@@ -25,179 +76,107 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.signature_calculator = ConnectivityEncoderCalculator
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
-        import torch
-    def deep_scale_match(self, topo_encoding_space_1: ConnectivityEncoderCalculator,topo_encoding_space_2: ConnectivityEncoderCalculator):
-        pairwise_distances_influenced = 0
-        important_edge_for_each_scale = []
-        # Profiling times for different sections
-        total_time_section_1 = 0
-        total_time_section_2 = 0
-        total_time_section_4 = 0
-        total_time_section_5 = 0
-        # Iterate over persistence pairs in space 1
-        for index, edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
-            # Time Section 1: Component Birth and Scale Fetching
-            start_time = time.time()
-            component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
-            scale_in_s1 = topo_encoding_space_1.scales[index]
-            index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
-            total_time_section_1 += time.time() - start_time
+        
+        self.timeout = timeout
+        self.multithreading = multithreading
+        if self.multithreading:
+            self.available_threads = ceil(self.get_thread_count() * 0.5) #take up 50% of available threads
+            if self.available_threads == 1:
+                self.multithreading = False
+                self.stop_event = Timer(self.timeout)
+            else:
+                self.executor = ThreadPoolExecutor(max_workers=self.available_threads)
+                self.stop_event = threading.Event()
+                self.main_thread_event = Timer(self.timeout*0.9)
+        else:
+            self.available_threads = 1
+            self.stop_event = Timer(self.timeout)
+        print(f"Available threads : {self.available_threads}")
+        
+        
+        
 
-            # Time Section 2: Relevant Sets Fetching and Processing
-            start_time = time.time()
-            relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(
-                relevant_points=component_birth_in_s1_due_to_pers_pair, index_of_scale=index_of_scale_in_s1 
-            )
-            to_push_out_at_this_scale = []
-            healthy_subsets = {}
-            total_time_section_2 += time.time() - start_time
-            start_time = time.time()
-            for component_in_s2_name, member_vertices in relevant_sets_in_s2.items():
-                good_vertices = np.intersect1d(member_vertices, component_birth_in_s1_due_to_pers_pair)
-                for vertex in member_vertices:
-                    if vertex not in component_birth_in_s1_due_to_pers_pair:
-                        pair_info = topo_encoding_space_2.what_connected_this_point_to_this_set(
-                            point=vertex, vertex_set=good_vertices
-                        )["persistence_pair"]
-                        to_push_out_at_this_scale.append(pair_info)
-                healthy_subsets[component_in_s2_name] = good_vertices#tensor(good_vertices, dtype=long, device=distances2.device)
-            total_time_section_4 += time.time() - start_time
-
-
-            start_time = time.time()
-            pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
-            unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
-            important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
-            total_time_section_5 += time.time() - start_time
-
-            if len(important_pairs) != 0:
-                pairwise_distances_influenced += len(important_pairs)
-                important_edge_for_each_scale.append((scale_in_s1, important_pairs))
-            print(f"{index}/{len(topo_encoding_space_1.persistence_pairs)}; important_edges_#:{len(important_pairs)}")
-        # Final output of total times
-        print(f"Total time for Section 1 (Component Birth and Scale Fetching): {total_time_section_1:.4f} seconds")
-        print(f"Total time for Section 2 (Finding Relevant Sets in Other Space): {total_time_section_2:.4f} seconds")
-        print(f"Total time for Section 4 (Push Out Edges Calculation): {total_time_section_4:.4f} seconds")
-        print(f"Total time for Section 5 (Pull Edges Calculation): {total_time_section_5:.4f} seconds")
-        print(f"Overall Total Computation Time: {total_time_section_1 + total_time_section_2 +  total_time_section_4+ total_time_section_5:.4f} seconds")
-        return important_edge_for_each_scale
-    
+   
     def deep_scale_distribution_matching_loss_of_s1_on_s2(self, topo_encoding_space_1: ConnectivityEncoderCalculator, distances1, topo_encoding_space_2: ConnectivityEncoderCalculator, distances2):
-        if distances2.requires_grad:
-            # Initialize loss on the GPU
-            loss = tensor(0.0, device=distances2.device)
-            important_edge_for_each_scale = self.deep_scale_match(topo_encoding_space_1=topo_encoding_space_1,topo_encoding_space_2=topo_encoding_space_2)
-            # Process each scale's important pairs
+        if distances2.requires_grad:            
+            self.stop_event.clear()
+            nb_of_persistent_pairs = len(topo_encoding_space_1.persistence_pairs)
+            shuffled_indices_of_topo_features= list(range(nb_of_persistent_pairs))
+            shuffle(shuffled_indices_of_topo_features)
+            k, m = divmod(len(shuffled_indices_of_topo_features), self.available_threads)
+            subdivided_list = [shuffled_indices_of_topo_features[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(self.available_threads)]
+            important_edges_for_each_scale = []
+            start_time = time.time()
+            print("start")
+
+            if self.multithreading:
+                args = [(topo_encoding_space_1,topo_encoding_space_2,indices,self.stop_event) for indices in subdivided_list[:-1]]
+                futures = {self.executor.submit(deep_topo_loss_at_scale, *arg): i for i, arg in enumerate(args)}
+                self.main_thread_event.clear()
+                main_thread_execution_result =  deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.main_thread_event)
+                print("STOP")
+                self.stop_event.set()
+                completed = 0
+                try:
+                    for future in as_completed(futures,timeout=self.timeout):# this extra timeout is the amount of extra time it will w8 for last iteration to finish, otherwise it will dump all the results from that thread
+                        try:
+                            result = future.result()
+                            important_edges_for_each_scale.extend(result)
+                            completed = completed + len(result)
+                        except Exception as e:
+                            print(f"Error occurred while getting result: {e}")
+                except TimeoutError:
+                    print(f"Called for stopping of threads, however they took too long to respond to a Timeout of {self.timeout}. Cancelling all threads.")
+                important_edges_for_each_scale.extend(main_thread_execution_result)
+                completed = completed + len(main_thread_execution_result)
+
+            else:
+                important_edges_for_each_scale = deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.stop_event)
+                completed = len(important_edges_for_each_scale)
+                print("STOP")
+
             pairwise_distances_influenced = 0
-            for scale_edges_pair in important_edge_for_each_scale:
-                start_time = time.time()
-                important_pairs_tensor = tensor(np.array(scale_edges_pair[1]), dtype=long, device=distances2.device)
-                scale = tensor(scale_edges_pair[0], device=distances2.device)
+            pulled_edges = 0
+            pushed_edges = 0
+            set_of_unique_edges_influenced = set()
+            loss = tensor(0.0, device=distances2.device)
+            for scale,pull_edges,push_edges in important_edges_for_each_scale:
+                all_edges = pull_edges + push_edges
+                set_of_unique_edges_influenced.update(all_edges)
+                if len(all_edges) == 0:
+                    continue
+                important_pairs_tensor = tensor(np.array(all_edges), dtype=long, device=distances2.device)
+                scale = tensor(scale, device=distances2.device)
 
                 selected_diff_distances = distances2[important_pairs_tensor[:, 0], important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
                 loss_at_this_scale = abs(selected_diff_distances - scale) ** self.p
                 loss = loss + loss_at_this_scale.sum()
-                pairwise_distances_influenced = pairwise_distances_influenced + len(scale_edges_pair[1])
+                pairwise_distances_influenced = pairwise_distances_influenced + len(all_edges)
+                pulled_edges = pulled_edges + len(pull_edges)
+                pushed_edges = pushed_edges + len(push_edges)
 
-
-            # Normalize the loss by the total number of pairs influenced
-            return loss / pairwise_distances_influenced if pairwise_distances_influenced > 0 else tensor(0.0, device=distances2.device)
+            total_time_section = time.time() - start_time
+            print(f"Total time take for topology calculatation {total_time_section:.4f} seconds, nb of pers_pairs: {nb_of_persistent_pairs} of which {completed} where calculated, with {pairwise_distances_influenced} paris influenced ")
+            if pairwise_distances_influenced > 0:
+                loss = loss / pairwise_distances_influenced
+                topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
+                                   "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),"pull_push_ratio":float(pulled_edges/(0.0001+pushed_edges)),
+                                   "nb_pairwise_distance_influenced":pairwise_distances_influenced,"nb_unique_pairwise_distance_influenced":len(set_of_unique_edges_influenced)}
+            else:
+                loss = tensor(0.0, device=distances2.device)
+                topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
+                                   "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),
+                                   "nb_pairwise_distance_influenced":pairwise_distances_influenced,"nb_unique_pairwise_distance_influenced":len(set_of_unique_edges_influenced)}
+                
+            return loss ,topo_step_stats
         else:
-            return tensor(0.0, device=distances2.device)
-    def deep_scale_distribution_matching_loss_of_s1_on_s2_no_b(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
-        if distances2.requires_grad:
-            # Initialize loss on the GPU
-            loss = tensor(0.0, device=distances2.device)
-            pairwise_distances_influenced = 0
-
-            important_edge_for_each_scale = []
-            # Iterate over persistence pairs in space 1
-            for index, edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
-                print(f"{index}/{len(topo_encoding_space_1.persistence_pairs)}")
-                
-                component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
-                scale_in_s1 = topo_encoding_space_1.scales[index]
-                index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
-                
-                # Fetch relevant sets in space 2 for the current scale
-                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(
-                    relevant_points=component_birth_in_s1_due_to_pers_pair, index_of_scale=index_of_scale_in_s1
-                )
-                
-                to_push_out_at_this_scale = []
-                healthy_subsets = {}
-
-                for component_in_s2_name, member_verticies in relevant_sets_in_s2.items():
-                    # Intersect sets directly on the GPU if possible
-                    good_verticies = np.intersect1d(member_verticies, component_birth_in_s1_due_to_pers_pair)
-                    # Find vertices not in the birth component, append the persistence pair
-                    for vertex in member_verticies:
-                        if vertex not in component_birth_in_s1_due_to_pers_pair:
-                            pair_info = topo_encoding_space_2.what_connected_this_point_to_this_set(
-                                point=vertex, vertex_set=good_verticies
-                            )["persistence_pair"]
-                            to_push_out_at_this_scale.append(pair_info)
-                    healthy_subsets[component_in_s2_name] = tensor(good_verticies, dtype=long, device=distances2.device)
-
-                # Get edges needed to connect the components
-                pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
-                unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
-                
-                # Combine important pairs
-                important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
-                
-                # If there are important pairs, perform loss calculation
-                if len(important_pairs) != 0:
-                    pairwise_distances_influenced += len(important_pairs)
-                    important_edge_for_each_scale.append((scale_in_s1,important_pairs))
-            for scale_edges_pair in important_edge_for_each_scale:
-                # Convert important pairs to a tensor on GPU for indexing
-                important_pairs_tensor =tensor(np.array(scale_edges_pair[1]), dtype=long, device=distances2.device)
-                scale = tensor(scale_edges_pair[0], device=distances2.device)
-                # Select and compute the differences on GPU
-                selected_diff_distances = distances2[important_pairs_tensor[:, 0], important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
-
-                # Compute the loss at this scale and accumulate
-                loss_at_this_scale = abs(selected_diff_distances - scale) ** self.p
-                loss = loss + loss_at_this_scale.sum()
-
-            # Normalize the loss by the total number of pairs influenced
-            return loss / pairwise_distances_influenced if pairwise_distances_influenced > 0 else tensor(0.0, device=distances2.device)
-        else:
-            return tensor(0.0, device=distances2.device)
-
-    def deep_scale_distribution_matching_loss_of_s1_on_s2_old(self,topo_encoding_space_1:ConnectivityEncoderCalculator,distances1,topo_encoding_space_2:ConnectivityEncoderCalculator,distances2):
-        if True:#distances2.requires_grad:
-            loss = tensor(0.0, device=distances2.device)
-            pairwise_distances_influenced = 0
-            for index,edge_indices in enumerate(topo_encoding_space_1.persistence_pairs):
-                print(f"{index}/{len(topo_encoding_space_1.persistence_pairs)}")
-                component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(index)
-                scale_in_s1 = topo_encoding_space_1.scales[index]
-                index_of_scale_in_s1 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
-                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(relevant_points= component_birth_in_s1_due_to_pers_pair,index_of_scale= index_of_scale_in_s1)
-                to_push_out_at_this_scale = []
-                healthy_subsets = {}
-                for component_in_s2_name,member_verticies in relevant_sets_in_s2.items():
-                    good_verticies = np.intersect1d(member_verticies,component_birth_in_s1_due_to_pers_pair)
-                    healthy_subsets[component_in_s2_name] = good_verticies
-                    for vertex in member_verticies:
-                        if not vertex in component_birth_in_s1_due_to_pers_pair:
-                            to_push_out_at_this_scale.append(topo_encoding_space_2.what_connected_this_point_to_this_set(point=vertex,vertex_set=good_verticies)["persistence_pair"])
-                pairs_to_join_healthy_subsets = topo_encoding_space_2.what_edges_needed_to_connect_these_components(healthy_subsets)
-                unique_to_push_out_at_this_scale = list(set(to_push_out_at_this_scale))
-                important_pairs = pairs_to_join_healthy_subsets + unique_to_push_out_at_this_scale
-                if len(important_pairs) != 0:
-                    pairwise_distances_influenced = pairwise_distances_influenced + len(important_pairs)
-                    important_pairs = tensor(important_pairs, dtype=long) 
-                    selected_diff_distances = distances2[important_pairs[:, 0], important_pairs[:, 1]]/ topo_encoding_space_2.distance_of_persistence_pairs[-1]
-                    loss_at_this_scale = abs(selected_diff_distances - scale_in_s1)**self.p
-                    loss = loss + loss_at_this_scale.sum()
-
-            return loss/pairwise_distances_influenced
-        else:
-            return tensor(0.0, device=distances2.device)
-
+            return tensor(0.0, device=distances2.device),{}
+    
+    
+    def __del__(self):
+        print("Cleaning up the topo compute pool.")
+        self.cpu_compute_pool.terminate()  # Cancel remaining jobs in the pool
+        self.cpu_compute_pool.join()  # Wait for the worker processes to terminate
 
     def forward(self, distances1, distances2):
         """Return topological distance of two pairwise distance matrices.
@@ -223,9 +202,30 @@ class TopologicalZeroOrderLoss(nn.Module):
                                                       distances1=distances2,
                                                       topo_encoding_space_2=topo_encoding_space_1,
                                                       distances2=distances1)
-        return loss_1_on_2 + loss_2_on_1,[]
-    
-    
+        loss,log = TopologicalZeroOrderLoss.combine_topo_feature_loss_function_outputs(loss_1_on_2,loss_2_on_1)
+
+        return loss,log
+    @staticmethod
+    def combine_topo_feature_loss_function_outputs(topo_loss_1_on_2,topo_loss_2_on_1):
+        topo_loss_1_on_2 = TopologicalZeroOrderLoss.extract_topo_feature_loss_function_output(topo_loss_1_on_2)
+        topo_loss_2_on_1 = TopologicalZeroOrderLoss.extract_topo_feature_loss_function_output(topo_loss_2_on_1)
+        log = {f"{key}_1_on_2":value for key,value in topo_loss_1_on_2[1].items()}
+        log.update({f"{key}_2_on_1":value for key,value in topo_loss_2_on_1[1].items()})
+        log["topo_loss_1_on_2"] =float(topo_loss_1_on_2[0].item())
+        log["topo_loss_2_on_1"] =float(topo_loss_2_on_1[0].item())
+
+        combined_loss = topo_loss_1_on_2[0] + topo_loss_2_on_1[0]
+        return combined_loss,log
+    @staticmethod
+    def extract_topo_feature_loss_function_output(topo_output):
+        if isinstance(topo_output, tuple):
+            log_info = topo_output[1]
+            loss = topo_output[0]
+        else:
+            log_info = {}
+            loss = topo_output
+        return loss,log_info 
+
     def get_topo_feature_approach(self,method):
         self.method = self.set_scale_matching_method(method)
         if self.method == TopologicalZeroOrderLoss.PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS[0]:
@@ -329,3 +329,36 @@ class TopologicalZeroOrderLoss(nn.Module):
         else:
             raise ValueError(f"This loss {self.p} is not supported")
         
+    def get_thread_count(self):
+        import os
+        import subprocess
+        import psutil
+        
+        def get_allocated_threads_by_slurm():
+            try:
+                # Get the number of threads per core from lscpu
+                lscpu_output = subprocess.check_output("lscpu | awk '/Thread\\(s\\) per core:/ {print $4}'", shell=True)
+                threads_per_core = int(lscpu_output.decode().strip())
+                
+                # Get the Slurm allocated CPUs
+                cpus_per_task = int(os.environ.get("SLURM_CPUS_PER_TASK", None))  # Default to 1 if not in Slurm
+                allocated_threads = threads_per_core * cpus_per_task
+                return allocated_threads
+            except Exception as e:
+                print(f"Could not detect SLURM environment, probably running on personal hardware; Error msg {e}")
+                return None
+
+        def get_threads_from_hardware():
+                try:
+                    # Get total number of logical processors (threads)
+                    threads = psutil.cpu_count(logical=True)
+                    return threads
+                except Exception as e:
+                    print(f"Using only one thread to calculate topology, could not detect how many threads available; Error: {e}")
+                    return 1 #assume only one thread exists
+                
+        threads_alloc_by_slurm = get_allocated_threads_by_slurm()
+        if threads_alloc_by_slurm is None:
+            threads_available_on_hardware = get_threads_from_hardware()
+            return threads_available_on_hardware
+        return get_allocated_threads_by_slurm()

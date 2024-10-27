@@ -110,10 +110,8 @@ class TopoAMiL(nn.Module):
         x= self.ensure_square_tensor(input_distance_matrix)
         y= self.ensure_square_tensor(latent_distance_matrix)
         assert x.shape == y.shape
-        topo_loss, topo_loss_components = self.topo_sig(x, y)
-        
-        topo_loss = topo_loss / float(latent_distance_matrix.shape[0])
-        return {"topo_loss":topo_loss,"topo_loss_components": topo_loss_components}
+        topo_loss_output = self.topo_sig(x, y)
+        return {"topo_loss":topo_loss_output[0],"topo_step_log": topo_loss_output[1]}
 
     def ensure_square_tensor(self,tensor):
         # Check if tensor is 1 x n x n

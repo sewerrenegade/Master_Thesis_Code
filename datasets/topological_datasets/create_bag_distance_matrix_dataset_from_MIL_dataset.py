@@ -3,9 +3,6 @@ import random
 import sys
 
 from datasets.mil_dataset_abstraction import BaseMILDataset
-from results.report_generators.report_generator import create_pdf_from_dataset_reports, produce_element_from_df, produce_pivot_table_from_dict_lists
-from results.report_generators.dataset_report_generator import DatasetReportElements
-from results.metrics_descriptor import MetricsDescriptor
 from distance_functions.functions.basic_distance_functions import EuclideanDistance, L1Distance
 from datasets.SCEMILA import *
 

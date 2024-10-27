@@ -17,9 +17,6 @@ class ConnectivityEncoderCalculator:
         self.distance_of_persistence_pairs = None
         # self.sanity_checker = []
         #self.topo_progression_stats= [np.unique(zero_scale_topo, return_counts=True)]
-
-    def estimate_distance_from_scale(self,scale):
-        return scale * self.scales[-1]
     def get_component_birthed_at_index(self,index):
         state = self.topo_scale_evolution[index + 1]
         pers_pair = self.persistence_pairs[index]
@@ -40,7 +37,7 @@ class ConnectivityEncoderCalculator:
                 edge,distance = self.get_shortest_distance_between_2_sets_ignoring_all_other_points(set_dict[index_keys[i]],set_dict[index_keys[j]])
                 dist_mat[i,j] = distance
                 dist_mat[j,i] = distance
-                set_to_edge_mapping[(i,j)] = edge
+                set_to_edge_mapping[(i,j)] = (int(edge[0]),int(edge[1]))
         smaller_homology_problem = ConnectivityEncoderCalculator(distance_mat=dist_mat)
         smaller_homology_problem.calculate_connectivity()
         pers_pairs = smaller_homology_problem.persistence_pairs

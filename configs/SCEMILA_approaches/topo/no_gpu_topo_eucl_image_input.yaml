@@ -9,6 +9,8 @@ model_params:
     input_type: "images"
     topological_regularizer_settings:
       method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
+      multithreading: False
+      timeout: 1
             
 dataset:
   name: 'SCEMILA'

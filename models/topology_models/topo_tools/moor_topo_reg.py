@@ -136,5 +136,5 @@ class TopologicalSignatureDistance(nn.Module):
 
             distance = distance1_2 + distance2_1
 
-        return distance, distance_components
+        return distance/float(distances1.shape[0]), distance_components
     
