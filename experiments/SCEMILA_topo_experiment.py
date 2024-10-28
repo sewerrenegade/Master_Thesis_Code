@@ -144,14 +144,17 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         return str(mat.tolist())
     
     def log_confusion_matrix(self,phase,confusion_matrix):
-        plt.figure(figsize=(10, 7))
-        labels = [self.indexer.convert_from_int_to_label_bag_level(i) for i in range(self.model.class_count)]
-        sns.heatmap(confusion_matrix.cpu().numpy(), annot=True, fmt="g", cmap="Blues",xticklabels = labels,yticklabels=labels,cbar=False)
-        plt.xlabel("Predicted labels")
-        plt.ylabel("True labels")
-        plt.title("Confusion Matrix")
-        wandb.log({f"{phase} confusion matrix": wandb.Image(plt)})
-        plt.close()
+        try:
+            plt.figure(figsize=(10, 7))
+            labels = [self.indexer.convert_from_int_to_label_bag_level(i) for i in range(self.model.class_count)]
+            sns.heatmap(confusion_matrix.cpu().numpy(), annot=True, fmt="g", cmap="Blues",xticklabels = labels,yticklabels=labels,cbar=False)
+            plt.xlabel("Predicted labels")
+            plt.ylabel("True labels")
+            plt.title("Confusion Matrix")
+            wandb.log({f"{phase} confusion matrix": wandb.Image(plt)})
+            plt.close()
+        except Exception as e:
+            print(f"Could not upload the {phase} {self.current_epoch}th confusion matrix")
 
 
 
@@ -188,20 +191,21 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             topo_log = step_loss["topo_step_log"]
             for ending in ["_1_on_2","_2_on_1"]:
                 if f"topo_time_taken{ending}" in topo_log and phase == "train":
-                    self.log(f"per_step_topo_calc_time{ending}_topo_analytics{ending}",topo_log[f"topo_time_taken{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                    self.log(f"per_step_topo_calc_time{ending}_topo_analytics",topo_log[f"topo_time_taken{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"nb_of_persistent_edges{ending}" in topo_log and phase == "train":
-                    self.log(f"persistent_edges_nb{ending}_topo_analytics{ending}",topo_log[f"nb_of_persistent_edges{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                    self.log(f"persistent_edges_nb{ending}_topo_analytics",topo_log[f"nb_of_persistent_edges{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"percentage_toporeg_calc{ending}" in topo_log and phase == "train":
-                    self.log(f"percentage_toporeg_calculated{ending}_topo_analytics{ending}",topo_log[f"percentage_toporeg_calc{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                    self.log(f"percentage_toporeg_calculated{ending}_topo_analytics",topo_log[f"percentage_toporeg_calc{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"pull_push_ratio{ending}" in topo_log and phase == "train":
-                    self.log(f"pull_push_topo_ratio{ending}_topo_analytics{ending}",topo_log[f"pull_push_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                    self.log(f"pull_to_push_topo_ratio{ending}_topo_analytics",topo_log[f"pull_push_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"nb_pairwise_distance_influenced{ending}" in topo_log and phase == "train":
-                    self.log(f"pairwise_distance_influenced_nb{ending}_topo_analytics{ending}",topo_log[f"nb_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                    self.log(f"pairwise_distance_influenced_nb{ending}_topo_analytics",topo_log[f"nb_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"nb_unique_pairwise_distance_influenced{ending}" in topo_log and phase == "train":
                     self.log(f"unique_pairwise_distance_influenced_nb{ending}_topo_analytics",topo_log[f"nb_unique_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"topo_loss{ending}" in topo_log and phase == "train":
-                    self.log(f"topo_loss{ending}",topo_log[f"topo_loss{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-       
+                    self.log(f"topo_loss{ending}_topo_analytics",topo_log[f"topo_loss{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"rate_of_scale_calculation{ending}" in topo_log and phase == "train":
+                    self.log(f"rate_of_topo_calculation{ending}_topo_analytics",topo_log[f"rate_of_scale_calculation{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
         if "LR" in step_loss and phase == "train":
             self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
         if "topo_weight_loss_epoch" in step_loss and phase == "train":

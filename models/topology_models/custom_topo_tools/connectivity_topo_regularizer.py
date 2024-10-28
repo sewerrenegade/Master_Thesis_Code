@@ -62,7 +62,7 @@ class TopologicalZeroOrderLoss(nn.Module):
     LOSS_ORDERS = [1,2]
     PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS =["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"]
 
-    def __init__(self,method="match_scale_distribution",p=2,timeout = 5,multithreading = True):
+    def __init__(self,method="match_scale_distribution",p=2,timeout = 5,multithreading = True,balance_push_pull = False):
         """Topological signature computation.
 
         Args:
@@ -76,10 +76,11 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.signature_calculator = ConnectivityEncoderCalculator
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
+        self.balance_push_pull = balance_push_pull
         
         self.timeout = timeout
-        self.multithreading = multithreading
-        if self.multithreading:
+        self.multithreading= multithreading
+        if self.multithreading and method == "deep":
             self.available_threads = ceil(self.get_thread_count() * 0.5) #take up 50% of available threads
             if self.available_threads == 1:
                 self.multithreading = False
@@ -88,8 +89,14 @@ class TopologicalZeroOrderLoss(nn.Module):
                 self.executor = ThreadPoolExecutor(max_workers=self.available_threads)
                 self.stop_event = threading.Event()
                 self.main_thread_event = Timer(self.timeout*0.9)
+                try:
+                    import wandb
+                    wandb.run.summary["threads_used_for_topo_calc"] = self.available_threads
+                except Exception as e:
+                    print(f"Could not log threads used by deep topology regularization, available threads: {self.available_threads}; error:{e}")
         else:
             self.available_threads = 1
+            self.multithreading = False
             self.stop_event = Timer(self.timeout)
         print(f"Available threads : {self.available_threads}")
         
@@ -107,14 +114,12 @@ class TopologicalZeroOrderLoss(nn.Module):
             subdivided_list = [shuffled_indices_of_topo_features[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(self.available_threads)]
             important_edges_for_each_scale = []
             start_time = time.time()
-            print("start")
 
             if self.multithreading:
                 args = [(topo_encoding_space_1,topo_encoding_space_2,indices,self.stop_event) for indices in subdivided_list[:-1]]
                 futures = {self.executor.submit(deep_topo_loss_at_scale, *arg): i for i, arg in enumerate(args)}
                 self.main_thread_event.clear()
                 main_thread_execution_result =  deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.main_thread_event)
-                print("STOP")
                 self.stop_event.set()
                 completed = 0
                 try:
@@ -133,35 +138,49 @@ class TopologicalZeroOrderLoss(nn.Module):
             else:
                 important_edges_for_each_scale = deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.stop_event)
                 completed = len(important_edges_for_each_scale)
-                print("STOP")
+
 
             pairwise_distances_influenced = 0
-            pulled_edges = 0
-            pushed_edges = 0
+            nb_pulled_edges = 0
+            nb_pushed_edges = 0
             set_of_unique_edges_influenced = set()
-            loss = tensor(0.0, device=distances2.device)
+            push_loss = tensor(0.0, device=distances2.device)
+            pull_loss = tensor(0.0, device=distances2.device)
             for scale,pull_edges,push_edges in important_edges_for_each_scale:
                 all_edges = pull_edges + push_edges
                 set_of_unique_edges_influenced.update(all_edges)
                 if len(all_edges) == 0:
                     continue
-                important_pairs_tensor = tensor(np.array(all_edges), dtype=long, device=distances2.device)
+                push_important_pairs_tensor = tensor(np.array(push_edges), dtype=long, device=distances2.device)
+                pull_important_pairs_tensor = tensor(np.array(pull_edges), dtype=long, device=distances2.device)
+
                 scale = tensor(scale, device=distances2.device)
+                if len(pull_edges) != 0:
+                    pull_selected_diff_distances = distances2[pull_important_pairs_tensor[:, 0], pull_important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
+                    pull_loss_at_this_scale = abs(pull_selected_diff_distances - scale) ** self.p
+                    pull_loss = pull_loss + pull_loss_at_this_scale.sum()
+                if len(push_edges) != 0:
+                    push_selected_diff_distances = distances2[push_important_pairs_tensor[:, 0], push_important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
+                    push_loss_at_this_scale = abs(push_selected_diff_distances - scale) ** self.p
+                    push_loss = push_loss + push_loss_at_this_scale.sum()
 
-                selected_diff_distances = distances2[important_pairs_tensor[:, 0], important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
-                loss_at_this_scale = abs(selected_diff_distances - scale) ** self.p
-                loss = loss + loss_at_this_scale.sum()
                 pairwise_distances_influenced = pairwise_distances_influenced + len(all_edges)
-                pulled_edges = pulled_edges + len(pull_edges)
-                pushed_edges = pushed_edges + len(push_edges)
-
+                nb_pulled_edges = nb_pulled_edges + len(pull_edges)
+                nb_pushed_edges = nb_pushed_edges + len(push_edges)
+            if self.balance_push_pull:
+                balance_push = min(max(nb_pulled_edges/nb_pushed_edges if nb_pushed_edges > 0 else 0.1,0.1),1)
+                balance_pull = min(max(nb_pushed_edges/nb_pulled_edges if nb_pulled_edges > 0 else 0.1,0.1),1)
+            else:
+                balance_push = 1
+                balance_pull = 1
             total_time_section = time.time() - start_time
-            print(f"Total time take for topology calculatation {total_time_section:.4f} seconds, nb of pers_pairs: {nb_of_persistent_pairs} of which {completed} where calculated, with {pairwise_distances_influenced} paris influenced ")
+            #print(f"Total time take for topology calculatation {total_time_section:.4f} seconds, nb of pers_pairs: {nb_of_persistent_pairs} of which {completed} where calculated, with {pairwise_distances_influenced} paris influenced ")
             if pairwise_distances_influenced > 0:
-                loss = loss / pairwise_distances_influenced
+                loss = (balance_push*push_loss + balance_pull*pull_loss) / completed if completed != 0 else tensor(0.0, device=distances2.device)
                 topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
-                                   "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),"pull_push_ratio":float(pulled_edges/(0.0001+pushed_edges)),
-                                   "nb_pairwise_distance_influenced":pairwise_distances_influenced,"nb_unique_pairwise_distance_influenced":len(set_of_unique_edges_influenced)}
+                                   "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),"pull_push_ratio":float(nb_pulled_edges/(0.0001+nb_pushed_edges)),
+                                   "nb_pairwise_distance_influenced":pairwise_distances_influenced,"nb_unique_pairwise_distance_influenced":len(set_of_unique_edges_influenced),
+                                   "rate_of_scale_calculation":float(completed)/float(total_time_section)}
             else:
                 loss = tensor(0.0, device=distances2.device)
                 topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
@@ -172,11 +191,6 @@ class TopologicalZeroOrderLoss(nn.Module):
         else:
             return tensor(0.0, device=distances2.device),{}
     
-    
-    def __del__(self):
-        print("Cleaning up the topo compute pool.")
-        self.cpu_compute_pool.terminate()  # Cancel remaining jobs in the pool
-        self.cpu_compute_pool.join()  # Wait for the worker processes to terminate
 
     def forward(self, distances1, distances2):
         """Return topological distance of two pairwise distance matrices.

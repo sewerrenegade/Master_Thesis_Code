@@ -56,14 +56,17 @@ class SCEMILA_Experiment(pl.LightningModule):
         return str(mat.tolist())
     
     def log_confusion_matrix(self,phase,confusion_matrix):
-        plt.figure(figsize=(10, 7))
-        labels = [self.indexer.convert_from_int_to_label_bag_level(i) for i in range(self.model.class_count)]
-        sns.heatmap(confusion_matrix.cpu().numpy(), annot=True, fmt="g", cmap="Blues",xticklabels = labels,yticklabels=labels,cbar=False)
-        plt.xlabel("Predicted labels")
-        plt.ylabel("True labels")
-        plt.title("Confusion Matrix")
-        wandb.log({f"{phase} confusion matrix": wandb.Image(plt)})
-        plt.close()
+        try:
+            plt.figure(figsize=(10, 7))
+            labels = [self.indexer.convert_from_int_to_label_bag_level(i) for i in range(self.model.class_count)]
+            sns.heatmap(confusion_matrix.cpu().numpy(), annot=True, fmt="g", cmap="Blues",xticklabels = labels,yticklabels=labels,cbar=False)
+            plt.xlabel("Predicted labels")
+            plt.ylabel("True labels")
+            plt.title("Confusion Matrix")
+            wandb.log({f"{phase} confusion matrix": wandb.Image(plt)})
+            plt.close()
+        except Exception as e:
+            print(f"Could not upload the {phase} {self.current_epoch}th confusion matrix")
     
     def training_step(
             self, 

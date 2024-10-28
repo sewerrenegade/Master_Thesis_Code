@@ -9,6 +9,9 @@ model_params:
     input_type: "images"
     topological_regularizer_settings:
       method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
+      multithreading: True
+      timeout: 1
+      balance_push_pull: True
                       
 dataset:
   name: 'SCEMILA'
@@ -45,26 +48,25 @@ exp_params:
     batch_size: 1
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.92
+    per_epoch_decay: 0.98
     train_correct_threshold: 1.01 #never
   topo_scheduler:
-    type: "exp_epoch"
-    lam_topo_per_epoch_decay: 0.8
-    lam: 50
+    type: "constant"
+    lam: 0.3
 
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
-  enable_progress_bar: True
+  max_epochs: 200
+  enable_progress_bar: False
   accumulate_grad_batches: 36
 
 logging_params:
   project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "deep_high_val_strong_decay_of_topo_loss_dist_dino_image_input"
+  name: "fast_.3_weighting_deep_multi_thrd"
   manual_seed: 1265
 
 
