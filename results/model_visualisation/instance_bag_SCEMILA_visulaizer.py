@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import umap  # You can use PHATE instead if you prefer
+import phate
 from sklearn.preprocessing import LabelEncoder
 from matplotlib.colors import ListedColormap
 import wandb
 from torch import flatten
 
-
+LABELS_TO_REMOVE_FROM_VIZ = ["other","ambiguous",]
 
 def get_bag_and_instance_level_2D_embeddings(model,dataset):
 
@@ -24,8 +25,11 @@ def get_bag_and_instance_level_2D_embeddings(model,dataset):
             x  = dataset.test_dataset.get_single_tiff_image_using_path(cell_path,cell_label)
             single_cell_embeddings.append(flatten(model.get_instance_level_encoding(x[0])).cpu().numpy())
             single_cell_labels.append(cell_label)
+
+    single_cell_embeddings, single_cell_labels = zip(*[(d, l) for d, l in zip(single_cell_embeddings, single_cell_labels) if l not in LABELS_TO_REMOVE_FROM_VIZ])
+    single_cell_embeddings, single_cell_labels = list(single_cell_embeddings), list(single_cell_labels)
     single_cell_embeddings = np.array(single_cell_embeddings)
-    plot_and_log_2D_embedding(embedding=single_cell_embeddings,labels=single_cell_labels,plot_name = "Single Cell Encoder Embeddings")
+    plot_and_log_2D_embedding(embedding=single_cell_embeddings,labels=single_cell_labels,name = "Single Cell")
 
     patient_embeddings = []
     patient_labels = []
@@ -34,36 +38,47 @@ def get_bag_and_instance_level_2D_embeddings(model,dataset):
             x  = dataset.test_dataset.get_single_tiff_bag_using_path(patient_path,patient_label)
             patient_embeddings.append(flatten(model.get_bag_level_encoding(x[0])).cpu().numpy())
             patient_labels.append(patient_label)
+    patient_embeddings, patient_labels = zip(*[(d, l) for d, l in zip(patient_embeddings, patient_labels) if l not in LABELS_TO_REMOVE_FROM_VIZ])
+    patient_embeddings, patient_labels = list(patient_embeddings), list(patient_labels)
     patient_embeddings = np.array(patient_embeddings)
-    plot_and_log_2D_embedding(embedding= patient_embeddings,labels= patient_labels,plot_name= "Patient Encoder Embeddings")
+    plot_and_log_2D_embedding(embedding= patient_embeddings,labels= patient_labels,name= "Patient")
 
-
-def plot_and_log_2D_embedding(embedding,labels,plot_name):
+custom_colors = [
+    '#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', 
+    '#984ea3', '#999999', '#e41a1c', '#dede00', '#8dd3c7',
+    '#fb8072', '#80b1d3', '#fdb462', '#b3de69', '#fccde5',
+    '#bc80bd', '#ccebc5', '#ffed6f', '#1f78b4', '#33a02c',
+    '#ffb3b3', '#b3b3ff', '#ffd700', '#7fc97f', '#beaed4'
+]
+markers = ['o', '^', 's', 'D', 'P', 'X', '*', 'h', 'v', '<']
+def plot_and_log_2D_embedding(embedding,labels,name):
 
     assert len(embedding) == len(labels)
     le = LabelEncoder()
     y = le.fit_transform(labels)  # Convert labels to integers
     label_names = le.classes_  # Get label names for the legend
-    reducer = umap.UMAP(n_components=2, random_state=42)
-    embedding_2D = reducer.fit_transform(embedding)
+    reducers = {"UMAP":umap.UMAP(n_components=2, random_state=42),"PHATE": phate.PHATE(n_components=2,random_state=42)}
+    for reducer_name,reducer in reducers.items():
+        embedding_2D = reducer.fit_transform(embedding)
 
-    # Create a scatter plot with matplotlib
-    plt.figure(figsize=(10, 7))
+        # Create a scatter plot with matplotlib
+        plt.figure(figsize=(10, 7))
 
-    # Generate color map
-    # colors = cm.rainbow(np.linspace(0, 1, len(np.unique(y))))
-    cmap = ListedColormap(plt.cm.tab20.colors + plt.cm.tab20b.colors[:5])
+        # Generate color map
+        # colors = cm.rainbow(np.linspace(0, 1, len(np.unique(y))))
+        #plt.cm.tab20.colors + plt.cm.tab20b.colors[:5]
+        cmap = ListedColormap(custom_colors)
 
-    # Plot each label with a specific color
-    for i, label in enumerate(np.unique(y)):
-        plt.scatter(embedding_2D[y == label, 0], embedding_2D[y == label, 1], 
-                    color=cmap(i), label=label_names[label], alpha=0.7, s=40)
+        # Plot each label with a specific color
+        for i, label in enumerate(np.unique(y)):
+            plt.scatter(embedding_2D[y == label, 0], embedding_2D[y == label, 1], marker=markers[i % len(markers)],
+                        color=cmap(i), label=label_names[label], alpha=0.7, s=30)
 
-    # Add legend to map colors to labels
-    plt.legend(title="Labels", bbox_to_anchor=(1.05, 1), loc='upper left')  
-    plt.title(plot_name)
-    plt.xlabel("UMAP Dimension 1")
-    plt.ylabel("UMAP Dimension 2")
-    plt.tight_layout()
-    wandb.log({plot_name: wandb.Image(plt)})
-    plt.close()
+        # Add legend to map colors to labels
+        plt.legend(title="Labels", bbox_to_anchor=(1.05, 1), loc='upper left')  
+        plt.title(f"{name} Encoder {reducer_name} Embeddings")
+        plt.xlabel(f"{reducer_name} Dimension 1")
+        plt.ylabel(f"{reducer_name} Dimension 2")
+        plt.tight_layout()
+        wandb.log({name: wandb.Image(plt)})
+        plt.close()

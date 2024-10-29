@@ -1,21 +1,22 @@
 
-import threading
 import torch.nn as nn
 from torch import stack,tensor,Tensor,long,abs
 from numpy import ndarray
 import numpy as np
 import time
 from random import shuffle
-from concurrent.futures import ThreadPoolExecutor, as_completed,TimeoutError
+from concurrent.futures import ProcessPoolExecutor,ThreadPoolExecutor, as_completed,TimeoutError
 from math import ceil
 from models.topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
-from numbers import Number
 # topo function
 
 class Timer:
-    def __init__(self, timeout=2):
+    def __init__(self, timeout=2, start_time = None):
         self.timeout = timeout
-        self.start_time = time.time()
+        if start_time is None:
+            self.start_time = time.time()
+        else:
+            self.start_time = start_time
     def clear(self):
         self.start_time = time.time()
     def set(self):
@@ -23,6 +24,15 @@ class Timer:
     def is_set(self):
         """Check if the timer has exceeded the set timeout."""
         return (time.time() - self.start_time) > self.timeout
+        
+    def __getstate__(self):
+        # Prepare the state dictionary, including start_time and timeout
+        return {'timeout': self.timeout, 'start_time': self.start_time}
+
+    def __setstate__(self, state):
+        # Restore the object's state exactly as it was
+        self.timeout = state['timeout']
+        self.start_time = state['start_time']
     
 def deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,s1_scale_indices,stop_event):
         scale_edges_pairings = []
@@ -86,8 +96,8 @@ class TopologicalZeroOrderLoss(nn.Module):
                 self.multithreading = False
                 self.stop_event = Timer(self.timeout)
             else:
-                self.executor = ThreadPoolExecutor(max_workers=self.available_threads)
-                self.stop_event = threading.Event()
+                self.executor =  ProcessPoolExecutor(max_workers=self.available_threads)#ThreadPoolExecutor(max_workers=self.available_threads)#
+                self.stop_event = Timer(self.timeout) #threading.Event()
                 self.main_thread_event = Timer(self.timeout*0.9)
                 try:
                     import wandb
@@ -120,18 +130,20 @@ class TopologicalZeroOrderLoss(nn.Module):
                 futures = {self.executor.submit(deep_topo_loss_at_scale, *arg): i for i, arg in enumerate(args)}
                 self.main_thread_event.clear()
                 main_thread_execution_result =  deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.main_thread_event)
-                self.stop_event.set()
+                self.stop_event.set()#this us useful if using threading.event structure
                 completed = 0
+                threads_that_returned = 0
                 try:
-                    for future in as_completed(futures,timeout=self.timeout):# this extra timeout is the amount of extra time it will w8 for last iteration to finish, otherwise it will dump all the results from that thread
+                    for future in as_completed(futures,timeout=self.timeout):# this extra timeout is the amount of extra time it will w8 for last iteration to finish, otherwise it will dump all the results
                         try:
                             result = future.result()
                             important_edges_for_each_scale.extend(result)
                             completed = completed + len(result)
+                            threads_that_returned = threads_that_returned + 1
                         except Exception as e:
                             print(f"Error occurred while getting result: {e}")
                 except TimeoutError:
-                    print(f"Called for stopping of threads, however they took too long to respond to a Timeout of {self.timeout}. Cancelling all threads.")
+                    print(f"Called for stopping of threads, however {len(futures) - threads_that_returned} out of {len(futures) + 1} have failed to terminate within the timeout window of {self.timeout}sec. Throwing results of failed threads and continuing.")
                 important_edges_for_each_scale.extend(main_thread_execution_result)
                 completed = completed + len(main_thread_execution_result)
 
@@ -178,9 +190,9 @@ class TopologicalZeroOrderLoss(nn.Module):
             if pairwise_distances_influenced > 0:
                 loss = (balance_push*push_loss + balance_pull*pull_loss) / completed if completed != 0 else tensor(0.0, device=distances2.device)
                 topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
-                                   "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),"pull_push_ratio":float(nb_pulled_edges/(0.0001+nb_pushed_edges)),
+                                   "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),"pull_push_ratio":float(nb_pulled_edges/(0.01+nb_pushed_edges)),
                                    "nb_pairwise_distance_influenced":pairwise_distances_influenced,"nb_unique_pairwise_distance_influenced":len(set_of_unique_edges_influenced),
-                                   "rate_of_scale_calculation":float(completed)/float(total_time_section)}
+                                   "rate_of_scale_calculation":float(completed)/float(total_time_section), "pull_push_loss_ratio":pull_loss.item()/push_loss.item() if  push_loss.item() != 0 else -1.0}
             else:
                 loss = tensor(0.0, device=distances2.device)
                 topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
