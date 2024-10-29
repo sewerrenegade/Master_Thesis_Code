@@ -38,9 +38,9 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
+      LR: 0.005
       weight_decay: 0.00035
-      factor: 0.5
+      factor: 0.25
       scheduler: "ReduceLROnPlateau"
       patience: 20
       monitor_metric: "val_correct_epoch"
@@ -52,7 +52,7 @@ exp_params:
     train_correct_threshold: 1.01 #never
   topo_scheduler:
     type: "constant"
-    lam: 100
+    lam: 1
 
 
 trainer_params:
@@ -66,7 +66,7 @@ trainer_params:
 logging_params:
   project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "best_est_deep_multi_thrd"
+  name: "best_kill_mil_est_deep_multi_thrd"
   manual_seed: 1265
 
 
