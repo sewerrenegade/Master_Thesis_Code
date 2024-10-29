@@ -101,7 +101,7 @@ def get_hydra_override_args():
     #
 #@hydra.main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None)
 def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_image_input.yaml",version_base=None) -> None:
-    import numpy
+    # import numpy
     from hydra import initialize, compose
     from omegaconf import OmegaConf
 

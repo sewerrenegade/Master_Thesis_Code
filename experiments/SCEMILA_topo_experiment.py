@@ -206,6 +206,9 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
                     self.log(f"topo_loss{ending}_topo_analytics",topo_log[f"topo_loss{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"rate_of_scale_calculation{ending}" in topo_log and phase == "train":
                     self.log(f"rate_of_topo_calculation{ending}_topo_analytics",topo_log[f"rate_of_scale_calculation{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"pull_push_loss_ratio{ending}" in topo_log and phase == "train":
+                    self.log(f"pull_push_loss_ratio{ending}_topo_analytics",topo_log[f"pull_push_loss_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                    
         if "LR" in step_loss and phase == "train":
             self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
         if "topo_weight_loss_epoch" in step_loss and phase == "train":
@@ -261,6 +264,14 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         self.log_confusion_matrix("val",self.val_confusion_matrix)
         self.val_confusion_matrix = torch.zeros(self.n_c, self.n_c)
+        try:
+            if self.dataset is not None:
+                from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
+                get_bag_and_instance_level_2D_embeddings(model= self.model,dataset=self.dataset)
+        except Exception as e:
+            print("failed latent viz:")
+            print(e)
+
         
     def on_train_epoch_end(self) -> None:
         p = 0.95
