@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import torch
 import torchmetrics.functional as tf
 import wandb
+import os
 import numpy as np
 from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
 from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
@@ -127,6 +128,10 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.kill_mil_loss = params.get("kill_mil_loss",False)
         self.unique_uuid = uuid.uuid4()
         pass
+    
+    def __del__(self):
+        if os.path.exists(f'{self.unique_uuid}.pkl'):
+            os.remove(f'{self.unique_uuid}.pkl')  # Delete the file
 
     def set_dataset_for_latent_visualization(self,dataset):
         assert isinstance(dataset,SCEMILA)
@@ -216,7 +221,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
                     self.log(f"std_of_workload_across_threads{ending}_topo_analytics",topo_log[f"std_of_workload_across_threads{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"scale_loss_info{ending}" in topo_log and phase == "train":
                     with open(f'{self.unique_uuid}.pkl', 'ab') as temp_file:
-                        scale_info = [(self.current_epoch,info[0],info[1],info[2]) for info in step_loss[f"scale_loss_info{ending}"]]#list of tuples (epoch,scale,pull_loss,push_loss)
+                        scale_info = [(self.current_epoch,info[0],info[1],info[2]) for info in topo_log[f"scale_loss_info{ending}"]]#list of tuples (epoch,scale,pull_loss,push_loss)
                         pickle.dump(scale_info, temp_file)
                         
                 
@@ -242,12 +247,13 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         epochs = sorted(set(epoch for epoch, scale, pull_loss, push_loss in loaded_data))
         unique_scales = sorted(set(scale for epoch, scale, pull_loss, push_loss in loaded_data))
         losses = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
-
+        loss_ratios = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
         # Fill the losses array
         for epoch_idx, epoch in enumerate(epochs):
-            for scale, loss in [(scale, pull_loss + push_loss) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
-                scale_idx = unique_scales.index(scale)
-                losses[scale_idx, epoch_idx] = loss
+            for scale, loss,loss_ratio in [(scale, pull_loss + push_loss,pull_loss/push_loss if push_loss != 0 else -1.0) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
+                    scale_idx = unique_scales.index(scale)
+                    losses[scale_idx, epoch_idx] = loss
+                    loss_ratios[scale_idx, epoch_idx] = loss_ratio
 
         # Step 2: Create a regular scale grid for interpolation
         regular_scales = np.linspace(0, 1, 100)
@@ -331,6 +337,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.model.set_mil_smoothing(current_smoothing)
         self.log("train_label_smoothing_epoch",current_smoothing,on_epoch=True)
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
+        self.create_topo_scale_heatmaps()
 
     def on_test_epoch_end(
             self 

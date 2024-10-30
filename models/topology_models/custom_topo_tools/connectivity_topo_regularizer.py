@@ -115,7 +115,7 @@ class TopologicalZeroOrderLoss(nn.Module):
 
    
     def deep_scale_distribution_matching_loss_of_s1_on_s2(self, topo_encoding_space_1: ConnectivityEncoderCalculator, distances1, topo_encoding_space_2: ConnectivityEncoderCalculator, distances2):
-        if distances2.requires_grad:            
+        if True:#distances2.requires_grad:            
             self.stop_event.clear()
             nb_of_persistent_pairs = len(topo_encoding_space_1.persistence_pairs)
             shuffled_indices_of_topo_features= list(range(nb_of_persistent_pairs))
@@ -140,7 +140,7 @@ class TopologicalZeroOrderLoss(nn.Module):
                             result = future.result()
                             important_edges_for_each_scale.extend(result)
                             completed = completed + len(result)
-                            nb_of_complete_per_thread.append(result)
+                            nb_of_complete_per_thread.append(len(result))
                             threads_that_returned = threads_that_returned + 1
                         except Exception as e:
                             print(f"Error occurred while getting result: {e}")
@@ -148,8 +148,8 @@ class TopologicalZeroOrderLoss(nn.Module):
                     print(f"Called for stopping of threads, however {len(futures) - threads_that_returned} out of {len(futures) + 1} have failed to terminate within the timeout window of {self.timeout}sec. Throwing results of failed threads and continuing.")
                 important_edges_for_each_scale.extend(main_thread_execution_result)
                 completed = completed + len(main_thread_execution_result)
-                nb_of_complete_per_thread.append(main_thread_execution_result)
-                std_of_workload_across_threads = np.std(nb_of_complete_per_thread,ddof=1)/np.sum(nb_of_complete_per_thread)
+                nb_of_complete_per_thread.append(len(main_thread_execution_result))
+                std_of_workload_across_threads = np.std(nb_of_complete_per_thread,ddof=1)/np.sum(nb_of_complete_per_thread) if len(nb_of_complete_per_thread)>1 else 0.0
             else:
                 important_edges_for_each_scale = deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.stop_event)
                 completed = len(important_edges_for_each_scale)
@@ -170,7 +170,7 @@ class TopologicalZeroOrderLoss(nn.Module):
                     continue
                 push_important_pairs_tensor = tensor(np.array(push_edges), dtype=long, device=distances2.device)
                 pull_important_pairs_tensor = tensor(np.array(pull_edges), dtype=long, device=distances2.device)
-                scale_demographic_info = (scale,0.0,0.0) #scale,pull,push
+                scale_demographic_info = [scale,0.0,0.0] #scale,pull,push
                 scale = tensor(scale, device=distances2.device)
                 if len(pull_edges) != 0:
                     pull_selected_diff_distances = distances2[pull_important_pairs_tensor[:, 0], pull_important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
