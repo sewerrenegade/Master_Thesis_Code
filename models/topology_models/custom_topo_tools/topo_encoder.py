@@ -53,13 +53,13 @@ class ConnectivityEncoderCalculator:
         return shortest_edge,distances[shortest_index]
 
 
-    def get_components_that_contain_these_points_at_this_index_or_scale(self,relevant_points,index_of_scale):
-        state_at_index_or_scale = self.topo_scale_evolution[index_of_scale + 1,:]
+    def get_components_that_contain_these_points_at_this_scale_index(self,relevant_points,index_of_scale):
+        state_at_scale_index = self.topo_scale_evolution[index_of_scale + 1,:]
         groups_included = {} #the key is the group name (ie point with largest index in comp) and value is a list of included points in component
         for point in relevant_points:
-            grp_name = state_at_index_or_scale[point]
-            if not state_at_index_or_scale[point] in groups_included:
-                groups_included[grp_name] = np.where(state_at_index_or_scale == grp_name)[0]
+            grp_name = state_at_scale_index[point]
+            if not grp_name in groups_included:
+                groups_included[grp_name] = np.where(state_at_scale_index == grp_name)[0]
         return groups_included
     def calculate_connectivity(self):
         tri_strict_upper_indices = np.triu_indices_from(self.distance_matrix,k=1)

@@ -43,7 +43,7 @@ def deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,s1_scale
                 component_birth_in_s1_due_to_pers_pair = topo_encoding_space_1.get_component_birthed_at_index(s1_scale_index)
                 scale_in_s1 = topo_encoding_space_1.scales[s1_scale_index]
                 index_of_scale_in_s2 = topo_encoding_space_2.get_index_of_scale_closest_to(scale_in_s1)
-                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_index_or_scale(
+                relevant_sets_in_s2 = topo_encoding_space_2.get_components_that_contain_these_points_at_this_scale_index(
                     relevant_points=component_birth_in_s1_due_to_pers_pair, index_of_scale=index_of_scale_in_s2 
                 )
                 to_push_out_at_this_scale = []
@@ -133,12 +133,14 @@ class TopologicalZeroOrderLoss(nn.Module):
                 self.stop_event.set()#this us useful if using threading.event structure
                 completed = 0
                 threads_that_returned = 0
+                nb_of_complete_per_thread = []
                 try:
                     for future in as_completed(futures,timeout=self.timeout):# this extra timeout is the amount of extra time it will w8 for last iteration to finish, otherwise it will dump all the results
                         try:
                             result = future.result()
                             important_edges_for_each_scale.extend(result)
                             completed = completed + len(result)
+                            nb_of_complete_per_thread.append(result)
                             threads_that_returned = threads_that_returned + 1
                         except Exception as e:
                             print(f"Error occurred while getting result: {e}")
@@ -146,10 +148,12 @@ class TopologicalZeroOrderLoss(nn.Module):
                     print(f"Called for stopping of threads, however {len(futures) - threads_that_returned} out of {len(futures) + 1} have failed to terminate within the timeout window of {self.timeout}sec. Throwing results of failed threads and continuing.")
                 important_edges_for_each_scale.extend(main_thread_execution_result)
                 completed = completed + len(main_thread_execution_result)
-
+                nb_of_complete_per_thread.append(main_thread_execution_result)
+                std_of_workload_across_threads = np.std(nb_of_complete_per_thread,ddof=1)/np.sum(nb_of_complete_per_thread)
             else:
                 important_edges_for_each_scale = deep_topo_loss_at_scale(topo_encoding_space_1,topo_encoding_space_2,subdivided_list[0],self.stop_event)
                 completed = len(important_edges_for_each_scale)
+                std_of_workload_across_threads = 0.0 
 
 
             pairwise_distances_influenced = 0
@@ -158,6 +162,7 @@ class TopologicalZeroOrderLoss(nn.Module):
             set_of_unique_edges_influenced = set()
             push_loss = tensor(0.0, device=distances2.device)
             pull_loss = tensor(0.0, device=distances2.device)
+            scale_demographic_infos = []
             for scale,pull_edges,push_edges in important_edges_for_each_scale:
                 all_edges = pull_edges + push_edges
                 set_of_unique_edges_influenced.update(all_edges)
@@ -165,17 +170,21 @@ class TopologicalZeroOrderLoss(nn.Module):
                     continue
                 push_important_pairs_tensor = tensor(np.array(push_edges), dtype=long, device=distances2.device)
                 pull_important_pairs_tensor = tensor(np.array(pull_edges), dtype=long, device=distances2.device)
-
+                scale_demographic_info = (scale,0.0,0.0) #scale,pull,push
                 scale = tensor(scale, device=distances2.device)
                 if len(pull_edges) != 0:
                     pull_selected_diff_distances = distances2[pull_important_pairs_tensor[:, 0], pull_important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
                     pull_loss_at_this_scale = abs(pull_selected_diff_distances - scale) ** self.p
-                    pull_loss = pull_loss + pull_loss_at_this_scale.sum()
+                    pull_loss_at_this_scale = pull_loss_at_this_scale.sum()
+                    scale_demographic_info[1] = float(pull_loss_at_this_scale.item())
+                    pull_loss = pull_loss + pull_loss_at_this_scale
                 if len(push_edges) != 0:
                     push_selected_diff_distances = distances2[push_important_pairs_tensor[:, 0], push_important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
                     push_loss_at_this_scale = abs(push_selected_diff_distances - scale) ** self.p
+                    push_loss_at_this_scale = push_loss_at_this_scale.sum()
+                    scale_demographic_info[2] = float(push_loss_at_this_scale.item())
                     push_loss = push_loss + push_loss_at_this_scale.sum()
-
+                scale_demographic_infos.append(scale_demographic_info)
                 pairwise_distances_influenced = pairwise_distances_influenced + len(all_edges)
                 nb_pulled_edges = nb_pulled_edges + len(pull_edges)
                 nb_pushed_edges = nb_pushed_edges + len(push_edges)
@@ -192,7 +201,8 @@ class TopologicalZeroOrderLoss(nn.Module):
                 topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,
                                    "percentage_toporeg_calc":100*float(completed/ nb_of_persistent_pairs),"pull_push_ratio":float(nb_pulled_edges/(0.01+nb_pushed_edges)),
                                    "nb_pairwise_distance_influenced":pairwise_distances_influenced,"nb_unique_pairwise_distance_influenced":len(set_of_unique_edges_influenced),
-                                   "rate_of_scale_calculation":float(completed)/float(total_time_section), "pull_push_loss_ratio":pull_loss.item()/push_loss.item() if  push_loss.item() != 0 else -1.0}
+                                   "rate_of_scale_calculation":float(completed)/float(total_time_section), "pull_push_loss_ratio":pull_loss.item()/push_loss.item() if  push_loss.item() != 0 else -1.0,
+                                   "scale_loss_info":scale_demographic_infos,"std_of_workload_across_threads":std_of_workload_across_threads}
             else:
                 loss = tensor(0.0, device=distances2.device)
                 topo_step_stats = {"topo_time_taken": float(total_time_section),"nb_of_persistent_edges":nb_of_persistent_pairs,

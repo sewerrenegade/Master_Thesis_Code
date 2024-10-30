@@ -1,14 +1,17 @@
+import pickle
 import typing
 import pytorch_lightning as pl
 import torch
 import torchmetrics.functional as tf
 import wandb
+import numpy as np
 from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
 from datasets.SCEMILA.SEMILA_indexer import SCEMILA_Indexer
 from experiments.SCEMILA_experiment import DataMatrix, SCEMILA_Experiment
 from models.SCEMILA.topo_SCEMILA_model import TopoAMiL
 from models.model_factory import get_module
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 import seaborn as sns
 from functools import partial
 from trainer_scripts.label_smoothing_scheduler import LabelSmoothingScheduler
@@ -101,7 +104,7 @@ class TopoScheduler:
 
     def exp_schedule(self,step_metrics,lam_topo,lam_topo_per_epoch_decay,max_lam,min_lam):
         return max(min(lam_topo * (lam_topo_per_epoch_decay**self.experiment.current_epoch),max_lam),min_lam)
-
+import uuid
 class TopoSCEMILA_Experiment(pl.LightningModule):
     def __init__(self, model: TopoAMiL, params: typing.Dict[str, typing.Any]) -> None:
         super(TopoSCEMILA_Experiment, self).__init__()
@@ -122,6 +125,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             self.class_weights = self.get_class_weights(self.class_weighting_factor)
         self.topo_scheduler = TopoScheduler(self,params.get("topo_scheduler",{}))
         self.kill_mil_loss = params.get("kill_mil_loss",False)
+        self.unique_uuid = uuid.uuid4()
         pass
 
     def set_dataset_for_latent_visualization(self,dataset):
@@ -208,7 +212,14 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
                     self.log(f"rate_of_topo_calculation{ending}_topo_analytics",topo_log[f"rate_of_scale_calculation{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"pull_push_loss_ratio{ending}" in topo_log and phase == "train":
                     self.log(f"pull_push_loss_ratio{ending}_topo_analytics",topo_log[f"pull_push_loss_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                    
+                if f"std_of_workload_across_threads{ending}" in topo_log and phase == "train":
+                    self.log(f"std_of_workload_across_threads{ending}_topo_analytics",topo_log[f"std_of_workload_across_threads{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"scale_loss_info{ending}" in topo_log and phase == "train":
+                    with open(f'{self.unique_uuid}.pkl', 'ab') as temp_file:
+                        scale_info = [(self.current_epoch,info[0],info[1],info[2]) for info in step_loss[f"scale_loss_info{ending}"]]#list of tuples (epoch,scale,pull_loss,push_loss)
+                        pickle.dump(scale_info, temp_file)
+                        
+                
         if "LR" in step_loss and phase == "train":
             self.log(f"LR",step_loss["LR"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
         if "topo_weight_loss_epoch" in step_loss and phase == "train":
@@ -217,7 +228,50 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.logger.log_metrics({f"{phase}_pred_int":step_loss["prediction_int"]})
 
 
-       
+    def create_topo_scale_heatmaps(self):
+        loaded_data = []
+        with open(f'{self.unique_uuid}.pkl', 'rb') as temp_file:
+            try:
+                while True:
+                    data_point = pickle.load(temp_file)
+                    loaded_data.extend(data_point)
+            except EOFError:
+                pass  # Reached end of file
+
+
+        epochs = sorted(set(epoch for epoch, scale, pull_loss, push_loss in loaded_data))
+        unique_scales = sorted(set(scale for epoch, scale, pull_loss, push_loss in loaded_data))
+        losses = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
+
+        # Fill the losses array
+        for epoch_idx, epoch in enumerate(epochs):
+            for scale, loss in [(scale, pull_loss + push_loss) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
+                scale_idx = unique_scales.index(scale)
+                losses[scale_idx, epoch_idx] = loss
+
+        # Step 2: Create a regular scale grid for interpolation
+        regular_scales = np.linspace(0, 1, 100)
+
+        # Step 3: Interpolate losses over the regular scale grid for each epoch
+        interpolated_losses = np.zeros((len(regular_scales), len(epochs)))
+
+        for i in range(len(epochs)):
+            # Filter out NaN values for scales and losses
+            valid_indices = ~np.isnan(losses[:, i])
+            if np.sum(valid_indices) < 2:  # Not enough points to interpolate
+                continue
+            interpolator = interp1d(unique_scales[valid_indices], losses[valid_indices, i], kind='cubic', fill_value="extrapolate")
+            interpolated_losses[:, i] = interpolator(regular_scales)
+        plt.figure(figsize=(10, 6))
+        plt.imshow(interpolated_losses, aspect='auto', origin='lower',
+                extent=[epochs[0], epochs[-1], 0, 1], cmap='viridis')
+        plt.colorbar(label='Loss')
+        plt.xlabel("Epoch")
+        plt.ylabel("Scale")
+        plt.title("Loss across Scales and Epochs")
+        wandb.log({f"Loss Across Scales & Epoch": wandb.Image(plt)})
+        plt.close()
+        
     def count_corrects(self, outputs):
         corrects = 0
         for output in outputs:
