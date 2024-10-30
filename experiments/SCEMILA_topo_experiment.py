@@ -264,13 +264,6 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         self.log_confusion_matrix("val",self.val_confusion_matrix)
         self.val_confusion_matrix = torch.zeros(self.n_c, self.n_c)
-        try:
-            if self.dataset is not None:
-                from results.model_visualisation.instance_bag_SCEMILA_visulaizer import get_bag_and_instance_level_2D_embeddings
-                get_bag_and_instance_level_2D_embeddings(model= self.model,dataset=self.dataset)
-        except Exception as e:
-            print("failed latent viz:")
-            print(e)
 
         
     def on_train_epoch_end(self) -> None:

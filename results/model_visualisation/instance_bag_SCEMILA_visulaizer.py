@@ -57,7 +57,7 @@ def plot_and_log_2D_embedding(embedding,labels,name):
     le = LabelEncoder()
     y = le.fit_transform(labels)  # Convert labels to integers
     label_names = le.classes_  # Get label names for the legend
-    reducers = {"UMAP":umap.UMAP(n_components=2, random_state=42),"PHATE": phate.PHATE(n_components=2,random_state=42)}
+    reducers = {"UMAP":umap.UMAP(n_components=2),"PHATE": phate.PHATE(n_components=2)}
     for reducer_name,reducer in reducers.items():
         embedding_2D = reducer.fit_transform(embedding)
 
@@ -80,5 +80,5 @@ def plot_and_log_2D_embedding(embedding,labels,name):
         plt.xlabel(f"{reducer_name} Dimension 1")
         plt.ylabel(f"{reducer_name} Dimension 2")
         plt.tight_layout()
-        wandb.log({name: wandb.Image(plt)})
+        wandb.log({f"{name}_{reducer_name}": wandb.Image(plt)})
         plt.close()
