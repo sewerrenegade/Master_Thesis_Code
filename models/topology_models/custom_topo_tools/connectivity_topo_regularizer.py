@@ -115,7 +115,7 @@ class TopologicalZeroOrderLoss(nn.Module):
 
    
     def deep_scale_distribution_matching_loss_of_s1_on_s2(self, topo_encoding_space_1: ConnectivityEncoderCalculator, distances1, topo_encoding_space_2: ConnectivityEncoderCalculator, distances2):
-        if True:#distances2.requires_grad:            
+        if distances2.requires_grad:            
             self.stop_event.clear()
             nb_of_persistent_pairs = len(topo_encoding_space_1.persistence_pairs)
             shuffled_indices_of_topo_features= list(range(nb_of_persistent_pairs))
@@ -183,7 +183,7 @@ class TopologicalZeroOrderLoss(nn.Module):
                     push_loss_at_this_scale = abs(push_selected_diff_distances - scale) ** self.p
                     push_loss_at_this_scale = push_loss_at_this_scale.sum()
                     scale_demographic_info[2] = float(push_loss_at_this_scale.item())
-                    push_loss = push_loss + push_loss_at_this_scale.sum()
+                    push_loss = push_loss + push_loss_at_this_scale
                 scale_demographic_infos.append(scale_demographic_info)
                 pairwise_distances_influenced = pairwise_distances_influenced + len(all_edges)
                 nb_pulled_edges = nb_pulled_edges + len(pull_edges)

@@ -38,7 +38,7 @@ exp_params:
     batch_size: 1
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.95
+    per_epoch_decay: 0.97
     train_correct_threshold: 1.01 #never
 
 trainer_params:
@@ -51,9 +51,9 @@ trainer_params:
 
 
 logging_params:
-  project_name: "kfold_showdown"
+  project_name: "Final_Results"
   save_dir: "logs/image_input_experiment/"
-  name: "base_run"
+  name: "baseline"
   manual_seed: 1265
 
 ES_params:

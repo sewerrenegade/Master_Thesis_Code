@@ -16,6 +16,7 @@ from scipy.interpolate import interp1d
 import seaborn as sns
 from functools import partial
 from trainer_scripts.label_smoothing_scheduler import LabelSmoothingScheduler
+import math
 
 class TopoScheduler:
     DEFAULT = 0.0
@@ -233,6 +234,17 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.logger.log_metrics({f"{phase}_pred_int":step_loss["prediction_int"]})
 
 
+    #this saturates at 10**10 and 10**-10
+    def calculate_graphable_ratio(self,pull_loss,push_loss):
+        if pull_loss != 0 and push_loss != 0:
+            return min(max(math.log10(pull_loss/push_loss),-10),10)
+        if pull_loss == 0 and push_loss != 0:
+            return -10.0
+        if push_loss == 0 and pull_loss != 0:
+            return 10.0
+        if push_loss == push_loss:
+            return 0
+
     def create_topo_scale_heatmaps(self):
         loaded_data = []
         with open(f'{self.unique_uuid}.pkl', 'rb') as temp_file:
@@ -249,8 +261,11 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         losses = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
         loss_ratios = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
         # Fill the losses array
+        #-10 means 0 loss
         for epoch_idx, epoch in enumerate(epochs):
-            for scale, loss,loss_ratio in [(scale, pull_loss + push_loss,pull_loss/push_loss if push_loss != 0 else -1.0) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
+            for scale, loss,loss_ratio in [(scale, math.log10(pull_loss + push_loss + 0.0000000001) + 10,self.calculate_graphable_ratio(pull_loss=pull_loss,push_loss=push_loss)) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
+                    if loss < 0:
+                        print("Catastrofic error, error less than zero")
                     scale_idx = unique_scales.index(scale)
                     losses[scale_idx, epoch_idx] = loss
                     loss_ratios[scale_idx, epoch_idx] = loss_ratio
@@ -260,22 +275,41 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
 
         # Step 3: Interpolate losses over the regular scale grid for each epoch
         interpolated_losses = np.zeros((len(regular_scales), len(epochs)))
-
+        interpolated_loss_ratios = np.zeros((len(regular_scales), len(epochs)))
+        unique_scales = np.array(unique_scales)
         for i in range(len(epochs)):
             # Filter out NaN values for scales and losses
             valid_indices = ~np.isnan(losses[:, i])
+            valid_scale_indices = np.nonzero(valid_indices)[0]
             if np.sum(valid_indices) < 2:  # Not enough points to interpolate
                 continue
-            interpolator = interp1d(unique_scales[valid_indices], losses[valid_indices, i], kind='cubic', fill_value="extrapolate")
+            interpolator = interp1d(unique_scales[valid_scale_indices], losses[valid_scale_indices, i], kind='cubic', fill_value="extrapolate")
             interpolated_losses[:, i] = interpolator(regular_scales)
         plt.figure(figsize=(10, 6))
         plt.imshow(interpolated_losses, aspect='auto', origin='lower',
                 extent=[epochs[0], epochs[-1], 0, 1], cmap='viridis')
-        plt.colorbar(label='Loss')
+        plt.colorbar(label='Log10(Loss + 10**-10) + 10')
         plt.xlabel("Epoch")
         plt.ylabel("Scale")
-        plt.title("Loss across Scales and Epochs")
+        plt.title("Log10 Loss across Scales and Epochs")
         wandb.log({f"Loss Across Scales & Epoch": wandb.Image(plt)})
+        plt.close()
+        for i in range(len(epochs)):
+            # Filter out NaN values for scales and losses
+            valid_indices = ~np.isnan(loss_ratios[:, i])
+            valid_scale_indices = np.nonzero(valid_indices)[0]
+            if np.sum(valid_indices) < 2:  # Not enough points to interpolate
+                continue
+            interpolator = interp1d(unique_scales[valid_scale_indices], loss_ratios[valid_scale_indices, i], kind='cubic', fill_value="extrapolate")
+            interpolated_loss_ratios[:, i] = interpolator(regular_scales)
+        plt.figure(figsize=(10, 6))
+        plt.imshow(interpolated_loss_ratios, aspect='auto', origin='lower',
+                extent=[epochs[0], epochs[-1], 0, 1], cmap='viridis')
+        plt.colorbar(label='log10(Loss_Ratio) saturates at +/-10')
+        plt.xlabel("Epoch")
+        plt.ylabel("Scale")
+        plt.title("Pull Push Loss Log10 Ratios Across Scales & Epoch")
+        wandb.log({f"Pull Push Loss Ratios Across Scales & Epoch": wandb.Image(plt)})
         plt.close()
         
     def count_corrects(self, outputs):
@@ -327,7 +361,6 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
 
         
     def on_train_epoch_end(self) -> None:
-        p = 0.95
         self.log_confusion_matrix("train",self.train_confusion_matrix)
         #is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
         # is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
@@ -337,7 +370,9 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.model.set_mil_smoothing(current_smoothing)
         self.log("train_label_smoothing_epoch",current_smoothing,on_epoch=True)
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
-        self.create_topo_scale_heatmaps()
+        if self.current_epoch == 1 and self.model.topo_reg_settings["method"] == "deep":
+            self.create_topo_scale_heatmaps()
+
 
     def on_test_epoch_end(
             self 
@@ -369,6 +404,12 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         except Exception as e:
             print("failed latent viz:")
             print(e)
+        try:
+            self.create_topo_scale_heatmaps()
+        except Exception as e:
+            print("failed scale heatmaps viz:")
+            print(e)
+        
 
     def predict_step(self, batch, batch_idx):
         assert False

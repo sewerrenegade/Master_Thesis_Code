@@ -45,18 +45,8 @@ def initialize_logger(config,split_num = -1,k_folds = -1, train_env_setting_dict
     return wnb_logger
 
 def get_and_configure_callbacks(config):
-    from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+    from pytorch_lightning.callbacks import EarlyStopping
     from trainer_scripts.custom_model_checkpoint import CustomModelCheckpoint
-    checkpoint_callback = ModelCheckpoint(
-            monitor="val_correct_epoch",
-            mode="max",
-            save_weights_only=True,
-            filename="{epoch}-{val_correct_epoch:.4f}",
-            verbose=True,
-            save_last=True,
-            every_n_epochs=1,
-            save_top_k = 3
-        )
     checkpoint_callback = CustomModelCheckpoint(
         save_weights_only=True,
         filename="{epoch}-{val_correct_epoch:.4f}-{val_loss_epoch:.4f}",

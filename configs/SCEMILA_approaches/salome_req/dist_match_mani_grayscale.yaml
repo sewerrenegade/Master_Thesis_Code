@@ -1,5 +1,5 @@
 model_params:
-  name: 'SCEMILA'
+  name: 'TopoSCEMILA'
   config:
     multicolumn: 1
     class_count: 5
@@ -7,21 +7,35 @@ model_params:
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
+    topological_regularizer_settings:
+      method: "match_scale_distribution" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method"] "og_moor"
+                            
             
 dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
-    val_split: 0.25 # is a dummy variable in this cae since kfold is set
+    val_split: 0.25
     k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
-    gpu: True
     balance_dataset_classes: 50
     augmentation_settings: ["all",0.05]
+    topo_settings:
+      nb_of_grouped_bags: 1
+      normalize_distance_matricies: True
+      dataset_settings:
+        grayscale: True
+        encode_with_dino_bloom: False
+      embedding_settings:
+        function_name: "UMAP"
+        function_settings:
+          n_components: 8
 
 
-exp_type: "SCEMILA_experiment"
+
+
+exp_type: "topo_SCEMILA_experiment"
 exp_params:
   num_class: 5
   class_weighting_factor: 0.0
@@ -38,8 +52,12 @@ exp_params:
     batch_size: 1
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.95
+    per_epoch_decay: 0.97
     train_correct_threshold: 1.01 #never
+  topo_scheduler:
+    type: "constant"
+    lam: 0.1
+
 
 trainer_params:
   precision: '32'
@@ -47,17 +65,22 @@ trainer_params:
   devices: [0]
   max_epochs: 250
   enable_progress_bar: False
-  accumulate_grad_batches: 36
-
+  accumulate_grad_batches : 36
 
 logging_params:
-  project_name: "kfold_showdown"
-  save_dir: "logs/image_input_experiment/"
-  name: "base_run"
+  project_name: "Final_Results"
+  save_dir: "logs/topo_gray_image_image_input_experiment/"
+  name: "edge_dist_match_mani_grayscale"
   manual_seed: 1265
+
 
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
   patience: 90
   mode: 'max'
+
+
+
+      
+

@@ -199,7 +199,11 @@ class SCEMILA_MIL_base(BaseMILDataset):
         
         embedding_function = EmbeddingFunction(**topo_dataset_settings.get("embedding_settings",{"function_name": None,"function_settings" : None}))
         nb_of_grouped_bags=topo_dataset_settings["nb_of_grouped_bags"]
-        distance_function = EuclideanDistance()
+        from distance_functions.functions.distance_functions_factory import get_module as get_dist_func
+        distance_function_name = topo_dataset_settings.get("distance_function","Euclidean Distance")
+        distance_function_settings = topo_dataset_settings.get("distance_function_settings",{})
+        distance_function = get_dist_func(distance_function_name,distance_function_settings)
+        
         from datasets.topological_datasets.topo_dataset_desciptor import TopoDatasetDescriptor
         topo_desc = TopoDatasetDescriptor(name = "test_topo" ,dataset= dataset,nb_of_grouped_bags= nb_of_grouped_bags,embedding_function = embedding_function,distance_function =distance_function)
         

@@ -33,8 +33,9 @@ def calculate_distance_matrix_of_MIL_dataset(dataset, nb_of_grouped_bags,distanc
         subsampled_bags = dataset[subset_indices][0]
         bag_instance_order.update({i:dataset.get_image_paths_from_index(i) for i in subset_indices})
         single_np_array = concatenate_arrays(subsampled_bags)
-        flattened_single_np_array = single_np_array.reshape(single_np_array.shape[0], -1)
-        embedded_points = embedding_function(flattened_single_np_array)
+        if distance_function.name != "Cubical Complex Distance":
+            single_np_array = single_np_array.reshape(single_np_array.shape[0], -1)
+        embedded_points = embedding_function(single_np_array)
         split_embeddings = np.split(embedded_points, np.cumsum([len(bag) for bag in subsampled_bags])[:-1])
         
         for idx, instance_id in enumerate(subset_indices):

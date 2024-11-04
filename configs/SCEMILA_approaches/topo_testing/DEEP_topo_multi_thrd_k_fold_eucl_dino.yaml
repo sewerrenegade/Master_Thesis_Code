@@ -38,7 +38,7 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.0000005
+      LR: 0.00005
       weight_decay: 0.00035
       factor: 0.25
       scheduler: "ReduceLROnPlateau"
@@ -51,8 +51,9 @@ exp_params:
     per_epoch_decay: 0.98
     train_correct_threshold: 1.01 #never
   topo_scheduler:
-    type: "constant"
-    lam: 5
+    type: "exp_epoch"
+    lam: 0.1
+    lam_topo_per_epoch_decay: 0.97
 
 
 trainer_params:
@@ -61,12 +62,12 @@ trainer_params:
   devices: [0]
   max_epochs: 300
   enable_progress_bar: False
-  accumulate_grad_batches: 36
+  accumulate_grad_batches: 8
 
 logging_params:
   project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "-=--_lr_deep_multiprcs"
+  name: "8_acc_0.1_lam_decaybest_deep_multiprcs"
   manual_seed: 1265
 
 
