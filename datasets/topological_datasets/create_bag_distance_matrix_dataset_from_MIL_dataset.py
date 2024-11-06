@@ -47,7 +47,7 @@ def calculate_distance_matrix_of_MIL_dataset(dataset, nb_of_grouped_bags,distanc
                 if show_progress:
                     progress_bar = tqdm(total=(n_samples * (n_samples - 1)) // 2, desc=f"Calculating distances for bag {instance_id}")
 
-                with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=30) as executor:#ThreadPoolExecutor
                     futures = {}
                     for i in range(n_samples):
                         for j in range(i + 1, n_samples):
