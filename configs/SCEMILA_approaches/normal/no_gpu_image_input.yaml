@@ -7,17 +7,19 @@ model_params:
     dropout_encoder: 0.2
     pretrained_encoder: False
     input_type: "images"
+    aggregator_type: avg
             
 dataset:
   name: 'SCEMILA'
   config:
     num_workers: 1
-    k_fold : 4 #set to one if no cross validation wanted
+    k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
+    val_split: 0.25
     input_type: "images"
     gpu: False
-    balance_dataset_classes: 10
-    augmentation_settings: null
+    balance_dataset_classes: 3
+    augmentation_settings: ["all",0.05]
 
 
 exp_type: "SCEMILA_experiment"

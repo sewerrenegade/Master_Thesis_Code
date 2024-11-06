@@ -161,8 +161,8 @@ def main(config_path="configs/SCEMILA_approaches/normal/", config_name="opt_imag
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Run training with specified configuration.")
-    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/topo/" ,help="Path to the configuration folder.")
-    parser.add_argument('--config_name', type=str,default="no_gpu_topo_eucl_image_input.yaml", help="Name of the configuration file.")
+    parser.add_argument('--config_folder', type=str,default="configs/SCEMILA_approaches/normal/" ,help="Path to the configuration folder.")
+    parser.add_argument('--config_name', type=str,default="no_gpu_image_input.yaml", help="Name of the configuration file.")
     args = parser.parse_args()
 
     main(config_path=args.config_folder,config_name=args.config_name)
