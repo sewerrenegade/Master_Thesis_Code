@@ -1,0 +1,17 @@
+name: deep_topo_sweep
+program: hyperparameter_sweeper/train_injection_script.py
+project: topo_reg_testing
+method: bayes
+metric:
+  name: train_topo_loss_epoch
+  goal: minimize
+parameters:
+  base_config_path:
+      values: ["configs/SCEMILA_approaches/topo_testing/DEEP_kill_mil_eucl_dino.yaml"]
+  exp_params.optimizer.config.LR:
+    distribution: log_uniform_values
+    min: 0.0000001
+    max: 0.001
+  trainer_params.accumulate_grad_batches:
+    values: [1, 2, 8, 32]
+

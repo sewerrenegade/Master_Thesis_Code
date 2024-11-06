@@ -3,12 +3,15 @@ model_params:
   config:
     multicolumn: 1
     class_count: 5
-    device: "cpu" # "cuda:0"
-    dropout_encoder: 0.1
+    device: "cuda:0"
+    dropout_encoder: 0.00001
     pretrained_encoder: True
     input_type: "images"
     topological_regularizer_settings:
-      method: "og_moor" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method"] "og_moor"
+      method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
+      multithreading: True
+      timeout: 1
+
                       
 dataset:
   name: 'SCEMILA'
@@ -21,54 +24,54 @@ dataset:
     balance_dataset_classes: 50
     augmentation_settings: ["all",0.05]
     topo_settings:
-      normalize_distance_matricies: True
       nb_of_grouped_bags: 1
+      normalize_distance_matricies: True
       dataset_settings:
-        grayscale: True
-        encode_with_dino_bloom: False
-      distance_function: "Cubical Complex Distance"
-      distance_function_settings:
-        grayscale_input: True
+        grayscale: False
+        encode_with_dino_bloom: True
+
 
 exp_type: "topo_SCEMILA_experiment"
 exp_params:
   num_class: 5
+  kill_mil_loss: True
   class_weighting_factor: 0.0
   optimizer: 
     name: "Adam"
     config:
       LR: 0.00005
-      weight_decay: 0.00035
-      factor: 0.5
+      weight_decay: 0.000000000000000035
+      factor: 0.25
       scheduler: "ReduceLROnPlateau"
-      patience: 20
+      patience: 200
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.4
-    per_epoch_decay: 0.97
+    smoothing: 0.6
+    per_epoch_decay: 0.98
     train_correct_threshold: 1.01 #never
   topo_scheduler:
     type: "constant"
-    lam: 0.1
+    lam: 1
 
 trainer_params:
   precision: '32'
-  # accelerator: 'gpu'
+  accelerator: 'gpu'
   devices: [0]
-  max_epochs: 250
+  max_epochs: 300
   enable_progress_bar: False
-  accumulate_grad_batches: 36
+  accumulate_grad_batches: 8
 
 logging_params:
-  project_name: "Final_Results"
+  project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "og_moor_mani_dino"
+  name: "kill_mil_deep_topo_test"
   manual_seed: 1265
+
 
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
-  patience: 90
+  patience: 150
   mode: 'max'
