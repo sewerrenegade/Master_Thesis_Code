@@ -16,17 +16,18 @@ api = wandb.Api()
 
 # Define your W&B project
 entity = "milad-research"  # W&B entity (user or team name)
-project = "Masters_Project_Topo_Opt_kfold"  # W&B project name
+project = "Final_Results"  # W&B project name
 
 
-list_of_run_types = ["topo_dino_image_input_experiment","topo_eucl_dino_image_input_experiment","topo_gray_image_image_input_experiment","topo_eucl_gray_image_image_input_experiment","Unknown Type"]
+list_of_run_types = ["og_moor_mani_grayscale","og_moor_mani_dino","og_moor_eucl_grayscale","og_moor_eucl_dino","edge_dist_match_eucl_grayscale",
+                     "edge_dist_match_eucl_dino","baseline"]
 metrics_of_interest = ["accuracy","recall_macro","precision_macro","f1_macro","auroc"]
 folds = 4
 # Fetch all runs in the project
 runs = api.runs(f"{entity}/{project}")
 
 # Define a dictionary to hold your results
-results = {run_type:{fold_number:{metric:[] for metric in metrics_of_interest} for fold_number in [i -1 for i in range(folds+1)]} for run_type in list_of_run_types}
+results = {run_type:{fold_number:{metric:[] for metric in metrics_of_interest} for fold_number in [i+1 for i in range(folds)]} for run_type in list_of_run_types}
 # Iterate through the runs and collect the relevant data
 for run in runs:
     # model_name = run.config.get("model_name", "unknown_model")  # Assuming you logged model name in config

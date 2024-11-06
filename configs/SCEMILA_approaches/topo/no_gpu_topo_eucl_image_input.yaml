@@ -25,17 +25,25 @@ dataset:
     gpu: False
     balance_dataset_classes: 3
     augmentation_settings: ["all",0.5]
+    # topo_settings:
+    #   nb_of_grouped_bags: 3
+    #   normalize_distance_matricies: False
+    #   dataset_settings:
+    #     grayscale: True
+    #     encode_with_dino_bloom: False
+    #   embedding_settings:
+    #     function_name: "UMAP"
+    #     function_settings:
+    #       n_components: 2
     topo_settings:
-      nb_of_grouped_bags: 3
-      normalize_distance_matricies: False
+      normalize_distance_matricies: True
+      nb_of_grouped_bags: 1
       dataset_settings:
         grayscale: True
         encode_with_dino_bloom: False
-      embedding_settings:
-        function_name: "UMAP"
-        function_settings:
-          n_components: 2
-
+      distance_function: "Cubical Complex Distance"
+      distance_function_settings:
+        grayscale_input: True
 
 exp_type: "topo_SCEMILA_experiment"
 
