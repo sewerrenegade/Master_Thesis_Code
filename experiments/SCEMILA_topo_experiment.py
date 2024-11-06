@@ -283,7 +283,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             valid_scale_indices = np.nonzero(valid_indices)[0]
             if np.sum(valid_indices) < 2:  # Not enough points to interpolate
                 continue
-            interpolator = interp1d(unique_scales[valid_scale_indices], losses[valid_scale_indices, i], kind='cubic', fill_value="extrapolate")
+            interpolator = interp1d(unique_scales[valid_scale_indices], losses[valid_scale_indices, i], kind='linear', fill_value="extrapolate")
             interpolated_losses[:, i] = interpolator(regular_scales)
         plt.figure(figsize=(10, 6))
         plt.imshow(interpolated_losses, aspect='auto', origin='lower',
@@ -300,7 +300,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             valid_scale_indices = np.nonzero(valid_indices)[0]
             if np.sum(valid_indices) < 2:  # Not enough points to interpolate
                 continue
-            interpolator = interp1d(unique_scales[valid_scale_indices], loss_ratios[valid_scale_indices, i], kind='cubic', fill_value="extrapolate")
+            interpolator = interp1d(unique_scales[valid_scale_indices], loss_ratios[valid_scale_indices, i], kind='linear', fill_value="extrapolate")
             interpolated_loss_ratios[:, i] = interpolator(regular_scales)
         plt.figure(figsize=(10, 6))
         plt.imshow(interpolated_loss_ratios, aspect='auto', origin='lower',
