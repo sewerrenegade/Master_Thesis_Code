@@ -7,7 +7,7 @@ from models.encoder_models.encoder_model import get_input_encoder
 
 
 class AMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "images",pretrained_encoder = False,dropout_encoder = None):
+    def __init__(self, class_count, multicolumn, device,input_type = "images",pretrained_encoder = False,dropout_encoder = None, aggregator_type = "att"):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -22,7 +22,7 @@ class AMiL(nn.Module):
         self.input_type =input_type
         self.class_count = class_count
         self.multicolumn = multicolumn
-
+        self.aggregator_type = aggregator_type
         self.device_name = device
         
         self.cross_entropy_loss = None #nn.CrossEntropyLoss(label_smoothing= self.label_smoothing.)
@@ -77,38 +77,44 @@ class AMiL(nn.Module):
         ft = self.ftr_proc(x)
         
         # switch sum_lossbetween multi- and single attention classification
-        if(self.multicolumn):
-            att_raw = self.attention_multi_column(ft)
-            att_raw = torch.transpose(att_raw, 1, 0)
-            bag_feature_stack = torch.empty((self.class_count, ft.size(1)), device=ft.device, dtype=ft.dtype)
-            prediction = torch.empty((1, self.class_count), device=ft.device, dtype=ft.dtype)
+        if self.aggregator_type == "att":
+            if(self.multicolumn):
+                att_raw = self.attention_multi_column(ft)
+                att_raw = torch.transpose(att_raw, 1, 0)
+                bag_feature_stack = torch.empty((self.class_count, ft.size(1)), device=ft.device, dtype=ft.dtype)
+                prediction = torch.empty((1, self.class_count), device=ft.device, dtype=ft.dtype)
 
-            for a in range(self.class_count):
-                # softmax + Matrix multiplication
-                att_softmax = F.softmax(att_raw[a, ...][None, ...], dim=1)
+                for a in range(self.class_count):
+                    # softmax + Matrix multiplication
+                    att_softmax = F.softmax(att_raw[a, ...][None, ...], dim=1)
+                    bag_features = torch.mm(att_softmax, ft)
+
+                    # Store bag features directly
+                    bag_feature_stack[a, :] = bag_features.squeeze(0)
+
+                    # Final classification with one output value (value indicating
+                    # this specific class to be predicted)
+                    prediction[0, a] = self.classifier_multi_column[a](bag_features).squeeze()
+
+                # final softmax to obtain probabilities over all classes
+                # prediction = F.softmax(prediction, dim=1)
+
+                return prediction, #, att_raw, F.softmax(att_raw, dim=1), bag_feature_stack
+            else:
+                # calculate attention
+                att_raw = self.attention(ft)
+                att_raw = torch.transpose(att_raw, 1, 0)
+                # Softmax + Matrix multiplication
+                att_softmax = F.softmax(att_raw, dim=1)
                 bag_features = torch.mm(att_softmax, ft)
+                # final classification
+                prediction = self.classifier(bag_features)
+                return prediction, att_raw, att_softmax, bag_features
+        elif self.aggregator_type == "avg":
+            pooled_tensor = torch.mean(ft, dim=0, keepdim=True)
+            prediction = self.classifier(pooled_tensor)
+            return prediction,None,None,pooled_tensor
 
-                # Store bag features directly
-                bag_feature_stack[a, :] = bag_features.squeeze(0)
-
-                # Final classification with one output value (value indicating
-                # this specific class to be predicted)
-                prediction[0, a] = self.classifier_multi_column[a](bag_features).squeeze()
-
-            # final softmax to obtain probabilities over all classes
-            # prediction = F.softmax(prediction, dim=1)
-
-            return prediction, #, att_raw, F.softmax(att_raw, dim=1), bag_feature_stack
-        else:
-            # calculate attention
-            att_raw = self.attention(ft)
-            att_raw = torch.transpose(att_raw, 1, 0)
-            # Softmax + Matrix multiplication
-            att_softmax = F.softmax(att_raw, dim=1)
-            bag_features = torch.mm(att_softmax, ft)
-            # final classification
-            prediction = self.classifier(bag_features)
-            return prediction, att_raw, att_softmax, bag_features
         
     def get_instance_level_encoding(self,x):
         with torch.no_grad():
