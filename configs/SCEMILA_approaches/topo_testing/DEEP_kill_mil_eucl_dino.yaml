@@ -66,7 +66,7 @@ trainer_params:
 logging_params:
   project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "kill_mil_deep_topo_test"
+  name: "kill_mil_log_deep_topo_test"
   manual_seed: 1265
 
 
