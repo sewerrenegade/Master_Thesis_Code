@@ -205,7 +205,7 @@ class SCEMILA_MIL_base(BaseMILDataset):
         distance_function = get_dist_func(distance_function_name,distance_function_settings)
         
         from datasets.topological_datasets.topo_dataset_desciptor import TopoDatasetDescriptor
-        topo_desc = TopoDatasetDescriptor(name = "test_topo" ,dataset= dataset,nb_of_grouped_bags= nb_of_grouped_bags,embedding_function = embedding_function,distance_function =distance_function)
+        topo_desc = TopoDatasetDescriptor(name = "test_topo" ,dataset= dataset,nb_of_grouped_bags= nb_of_grouped_bags,embedding_function = embedding_function,distance_function = distance_function)
         
         per_bag_dist_mat, bag_instance_order = topo_desc.generate_or_get_topo_dataset_from_descriptor(normalize_distance_matricies=normalize_distance_matricies)
         assert len(per_bag_dist_mat) == len(bag_instance_order)
