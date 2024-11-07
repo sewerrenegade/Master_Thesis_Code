@@ -39,7 +39,7 @@ exp_params:
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.00005
+      LR: 0.000035
       weight_decay: 0.000000000000000035
       factor: 0.25
       scheduler: "ReduceLROnPlateau"
@@ -73,5 +73,5 @@ logging_params:
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
-  patience: 150
+  patience: 250
   mode: 'max'

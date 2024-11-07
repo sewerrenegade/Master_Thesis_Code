@@ -263,7 +263,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         # Fill the losses array
         #-10 means 0 loss
         for epoch_idx, epoch in enumerate(epochs):
-            for scale, loss,loss_ratio in [(scale, math.log10(pull_loss + push_loss + 0.0000000001) + 10,self.calculate_graphable_ratio(pull_loss=pull_loss,push_loss=push_loss)) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
+            for scale, loss,loss_ratio in [(scale, math.log10(pull_loss + push_loss + 10**-10) + 10,self.calculate_graphable_ratio(pull_loss=pull_loss,push_loss=push_loss)) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
                     if loss < 0:
                         print("Catastrofic error, error less than zero")
                     scale_idx = unique_scales.index(scale)
@@ -284,7 +284,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             if np.sum(valid_indices) < 2:  # Not enough points to interpolate
                 continue
             interpolator = interp1d(unique_scales[valid_scale_indices], losses[valid_scale_indices, i], kind='linear', fill_value="extrapolate")
-            interpolated_losses[:, i] = interpolator(regular_scales)
+            interpolated_losses[:, i] = interpolator(regular_scales).clip(min=losses.min(), max=losses.max())
         plt.figure(figsize=(10, 6))
         plt.imshow(interpolated_losses, aspect='auto', origin='lower',
                 extent=[epochs[0], epochs[-1], 0, 1], cmap='viridis')
@@ -301,7 +301,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             if np.sum(valid_indices) < 2:  # Not enough points to interpolate
                 continue
             interpolator = interp1d(unique_scales[valid_scale_indices], loss_ratios[valid_scale_indices, i], kind='linear', fill_value="extrapolate")
-            interpolated_loss_ratios[:, i] = interpolator(regular_scales)
+            interpolated_loss_ratios[:, i] = interpolator(regular_scales).clip(min=loss_ratios.min(), max=loss_ratios.max())
         plt.figure(figsize=(10, 6))
         plt.imshow(interpolated_loss_ratios, aspect='auto', origin='lower',
                 extent=[epochs[0], epochs[-1], 0, 1], cmap='viridis')
