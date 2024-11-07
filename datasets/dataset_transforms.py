@@ -127,7 +127,8 @@ class DinoBloomEncodeTransform:
     def __init__(self,output_input = False) -> None:
         DinoBloomEncodeTransform._dinobloom_singleton = self
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        multiprocessing.set_start_method('forkserver', force=True)
+        if torch.cuda.is_available():
+            multiprocessing.set_start_method('forkserver', force=True)
         self.default_mean = (0.485, 0.456, 0.406)
         self.default_std = (0.229, 0.224, 0.225)
         self.default_image_dim_input=224

@@ -7,7 +7,27 @@ from matplotlib.colors import ListedColormap
 import wandb
 from torch import flatten
 
+from datasets.SCEMILA.SCEMILA_lightning_wrapper import SCEMILA
+
 LABELS_TO_REMOVE_FROM_VIZ = ["other","ambiguous",]
+def plot_dinobloob_2D_embeddings():
+    import numpy as np
+    dataset = SCEMILA(encode_with_dino_bloom = True,gpu= False,num_workers=0)
+    indexer = dataset.indexer
+    instance_level_annotations_by_class,instance_level_class_count,instance_classes = indexer.get_instance_level_annotations(as_is = True)
+
+    single_cell_embeddings = []  
+    single_cell_labels = []     
+    for cell_label,cells in instance_level_annotations_by_class.items():
+        for cell_path in cells:
+            x  = dataset.test_dataset.get_single_tiff_image_using_path(cell_path,cell_label)
+            single_cell_embeddings.append(flatten(x[0]))
+            single_cell_labels.append(cell_label)
+
+    single_cell_embeddings, single_cell_labels = zip(*[(d, l) for d, l in zip(single_cell_embeddings, single_cell_labels) if l not in LABELS_TO_REMOVE_FROM_VIZ])
+    single_cell_embeddings, single_cell_labels = list(single_cell_embeddings), list(single_cell_labels)
+    single_cell_embeddings = np.array(single_cell_embeddings)
+    plot_and_log_2D_embedding(embedding=single_cell_embeddings,labels=single_cell_labels,name = "Single Cell",log_wandb= False)
 
 def get_bag_and_instance_level_2D_embeddings(model,dataset):
 
@@ -51,7 +71,7 @@ custom_colors = [
     '#ffb3b3', '#b3b3ff', '#ffd700', '#7fc97f', '#beaed4'
 ]
 markers = ['o', '^', 's', 'D', 'P', 'X', '*', 'h', 'v', '<']
-def plot_and_log_2D_embedding(embedding,labels,name):
+def plot_and_log_2D_embedding(embedding,labels,name,log_wandb = True):
 
     assert len(embedding) == len(labels)
     le = LabelEncoder()
@@ -80,5 +100,9 @@ def plot_and_log_2D_embedding(embedding,labels,name):
         plt.xlabel(f"{reducer_name} Dimension 1")
         plt.ylabel(f"{reducer_name} Dimension 2")
         plt.tight_layout()
-        wandb.log({f"{name}_{reducer_name}": wandb.Image(plt)})
+        if log_wandb:
+            wandb.log({f"{name}_{reducer_name}": wandb.Image(plt)})
+        else:
+            plt.savefig(f"{name}_{reducer_name}", bbox_inches='tight')
         plt.close()
+

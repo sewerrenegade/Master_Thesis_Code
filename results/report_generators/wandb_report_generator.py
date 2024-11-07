@@ -20,7 +20,7 @@ project = "Final_Results"  # W&B project name
 
 
 list_of_run_types = ["og_moor_mani_grayscale","og_moor_mani_dino","og_moor_eucl_grayscale","og_moor_eucl_dino","edge_dist_match_eucl_grayscale",
-                     "edge_dist_match_eucl_dino","baseline"]
+                     "edge_dist_match_eucl_dino","baseline_avg_pool","baseline"]
 metrics_of_interest = ["accuracy","recall_macro","precision_macro","f1_macro","auroc"]
 folds = 4
 # Fetch all runs in the project
