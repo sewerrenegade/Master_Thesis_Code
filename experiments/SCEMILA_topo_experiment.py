@@ -18,6 +18,56 @@ from functools import partial
 from trainer_scripts.label_smoothing_scheduler import LabelSmoothingScheduler
 import math
 
+class ScaleInfoTracker:
+    def __init__(self,scale_quantization = 100):
+        self.scale_quantization = scale_quantization
+        self.current_epoch = -1
+        self.current_epoch_data = []
+        self.epoch_indexed_compressed_data = []#scale count array, pull loss array, push loss array
+    def add_datapoint(self,data,epoch):#data is expected as (scale,pull, push)
+        assert len(data) == 3
+        if self.current_epoch == epoch:
+            self.current_epoch_data.append(data)
+        elif  epoch - self.current_epoch == 1:
+            self.compress_current_data()
+            self.current_epoch_data.append(data)
+            self.current_epoch = epoch
+        else:
+            raise ValueError("Incoherent logging across epochs.")
+    def get_results(self):
+        if len(self.current_epoch_data) !=0:
+            self.compress_current_data()
+        scale_dist_epochs = []
+        pull_loss_epochs = []
+        push_loss_epochs = []
+        for scale_dist,pull_loss,push_loss in self.epoch_indexed_compressed_data:
+            scale_dist_epochs.append(scale_dist)
+            pull_loss_epochs.append(pull_loss)
+            push_loss_epochs.append(push_loss)
+        scale_dist_epochs = np.array(scale_dist_epochs)
+        pull_loss_epochs =  np.array(pull_loss_epochs)
+        push_loss_epochs =  np.array(push_loss_epochs)
+        return scale_dist_epochs,pull_loss_epochs,push_loss_epochs
+
+    def compress_current_data(self):
+        scale_count_array = np.zeros(self.scale_quantization)
+        pull_loss_array = np.zeros(self.scale_quantization)
+        push_loss_array = np.zeros(self.scale_quantization)
+
+        # Define scale range step
+        scale_step = 1 / self.scale_quantization
+
+        # Populate the arrays
+        for scale, pull_loss, push_loss in self.current_epoch_data:
+            # Determine the index for the scale range
+            index = min(int(scale / scale_step), self.scale_quantization -1)
+            scale_count_array[index] += 1
+            pull_loss_array[index] = pull_loss_array[index] + pull_loss
+            push_loss_array[index] = push_loss_array[index] + push_loss
+        self.current_epoch_data = []
+        assert self.current_epoch == len(self.epoch_indexed_compressed_data)
+        self.epoch_indexed_compressed_data.append([scale_count_array,pull_loss_array,push_loss_array])
+
 class TopoScheduler:
     DEFAULT = 0.0
     def __init__(self,experiment: pl.LightningModule = None,dict_args:dict={}):
@@ -128,6 +178,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.topo_scheduler = TopoScheduler(self,params.get("topo_scheduler",{}))
         self.kill_mil_loss = params.get("kill_mil_loss",False)
         self.unique_uuid = uuid.uuid4()
+        self.scale_demographic_tracker = ScaleInfoTracker(scale_quantization=100)
         pass
     
     def __del__(self):
@@ -221,9 +272,9 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
                 if f"std_of_workload_across_threads{ending}" in topo_log and phase == "train":
                     self.log(f"std_of_workload_across_threads{ending}_topo_analytics",topo_log[f"std_of_workload_across_threads{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"scale_loss_info{ending}" in topo_log and phase == "train":
-                    with open(f'{self.unique_uuid}.pkl', 'ab') as temp_file:
-                        scale_info = [(self.current_epoch,info[0],info[1],info[2]) for info in topo_log[f"scale_loss_info{ending}"]]#list of tuples (epoch,scale,pull_loss,push_loss)
-                        pickle.dump(scale_info, temp_file)
+                    for info in topo_log[f"scale_loss_info{ending}"]:
+                        self.scale_demographic_tracker(info,self.current_epoch)
+
                         
                 
         if "LR" in step_loss and phase == "train":
@@ -233,7 +284,13 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.logger.log_metrics({f"{phase}_label_int":step_loss["label"]})
         self.logger.log_metrics({f"{phase}_pred_int":step_loss["prediction_int"]})
 
-
+    def calculate_graphable_ratio_np(self,pull_loss,push_loss):
+        with np.errstate(divide='ignore', invalid='ignore'):  # To handle division by zero gracefully
+            ratio = np.log10(np.divide(pull_loss, push_loss))
+        ratio = np.where((pull_loss == 0) & (push_loss != 0), -10.0, ratio)  # pull=0, push!=0
+        ratio = np.where((push_loss == 0) & (pull_loss != 0), 10.0, ratio)   # push=0, pull!=0
+        ratio = np.where((pull_loss == 0) & (push_loss == 0), 0.0, ratio)    # pull=0, push=0
+        return np.clip(ratio, -10, 10)
     #this saturates at 10**10 and 10**-10
     def calculate_graphable_ratio(self,pull_loss,push_loss):
         if pull_loss != 0 and push_loss != 0:
@@ -244,8 +301,42 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             return 10.0
         if push_loss == push_loss:
             return 0
-
     def create_topo_scale_heatmaps(self):
+        scale_freq_array, pull_loss_array, push_loss_array = self.scale_demographic_tracker.get_results()
+        plot_scale_freq_array = np.log10(scale_freq_array + 1e-10) + 10
+        plot_loss_array = np.log10(pull_loss_array + push_loss_array + 1e-10) + 10
+        plot_loss_ratio_array = self.calculate_graphable_ratio_np(pull_loss=pull_loss_array,push_loss=push_loss_array)
+
+        plt.figure(figsize=(10, 6))
+        plt.xlabel("Epoch")
+        plt.ylabel("Scale")
+        sns.heatmap(plot_scale_freq_array, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
+        plt.colorbar(label='Log10(ScaleFreq + 10**-10) + 10')
+        plt.title("Scale Demographic across Epochs")
+        wandb.log({f"Frequency Distribution of Scales Across Epochs": wandb.Image(plt)})
+        plt.close()
+
+        plt.figure(figsize=(10, 6))
+        plt.xlabel("Epoch")
+        plt.ylabel("Scale")
+        sns.heatmap(plot_loss_array, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
+        plt.colorbar(label='Log10(Loss + 10**-10) + 10')
+        plt.title("Log10 Loss across Scales and Epochs")
+        wandb.log({f"Loss Across Scales & Epoch": wandb.Image(plt)})
+        plt.close()
+
+        plt.figure(figsize=(10, 6))
+        sns.heatmap(plot_loss_ratio_array, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
+        plt.colorbar(label='log10(Loss_Ratio) saturates at +/-10')
+        plt.xlabel("Epoch")
+        plt.ylabel("Scale")
+        plt.title("Pull Push Loss Log10 Ratios Across Scales & Epoch")
+        wandb.log({f"Pull Push Loss Ratios Across Scales & Epoch": wandb.Image(plt)})
+        plt.close()
+
+
+
+    def create_topo_scale_heatmaps1(self):
         loaded_data = []
         with open(f'{self.unique_uuid}.pkl', 'rb') as temp_file:
             try:
@@ -255,25 +346,32 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
             except EOFError:
                 pass  # Reached end of file
 
-
+        num_bins = 100
+        regular_scales = np.linspace(0, 1, num_bins)             
         epochs = sorted(set(epoch for epoch, scale, pull_loss, push_loss in loaded_data))
         unique_scales = sorted(set(scale for epoch, scale, pull_loss, push_loss in loaded_data))
         losses = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
         loss_ratios = np.full((len(unique_scales), len(epochs)), np.nan)  # Use NaN for unfilled values
-        # Fill the losses array
-        #-10 means 0 loss
+        scale_histogram = np.zeros((num_bins, len(epochs)))
         for epoch_idx, epoch in enumerate(epochs):
+            scales_in_epoch = []
             for scale, loss,loss_ratio in [(scale, math.log10(pull_loss + push_loss + 10**-10) + 10,self.calculate_graphable_ratio(pull_loss=pull_loss,push_loss=push_loss)) for (e, scale, pull_loss, push_loss) in loaded_data if e == epoch]:
-                    if loss < 0:
-                        print("Catastrofic error, error less than zero")
-                    scale_idx = unique_scales.index(scale)
-                    losses[scale_idx, epoch_idx] = loss
-                    loss_ratios[scale_idx, epoch_idx] = loss_ratio
-
-        # Step 2: Create a regular scale grid for interpolation
-        regular_scales = np.linspace(0, 1, 100)
-
-        # Step 3: Interpolate losses over the regular scale grid for each epoch
+                if loss < 0:
+                    print("Catastrofic error, error less than zero")
+                scale_idx = unique_scales.index(scale)
+                losses[scale_idx, epoch_idx] = loss
+                loss_ratios[scale_idx, epoch_idx] = loss_ratio
+                scales_in_epoch.append(scale)
+            hist, _ = np.histogram(scales_in_epoch, bins=regular_scales)
+            scale_histogram[:, epoch_idx] = hist  # Store counts in histogram
+            log_scale_histogram = np.log10(scale_histogram + 1e-10) + 10
+        plt.figure(figsize=(10, 6))
+        sns.heatmap(log_scale_histogram, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
+        plt.colorbar(label='Log10(ScaleFreq + 10**-10) + 10')
+        plt.xlabel("Epoch")
+        plt.ylabel("Scale")
+        wandb.log({f"Frequency Distribution of Scales Across Epochs": wandb.Image(plt)})
+        plt.close()
         interpolated_losses = np.zeros((len(regular_scales), len(epochs)))
         interpolated_loss_ratios = np.zeros((len(regular_scales), len(epochs)))
         unique_scales = np.array(unique_scales)
@@ -362,16 +460,12 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         
     def on_train_epoch_end(self) -> None:
         self.log_confusion_matrix("train",self.train_confusion_matrix)
-        #is_diagonal = torch.all(self.train_confusion_matrix == torch.diag(torch.diag(self.train_confusion_matrix)))
-        # is_p_diagonal = (torch.sum(torch.diag(self.train_confusion_matrix)))/torch.sum(self.train_confusion_matrix) > p
-        # if is_p_diagonal:
-        #     self.model.remove_smoothing()
         current_smoothing = self.label_smoothing_scheduler.get_current_smoothing()
         self.model.set_mil_smoothing(current_smoothing)
         self.log("train_label_smoothing_epoch",current_smoothing,on_epoch=True)
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
-        if self.current_epoch == 1 and self.model.topo_reg_settings["method"] == "deep":
-            self.create_topo_scale_heatmaps()
+        # if self.current_epoch == 1 and self.model.topo_reg_settings["method"] == "deep":
+        #     self.create_topo_scale_heatmaps()
 
 
     def on_test_epoch_end(

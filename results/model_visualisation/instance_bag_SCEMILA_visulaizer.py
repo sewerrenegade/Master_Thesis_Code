@@ -21,11 +21,12 @@ def plot_dinobloob_2D_embeddings():
     for cell_label,cells in instance_level_annotations_by_class.items():
         for cell_path in cells:
             x  = dataset.test_dataset.get_single_tiff_image_using_path(cell_path,cell_label)
-            single_cell_embeddings.append(flatten(x[0]))
+            single_cell_embeddings.append(flatten(x[0]).cpu().numpy())
             single_cell_labels.append(cell_label)
 
     single_cell_embeddings, single_cell_labels = zip(*[(d, l) for d, l in zip(single_cell_embeddings, single_cell_labels) if l not in LABELS_TO_REMOVE_FROM_VIZ])
     single_cell_embeddings, single_cell_labels = list(single_cell_embeddings), list(single_cell_labels)
+
     single_cell_embeddings = np.array(single_cell_embeddings)
     plot_and_log_2D_embedding(embedding=single_cell_embeddings,labels=single_cell_labels,name = "Single Cell",log_wandb= False)
 
