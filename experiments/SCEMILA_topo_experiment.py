@@ -21,7 +21,7 @@ import math
 class ScaleInfoTracker:
     def __init__(self,scale_quantization = 100):
         self.scale_quantization = scale_quantization
-        self.current_epoch = -1
+        self.current_epoch = 0
         self.current_epoch_data = []
         self.epoch_indexed_compressed_data = []#scale count array, pull loss array, push loss array
     def add_datapoint(self,data,epoch):#data is expected as (scale,pull, push)
@@ -65,7 +65,6 @@ class ScaleInfoTracker:
             pull_loss_array[index] = pull_loss_array[index] + pull_loss
             push_loss_array[index] = push_loss_array[index] + push_loss
         self.current_epoch_data = []
-        assert self.current_epoch == len(self.epoch_indexed_compressed_data)
         self.epoch_indexed_compressed_data.append([scale_count_array,pull_loss_array,push_loss_array])
 
 class TopoScheduler:
@@ -273,7 +272,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
                     self.log(f"std_of_workload_across_threads{ending}_topo_analytics",topo_log[f"std_of_workload_across_threads{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"scale_loss_info{ending}" in topo_log and phase == "train":
                     for info in topo_log[f"scale_loss_info{ending}"]:
-                        self.scale_demographic_tracker(info,self.current_epoch)
+                        self.scale_demographic_tracker.add_datapoint(info,self.current_epoch)
 
                         
                 
@@ -310,8 +309,7 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         plt.figure(figsize=(10, 6))
         plt.xlabel("Epoch")
         plt.ylabel("Scale")
-        sns.heatmap(plot_scale_freq_array, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
-        plt.colorbar(label='Log10(ScaleFreq + 10**-10) + 10')
+        sns.heatmap(plot_scale_freq_array.T, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False,cbar_kws={'label': 'Log10(ScaleFreq + 10**-10) + 10'})
         plt.title("Scale Demographic across Epochs")
         wandb.log({f"Frequency Distribution of Scales Across Epochs": wandb.Image(plt)})
         plt.close()
@@ -319,15 +317,13 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         plt.figure(figsize=(10, 6))
         plt.xlabel("Epoch")
         plt.ylabel("Scale")
-        sns.heatmap(plot_loss_array, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
-        plt.colorbar(label='Log10(Loss + 10**-10) + 10')
+        sns.heatmap(plot_loss_array.T, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False,cbar_kws={'label': 'Log10(Loss + 10**-10) + 10'})
         plt.title("Log10 Loss across Scales and Epochs")
         wandb.log({f"Loss Across Scales & Epoch": wandb.Image(plt)})
         plt.close()
 
         plt.figure(figsize=(10, 6))
-        sns.heatmap(plot_loss_ratio_array, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False)
-        plt.colorbar(label='log10(Loss_Ratio) saturates at +/-10')
+        sns.heatmap(plot_loss_ratio_array.T, cmap="viridis", cbar=True, xticklabels=False, yticklabels=False,cbar_kws={'label': 'log10(Loss_Ratio) saturates at +/-10'})
         plt.xlabel("Epoch")
         plt.ylabel("Scale")
         plt.title("Pull Push Loss Log10 Ratios Across Scales & Epoch")
@@ -464,8 +460,8 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.model.set_mil_smoothing(current_smoothing)
         self.log("train_label_smoothing_epoch",current_smoothing,on_epoch=True)
         self.train_confusion_matrix = torch.zeros(self.n_c, self.n_c)
-        # if self.current_epoch == 1 and self.model.topo_reg_settings["method"] == "deep":
-        #     self.create_topo_scale_heatmaps()
+        if self.current_epoch == 1 and self.model.topo_reg_settings["method"] == "deep":
+            self.create_topo_scale_heatmaps()
 
 
     def on_test_epoch_end(

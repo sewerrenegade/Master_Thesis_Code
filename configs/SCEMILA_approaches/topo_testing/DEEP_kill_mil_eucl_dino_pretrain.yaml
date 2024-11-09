@@ -7,6 +7,7 @@ model_params:
     dropout_encoder: 0.00001
     pretrained_encoder: True
     input_type: "images"
+    load_encoder_weights: "data/ResNet18Weights/TopoOnlyWeights/0.10_2nd_it_e300.ckpt"
     topological_regularizer_settings:
       method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
       multithreading: True

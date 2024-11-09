@@ -10,7 +10,7 @@ from models.topology_models.topo_tools.moor_topo_reg import TopologicalSignature
 
 
 class TopoAMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",pretrained_encoder = False,dropout_encoder = None,topological_regularizer_settings = {}):
+    def __init__(self, class_count, multicolumn, device,input_type = "RGB_image",pretrained_encoder = False,dropout_encoder = None,topological_regularizer_settings = {}, aggregator_type = "att",load_encoder_weights = None):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -27,10 +27,11 @@ class TopoAMiL(nn.Module):
         self.device_name = device
         self.cross_entropy_loss = None
         self.topo_reg_settings = topological_regularizer_settings
+        self.aggregator_type = aggregator_type
         self.topo_sig = self.get_topo_regularizer()
         # feature extractor before multiple instance learning starts
-        
-        self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
+        self.load_encoder_weights =load_encoder_weights
+        self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder,load_encoder_path=load_encoder_weights)#self.get_encoder_architecture(input_type=input_type)
 
 
         # Networks for single attention approach
@@ -135,39 +136,43 @@ class TopoAMiL(nn.Module):
         ft = self.ftr_proc(x)
         latent_space_dist_matrix = self._compute_euclidean_distance(ft)
         # switch between multi- and single attention classification
-        if(self.multicolumn):
-            att_raw = self.attention_multi_column(ft)
-            att_raw = torch.transpose(att_raw, 1, 0)
-            bag_feature_stack = torch.empty((self.class_count, ft.size(1)), device=ft.device, dtype=ft.dtype)
-            prediction = torch.empty((1, self.class_count), device=ft.device, dtype=ft.dtype)
-            # for every possible class, repeat
-            for a in range(self.class_count):
-                # softmax + Matrix multiplication
-                att_softmax = F.softmax(att_raw[a, ...][None, ...], dim=1)
+        if self.aggregator_type == "att":
+            if(self.multicolumn):
+                att_raw = self.attention_multi_column(ft)
+                att_raw = torch.transpose(att_raw, 1, 0)
+                bag_feature_stack = torch.empty((self.class_count, ft.size(1)), device=ft.device, dtype=ft.dtype)
+                prediction = torch.empty((1, self.class_count), device=ft.device, dtype=ft.dtype)
+                # for every possible class, repeat
+                for a in range(self.class_count):
+                    # softmax + Matrix multiplication
+                    att_softmax = F.softmax(att_raw[a, ...][None, ...], dim=1)
+                    bag_features = torch.mm(att_softmax, ft)
+
+                    # Store bag features directly
+                    bag_feature_stack[a, :] = bag_features.squeeze(0)
+
+                    # Final classification with one output value (value indicating
+                    # this specific class to be predicted)
+                    prediction[0, a] = self.classifier_multi_column[a](bag_features).squeeze()
+
+
+                return prediction, latent_space_dist_matrix
+            #att_raw, F.softmax(att_raw, dim=1), bag_feature_stack,
+            else:
+                # calculate attention
+                att_raw = self.attention(ft)
+                att_raw = torch.transpose(att_raw, 1, 0)
+                # Softmax + Matrix multiplication
+                att_softmax = F.softmax(att_raw, dim=1)
                 bag_features = torch.mm(att_softmax, ft)
-
-                # Store bag features directly
-                bag_feature_stack[a, :] = bag_features.squeeze(0)
-
-                # Final classification with one output value (value indicating
-                # this specific class to be predicted)
-                prediction[0, a] = self.classifier_multi_column[a](bag_features).squeeze()
-
-
-            return prediction, latent_space_dist_matrix
-        #att_raw, F.softmax(att_raw, dim=1), bag_feature_stack,
-        else:
-            # calculate attention
-            att_raw = self.attention(ft)
-            att_raw = torch.transpose(att_raw, 1, 0)
-            # Softmax + Matrix multiplication
-            att_softmax = F.softmax(att_raw, dim=1)
-            bag_features = torch.mm(att_softmax, ft)
-            # final classification
-            prediction = self.classifier(bag_features)
+                # final classification
+                prediction = self.classifier(bag_features)
+                return prediction,latent_space_dist_matrix
+                # att_raw, att_softmax, bag_features,
+        elif self.aggregator_type == "avg":
+            pooled_tensor = torch.mean(ft, dim=0, keepdim=True)
+            prediction = self.classifier(pooled_tensor)
             return prediction,latent_space_dist_matrix
-            # att_raw, att_softmax, bag_features,
-        
         
     def get_encoder_architecture(self,input_type = "images",pretrained = False):
         encoder_output_dim = 500

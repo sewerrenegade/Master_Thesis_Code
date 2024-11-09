@@ -1,77 +1,64 @@
 model_params:
-  name: 'TopoSCEMILA'
+  name: 'SCEMILA'
   config:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0.00001
+    dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-    topological_regularizer_settings:
-      method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
-      multithreading: True
-      timeout: 1
-
-                      
+    load_encoder_weights: "data/ResNet18Weights/TopoOnlyWeights/0.199_deep_weight_e300.ckpt"
+            
 dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
-    val_split: 0.25
+    val_split: 0.25 # is a dummy variable in this cae since kfold is set
     k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
+    gpu: True
     balance_dataset_classes: 50
     augmentation_settings: ["all",0.05]
-    topo_settings:
-      nb_of_grouped_bags: 1
-      normalize_distance_matricies: True
-      dataset_settings:
-        grayscale: False
-        encode_with_dino_bloom: True
 
 
-exp_type: "topo_SCEMILA_experiment"
+exp_type: "SCEMILA_experiment"
 exp_params:
   num_class: 5
-  kill_mil_loss: True
   class_weighting_factor: 0.0
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.000035
+      LR: 0.00005
       weight_decay: 0.00035
-      factor: 0.25
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 200
+      patience: 20
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.6
-    per_epoch_decay: 0.98
+    smoothing: 0.4
+    per_epoch_decay: 0.97
     train_correct_threshold: 1.01 #never
-  topo_scheduler:
-    type: "constant"
-    lam: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
+  max_epochs: 250
   enable_progress_bar: False
-  accumulate_grad_batches: 8
+  accumulate_grad_batches: 36
+
 
 logging_params:
   project_name: "topo_reg_testing"
-  save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "kill_mil_log_deep_topo_test"
+  save_dir: "logs/image_input_experiment/"
+  name: "freeze_enc_topo_pretrain_baseline"
   manual_seed: 1265
-
 
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
-  patience: 250
+  patience: 90
   mode: 'max'

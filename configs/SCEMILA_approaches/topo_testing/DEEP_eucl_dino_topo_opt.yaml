@@ -34,12 +34,11 @@ dataset:
 exp_type: "topo_SCEMILA_experiment"
 exp_params:
   num_class: 5
-  kill_mil_loss: True
   class_weighting_factor: 0.0
   optimizer: 
     name: "Adam"
     config:
-      LR: 0.000035
+      LR: 0.00005184145793112568
       weight_decay: 0.00035
       factor: 0.25
       scheduler: "ReduceLROnPlateau"
@@ -53,7 +52,7 @@ exp_params:
     train_correct_threshold: 1.01 #never
   topo_scheduler:
     type: "constant"
-    lam: 1
+    lam: 0.1
 
 trainer_params:
   precision: '32'
@@ -66,7 +65,7 @@ trainer_params:
 logging_params:
   project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "kill_mil_log_deep_topo_test"
+  name: "eucl_dino_deep_topo_test"
   manual_seed: 1265
 
 

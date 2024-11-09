@@ -7,7 +7,7 @@ input_types = ("images","gray_images","fnl34","dino_bloom_small")
 def get_loss_function(function_name = "cross_entropy"):
     pass
 
-def get_input_encoder(model,input_type = "images",pretrained = False, dropout = None):
+def get_input_encoder(model,input_type = "images",pretrained = False, dropout = None,load_encoder_path = None):
     encoder_output_dim = 500
     
     if input_type == "images": #this and the one after should be the same, since Hehr supposedly used the same network on the same 3x144x144 input 
@@ -16,7 +16,7 @@ def get_input_encoder(model,input_type = "images",pretrained = False, dropout = 
             resnet18 = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         else:
             resnet18 = models.resnet18()
-            
+
         res18 = list(resnet18.children())[:-2]
         if dropout is not None and dropout != 0:
             res18 = [res18[0],res18[1],res18[2],res18[3],res18[4],nn.Dropout(dropout),res18[5],nn.Dropout(dropout),res18[6],nn.Dropout(dropout),res18[7],nn.Dropout(dropout)]
@@ -83,4 +83,14 @@ def get_input_encoder(model,input_type = "images",pretrained = False, dropout = 
     else:
         print(input_type)
         raise Exception("Input type not supported")
+
+    if load_encoder_path is not None:
+        import pytorch_lightning as pl
+        checkpoint = torch.load(load_encoder_path, map_location=torch.device('cpu'))
+        encoder_state_dict = {k.replace("model.ftr_proc.", ""): v for k, v in checkpoint['state_dict'].items() if k.startswith("model.ftr_proc.")}
+        missing_keys, unexpected_keys = encoder.load_state_dict(encoder_state_dict, strict=False)
+        print(f"Missing keys: {missing_keys}")
+        print(f"Unexpected keys: {unexpected_keys}")       
+        # for param in encoder.parameters():
+        #     param.requires_grad = False
     return encoder

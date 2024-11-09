@@ -7,7 +7,7 @@ from models.encoder_models.encoder_model import get_input_encoder
 
 
 class AMiL(nn.Module):
-    def __init__(self, class_count, multicolumn, device,input_type = "images",pretrained_encoder = False,dropout_encoder = None, aggregator_type = "att"):
+    def __init__(self, class_count, multicolumn, device,input_type = "images",pretrained_encoder = False,dropout_encoder = None, aggregator_type = "att",load_encoder_weights = None):
         '''Initialize model. Takes in parameters:
         - class_count: int, amount of classes --> relevant for output vector
         - multicolumn: boolean. Defines if multiple attention vectors should be used.
@@ -24,11 +24,12 @@ class AMiL(nn.Module):
         self.multicolumn = multicolumn
         self.aggregator_type = aggregator_type
         self.device_name = device
+        self.load_encoder_weights = load_encoder_weights
         
         self.cross_entropy_loss = None #nn.CrossEntropyLoss(label_smoothing= self.label_smoothing.)
 
         # feature extractor before multiple instance learning starts
-        self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder)#self.get_encoder_architecture(input_type=input_type)
+        self.ftr_proc = get_input_encoder(model = self,input_type=input_type,pretrained=pretrained_encoder,dropout=dropout_encoder,load_encoder_path=load_encoder_weights)#self.get_encoder_architecture(input_type=input_type)
 
         # Networks for single attention approach
         # attention network (single attention approach)
