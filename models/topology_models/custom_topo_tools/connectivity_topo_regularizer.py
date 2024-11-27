@@ -87,7 +87,7 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
         self.balance_push_pull = balance_push_pull
-        
+        self.calculate_all_losses = False
         self.timeout = timeout
         self.multithreading= multithreading
         if self.multithreading and method == "deep":
@@ -115,7 +115,7 @@ class TopologicalZeroOrderLoss(nn.Module):
 
    
     def deep_scale_distribution_matching_loss_of_s1_on_s2(self, topo_encoding_space_1: ConnectivityEncoderCalculator, distances1, topo_encoding_space_2: ConnectivityEncoderCalculator, distances2):
-        if distances2.requires_grad:            
+        if distances2.requires_grad or self.calculate_all_losses:            
             self.stop_event.clear()
             nb_of_persistent_pairs = len(topo_encoding_space_1.persistence_pairs)
             shuffled_indices_of_topo_features= list(range(nb_of_persistent_pairs))

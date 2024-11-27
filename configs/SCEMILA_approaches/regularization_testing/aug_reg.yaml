@@ -31,35 +31,35 @@ exp_params:
     name: "Adam"
     config:
       LR: 0.00005
-      weight_decay: 0.00035
-      factor: 0.5
+      weight_decay: 0.0000005
+      factor: 0.99
       scheduler: "ReduceLROnPlateau"
       patience: 30
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.4
-    per_epoch_decay: 0.97
+    smoothing: 0.03
+    per_epoch_decay: 0.999
     train_correct_threshold: 1.01 #never
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
+  max_epochs: 200
   enable_progress_bar: False
-  accumulate_grad_batches: 36
+  accumulate_grad_batches: 1
 
 
 logging_params:
-  project_name: "topo_reg_testing"
+  project_name: "reg_testingv2"
   save_dir: "logs/image_input_experiment/"
-  name: "baseline"
+  name: "augmentation_image"
   manual_seed: 1265
 
 ES_params:
   monitor: 'val_correct_epoch'
   min_delta: 0.01
-  patience: 150
+  patience: 80
   mode: 'max'

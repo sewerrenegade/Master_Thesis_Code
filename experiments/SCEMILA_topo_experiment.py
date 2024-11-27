@@ -179,7 +179,11 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         self.unique_uuid = uuid.uuid4()
         self.scale_demographic_tracker = ScaleInfoTracker(scale_quantization=100)
         pass
-    
+
+    def on_train_start(self):
+        total_params = sum(p.numel() for p in self.model.parameters())
+        wandb.log({'total_params': total_params})
+
     def __del__(self):
         if os.path.exists(f'{self.unique_uuid}.pkl'):
             os.remove(f'{self.unique_uuid}.pkl')  # Delete the file
@@ -250,26 +254,26 @@ class TopoSCEMILA_Experiment(pl.LightningModule):
         if "topo_step_log" in step_loss:
             topo_log = step_loss["topo_step_log"]
             for ending in ["_1_on_2","_2_on_1"]:
-                if f"topo_time_taken{ending}" in topo_log and phase == "train":
-                    self.log(f"per_step_topo_calc_time{ending}_topo_analytics",topo_log[f"topo_time_taken{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"nb_of_persistent_edges{ending}" in topo_log and phase == "train":
-                    self.log(f"persistent_edges_nb{ending}_topo_analytics",topo_log[f"nb_of_persistent_edges{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"percentage_toporeg_calc{ending}" in topo_log and phase == "train":
-                    self.log(f"percentage_toporeg_calculated{ending}_topo_analytics",topo_log[f"percentage_toporeg_calc{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"pull_push_ratio{ending}" in topo_log and phase == "train":
-                    self.log(f"pull_to_push_topo_ratio{ending}_topo_analytics",topo_log[f"pull_push_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"nb_pairwise_distance_influenced{ending}" in topo_log and phase == "train":
-                    self.log(f"pairwise_distance_influenced_nb{ending}_topo_analytics",topo_log[f"nb_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"nb_unique_pairwise_distance_influenced{ending}" in topo_log and phase == "train":
-                    self.log(f"unique_pairwise_distance_influenced_nb{ending}_topo_analytics",topo_log[f"nb_unique_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"topo_loss{ending}" in topo_log and phase == "train":
-                    self.log(f"topo_loss{ending}_topo_analytics",topo_log[f"topo_loss{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"rate_of_scale_calculation{ending}" in topo_log and phase == "train":
-                    self.log(f"rate_of_topo_calculation{ending}_topo_analytics",topo_log[f"rate_of_scale_calculation{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"pull_push_loss_ratio{ending}" in topo_log and phase == "train":
-                    self.log(f"pull_push_loss_ratio{ending}_topo_analytics",topo_log[f"pull_push_loss_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
-                if f"std_of_workload_across_threads{ending}" in topo_log and phase == "train":
-                    self.log(f"std_of_workload_across_threads{ending}_topo_analytics",topo_log[f"std_of_workload_across_threads{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"topo_time_taken{ending}" in topo_log:
+                    self.log(f"per_step_topo_calc_time{ending}_{phase}_topo_analytics",topo_log[f"topo_time_taken{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"nb_of_persistent_edges{ending}" in topo_log:
+                    self.log(f"persistent_edges_nb{ending}_{phase}_topo_analytics",topo_log[f"nb_of_persistent_edges{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"percentage_toporeg_calc{ending}" in topo_log:
+                    self.log(f"percentage_toporeg_calculated{ending}_{phase}_topo_analytics",topo_log[f"percentage_toporeg_calc{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"pull_push_ratio{ending}" in topo_log:
+                    self.log(f"pull_to_push_topo_ratio{ending}_{phase}_topo_analytics",topo_log[f"pull_push_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"nb_pairwise_distance_influenced{ending}" in topo_log:
+                    self.log(f"pairwise_distance_influenced_nb{ending}_{phase}_topo_analytics",topo_log[f"nb_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"nb_unique_pairwise_distance_influenced{ending}" in topo_log:
+                    self.log(f"unique_pairwise_distance_influenced_nb{ending}_{phase}_topo_analytics",topo_log[f"nb_unique_pairwise_distance_influenced{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"topo_loss{ending}" in topo_log:
+                    self.log(f"topo_loss{ending}_{phase}_topo_analytics",topo_log[f"topo_loss{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"rate_of_scale_calculation{ending}" in topo_log:
+                    self.log(f"rate_of_topo_calculation{ending}_{phase}_topo_analytics",topo_log[f"rate_of_scale_calculation{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"pull_push_loss_ratio{ending}" in topo_log:
+                    self.log(f"pull_push_loss_ratio{ending}_{phase}_topo_analytics",topo_log[f"pull_push_loss_ratio{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
+                if f"std_of_workload_across_threads{ending}" in topo_log:
+                    self.log(f"std_of_workload_across_threads{ending}_{phase}_topo_analytics",topo_log[f"std_of_workload_across_threads{ending}"],on_step=False,on_epoch= True,prog_bar= False,logger = True)
                 if f"scale_loss_info{ending}" in topo_log and phase == "train":
                     for info in topo_log[f"scale_loss_info{ending}"]:
                         self.scale_demographic_tracker.add_datapoint(info,self.current_epoch)

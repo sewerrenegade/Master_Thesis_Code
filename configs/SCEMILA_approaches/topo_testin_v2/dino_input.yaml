@@ -1,0 +1,19 @@
+defaults:
+  - base
+  - _self_
+
+model_params:
+  config:
+    input_type: "dino_bloom_small"
+            
+dataset:
+  name: 'SCEMILA'
+  config:
+    num_workers: 0
+    k_fold : 4
+    encode_with_dino_bloom: True
+    input_type: "images"
+    gpu: True    
+
+logging_params:
+  name: "dino_input_experiment"

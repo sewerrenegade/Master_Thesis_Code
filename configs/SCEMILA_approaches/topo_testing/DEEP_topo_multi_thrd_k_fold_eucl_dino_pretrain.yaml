@@ -7,7 +7,7 @@ model_params:
     dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-    load_encoder_weights: "data/ResNet18Weights/TopoOnlyWeights/0.199_deep_weight_e300.ckpt"
+    # load_encoder_weights: "data/ResNet18Weights/TopoOnlyWeights/2it_high_l2.ckpt"
     topological_regularizer_settings:
       method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
       multithreading: True
@@ -41,21 +41,23 @@ exp_params:
     config:
       LR: 0.00005
       weight_decay: 0.00035
-      factor: 0.25
+      factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 20
+      patience: 30
       monitor_metric: "val_correct_epoch"
       mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.6
-    per_epoch_decay: 0.98
+    smoothing: 0.03
+    per_epoch_decay: 0.999
     train_correct_threshold: 1.01 #never
+  # topo_scheduler:
+  #   type: "exp_epoch"
+  #   lam: 1
+  #   lam_topo_per_epoch_decay: 0.97
   topo_scheduler:
-    type: "exp_epoch"
+    type: "constant"
     lam: 1
-    lam_topo_per_epoch_decay: 0.90
-
 
 trainer_params:
   precision: '32'
@@ -68,7 +70,7 @@ trainer_params:
 logging_params:
   project_name: "topo_reg_testing"
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "pretrained_decaybest_deep"
+  name: "res34__opt_deep"
   manual_seed: 1265
 
 

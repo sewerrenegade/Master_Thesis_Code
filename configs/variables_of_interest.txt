@@ -24,3 +24,13 @@ Done======
 * make sure logging is 100%, remove single value graphs
 * make sure that there is a distinction in seralization between train and test
 
+-----------------------------------------------------------------
+reg types:
+L2
+dropout
+augmentation
+model size
+label smoothing
+batch size
+
+Topo regularization

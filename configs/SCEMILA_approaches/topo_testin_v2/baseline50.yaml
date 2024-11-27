@@ -1,0 +1,16 @@
+defaults:
+  - base
+  - _self_
+
+model_params:
+  config:
+    input_type: "images50"
+            
+dataset:
+  name: 'SCEMILA'
+  config:
+    num_workers: 6
+    k_fold : 4
+
+logging_params:
+  name: "baseline50"

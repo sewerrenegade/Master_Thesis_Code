@@ -1,0 +1,11 @@
+defaults:
+  - base
+  - _self_
+            
+dataset:
+  name: 'SCEMILA'
+  config:
+    k_fold : 4
+
+logging_params:
+  name: "baseline18"

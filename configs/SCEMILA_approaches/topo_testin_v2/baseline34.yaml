@@ -1,0 +1,15 @@
+defaults:
+  - base
+  - _self_
+
+model_params:
+  config:
+    input_type: "images34"
+            
+dataset:
+  name: 'SCEMILA'
+  config:
+    k_fold : 4
+
+logging_params:
+  name: "baseline34"

@@ -1,23 +1,27 @@
+defaults:
+  - _self_
+
 model_params:
   name: 'SCEMILA'
   config:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0.0
-    pretrained_encoder: False
-    input_type: "images"
-            
+    dropout_encoder: 0.1
+    pretrained_encoder: True
+    input_type: "images18"
+
 dataset:
   name: 'SCEMILA'
   config:
-    num_workers: 4
+    num_workers: 6
+    val_split: 0.25 # is a dummy variable in this cae since kfold is set
     k_fold : -1 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
-    dropout_encoder: 0.0
     gpu: True
-
+    balance_dataset_classes: 50
+    augmentation_settings: ["all",0.05]
 
 exp_type: "SCEMILA_experiment"
 exp_params:
@@ -27,33 +31,33 @@ exp_params:
     name: "Adam"
     config:
       LR: 0.00005
-      weight_decay: 0.001
+      weight_decay: 0.000035
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
-      patience: 2
+      patience: 50
+      monitor_metric: "val_correct_epoch"
+      mode: "max"
     batch_size: 1
   label_smoothing:
-    smoothing: 0.4
-    per_epoch_decay: 0.9
-    train_correct_threshold: 0.95
+    smoothing: 0.05
+    per_epoch_decay: 0.999
+    train_correct_threshold: 1.01 #never
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 50
+  max_epochs: 300
   enable_progress_bar: False
-  accumulate_grad_batches : 1
-
+  accumulate_grad_batches: 32
 
 logging_params:
-  project_name: "Masters_Project"
+  project_name: "topo_testing_v2"
   save_dir: "logs/image_input_experiment/"
-  name: "image_input_experiment"
   manual_seed: 1265
 
 ES_params:
-  monitor: 'val_mil_loss_epoch'
-  min_delta: 0.1
-  patience: 25
-  mode: 'min'
+  monitor: 'val_correct_epoch'
+  min_delta: 0.01
+  patience: 100
+  mode: 'max'

@@ -39,7 +39,7 @@ class SCEMILA(pl.LightningDataModule):
         self.flatten = flatten
         self.to_tensor = to_tensor
         self.topo_settings = topo_settings
-        self.persistent_workers = True
+        self.persistent_workers = True if num_workers > 0 else False
         self.augmentation_settings = AugmentationSettings.get_instance_from_unknown_struct(augmentation_settings)
         self.indexer = get_dataset_indexer(self.name)
         self.data = self.create_train_dataset()
@@ -86,7 +86,7 @@ class SCEMILA(pl.LightningDataModule):
             self.full_dataset = train_dataset
             paths,labels = zip(*self.full_dataset.indicies_list)
             indicies = list(range(len(labels)))
-            skf = StratifiedKFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state = 42) # this needs to be shuffled if resampling is used, otherwise a big portion of disproportionate amount of reampled images will go into validation split, in some folds/splits
+            skf = StratifiedKFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state = 41) # this needs to be shuffled if resampling is used, otherwise a big portion of disproportionate amount of reampled images will go into validation split, in some folds/splits
             self.all_splits = [(train_idx, val_idx) for train_idx, val_idx in skf.split(indicies, labels)]
             # kf = KFold(n_splits=self.k_fold, shuffle=self.shuffle_training, random_state= 42)
             # all_splits = [k for k in kf.split(self.full_dataset)]

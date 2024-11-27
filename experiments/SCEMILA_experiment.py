@@ -39,6 +39,10 @@ class SCEMILA_Experiment(pl.LightningModule):
     def set_dataset_for_latent_visualization(self,dataset):
         assert isinstance(dataset,SCEMILA)
         self.dataset = dataset
+        
+    def on_train_start(self):
+        total_params = sum(p.numel() for p in self.model.parameters())
+        wandb.log({'total_params': total_params})
 
     def get_class_weights(self,weighting_factor):
         assert 0 <= weighting_factor <= 1

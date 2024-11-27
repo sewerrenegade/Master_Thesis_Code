@@ -1,29 +1,38 @@
 model_params:
-  name: 'SCEMILA'
+  name: 'TopoSCEMILA'
   config:
     multicolumn: 1
     class_count: 5
     device: "cuda:0"
-    dropout_encoder: 0
+    dropout_encoder: 0.1
     pretrained_encoder: True
     input_type: "images"
-    encoder_reduction: 0
-    #load_encoder_weights: "data/ResNet18Weights/TopoOnlyWeights/1.88_mil_4it_e1000.ckpt"
-            
+    load_encoder_weights: "data/ResNet18Weights/TopoOnlyWeights/1.88_mil_4it_e1000.ckpt"
+    topological_regularizer_settings:
+      method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
+      multithreading: True
+      timeout: 1
+
+                      
 dataset:
   name: 'SCEMILA'
   config:
     num_workers: 6
-    val_split: 0.25 # is a dummy variable in this cae since kfold is set
+    val_split: 0.25
     k_fold : 4 #set to one if no cross validation wanted
     encode_with_dino_bloom: False
     input_type: "images"
-    gpu: True
     balance_dataset_classes: 50
     augmentation_settings: ["all",0.05]
+    topo_settings:
+      nb_of_grouped_bags: 1
+      normalize_distance_matricies: True
+      dataset_settings:
+        grayscale: False
+        encode_with_dino_bloom: True
 
 
-exp_type: "SCEMILA_experiment"
+exp_type: "topo_SCEMILA_experiment"
 exp_params:
   num_class: 5
   class_weighting_factor: 0.0
@@ -31,7 +40,7 @@ exp_params:
     name: "Adam"
     config:
       LR: 0.00005
-      weight_decay: 0.00035
+      weight_decay: 0.0035
       factor: 0.5
       scheduler: "ReduceLROnPlateau"
       patience: 30
@@ -40,23 +49,27 @@ exp_params:
     batch_size: 1
   label_smoothing:
     smoothing: 0.4
-    per_epoch_decay: 0.97
+    per_epoch_decay: 0.99
     train_correct_threshold: 1.01 #never
+  topo_scheduler:
+    type: "exp_epoch"
+    lam_topo_per_epoch_decay: 0.97
+    lam: 1
 
 trainer_params:
   precision: '32'
   accelerator: 'gpu'
   devices: [0]
-  max_epochs: 300
+  max_epochs: 350
   enable_progress_bar: False
-  accumulate_grad_batches: 36
-
+  accumulate_grad_batches: 32
 
 logging_params:
   project_name: "topo_reg_testing"
-  save_dir: "logs/image_input_experiment/"
-  name: "baseline"
+  save_dir: "logs/topo_dino_image_input_experiment/"
+  name: "exp_decay_pretrain"
   manual_seed: 1265
+
 
 ES_params:
   monitor: 'val_correct_epoch'
