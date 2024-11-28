@@ -32,7 +32,7 @@ class GlobalConfig:
     CUSTOM_METRICS = []
 
     EMBEDDING_DATA_FOLDER_PATH = "data/EMBEDDING/v1/"
-    RESULTS_DATA_FOLDER_PATH = "results/data/v2/"
+    RESULTS_DATA_FOLDER_PATH = "results/data/v1/"
     RESULTS_FOLDER_PATH = "results/"
     MNIST_INTER_CLASS_DIST = "MNIST_interinstance_distances/"
     FashionMNIST_INTER_CLASS_DIST = "FashionMNIST_interinstance_distances/"

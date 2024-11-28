@@ -11,7 +11,7 @@ def get_input_encoder(model,input_type = "images",pretrained = False, dropout = 
     encoder_output_dim = 500
     
     if input_type == "images": #this and the one after should be the same, since Hehr supposedly used the same network on the same 3x144x144 input 
-        FT_DIM_IN = 512
+        FT_DIM_IN = int(512)
         if pretrained:
             resnet18 = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         else:
@@ -19,12 +19,12 @@ def get_input_encoder(model,input_type = "images",pretrained = False, dropout = 
             
         res18 = list(resnet18.children())[:-2]
         if dropout is not None and dropout != 0:
-            res18 = [res18[0],res18[1],res18[2],res18[3],res18[4],nn.Dropout(dropout),res18[5],nn.Dropout(dropout),res18[6],nn.Dropout(dropout),res18[7],nn.Dropout(dropout)]
+            res18 = [res18[0],res18[1],res18[2],res18[3],res18[4],nn.Dropout(dropout),res18[5],nn.Dropout(dropout),res18[6],nn.Dropout(dropout),res18[7],nn.Dropout(dropout)]#
  
         encoder = nn.Sequential(*res18,
-            nn.Conv2d(FT_DIM_IN, int(FT_DIM_IN * 1.5), kernel_size=2),
+            nn.Conv2d(FT_DIM_IN, int(FT_DIM_IN * 1.5), kernel_size=3),
             nn.ReLU(),
-            nn.Conv2d(int(FT_DIM_IN * 1.5), int(FT_DIM_IN * 2), kernel_size=2),
+            nn.Conv2d(int(FT_DIM_IN * 1.5), int(FT_DIM_IN * 2), kernel_size=3),
             nn.ReLU(),
             nn.AdaptiveMaxPool2d(output_size=(1, 1)),
             nn.Flatten(),

@@ -19,8 +19,9 @@ entity = "milad-research"  # W&B entity (user or team name)
 project = "Final_Results"  # W&B project name
 
 
-list_of_run_types = ["og_moor_mani_grayscale","og_moor_mani_dino","og_moor_eucl_grayscale","og_moor_eucl_dino","edge_dist_match_eucl_grayscale",
-                     "edge_dist_match_eucl_dino","baseline_avg_pool","baseline"]
+# list_of_run_types = ["og_moor_mani_grayscale","og_moor_mani_dino","og_moor_eucl_grayscale","og_moor_eucl_dino","edge_dist_match_eucl_grayscale",
+#                      "edge_dist_match_eucl_dino","baseline_avg_pool","baseline"]
+list_of_run_types = ["baseline_s"]
 metrics_of_interest = ["accuracy","recall_macro","precision_macro","f1_macro","auroc"]
 folds = 4
 # Fetch all runs in the project
@@ -40,7 +41,7 @@ for run in runs:
 
     for metric in metrics_of_interest:
         metric_value = run.summary.get(metric)  # Replace 'accuracy' with the metric you want to analyze
-        if metric_value is not None:
+        if metric_value is not None and run_type!="Unknown Type":
             results[run_type][run_fold_number][metric].append(metric_value)
 
 summary = []
@@ -55,8 +56,9 @@ for run_type, splits in results.items():
                     "run_type": run_type,
                     "fold": split_n,
                     "metric": metric,
-                    "mean": np.mean(metric_values),
-                    "std": np.std(metric_values)
+                    # "mean": np.mean(metric_values),
+                    # "std": np.std(metric_values),
+                    "mean_std_string": f"{np.mean(metric_values):.3f} +/- {np.std(metric_values):.3f}"
                 })
             temp_across_split_metrics[metric].extend(metric_values)
 
@@ -65,15 +67,36 @@ for run_type, splits in results.items():
         across_split_metrics.append({
                         "run_type": run_type,
                         "metric": metric_name,
-                        "mean": np.mean(metric_values_across_splits),
-                        "std": np.std(metric_values_across_splits)
+                        # "mean": np.mean(metric_values_across_splits),
+                        # "std": np.std(metric_values_across_splits),
+                        "mean_std_string": f"{np.mean(metric_values_across_splits):.3f} +/- {np.std(metric_values_across_splits):.3f}"
+                    })
+        summary.append({
+                        "run_type": run_type,
+                        "metric": metric_name,
+                        "fold": "All",
+                        # "mean": np.mean(metric_values_across_splits),
+                        # "std": np.std(metric_values_across_splits),
+                        "mean_std_string": f"{np.mean(metric_values_across_splits):.3f} +/- {np.std(metric_values_across_splits):.3f}"
                     })
 # Create a Pandas DataFrame
-df =  pd.DataFrame(across_split_metrics)
+df =  pd.DataFrame(summary)#cross_split_metrics)
 
+pivot_df = df.pivot(index="metric", columns="fold", values="mean_std_string")
+
+# Optionally, rename columns for clarity
+pivot_df.columns = [f"split_{col}" for col in pivot_df.columns]
+
+# Reset index for clean CSV output
+pivot_df.reset_index(inplace=True)
 # Print the DataFrame
 print(df)
 
 # Optionally, save the DataFrame to a CSV file
-df.to_csv("model_fold_performance.csv", index=False)
+pivot_df.to_csv("model_fold_performance.csv", index=False)
 
+latex_code = pivot_df.to_latex(index=False)
+
+# Save to a .tex file
+with open("table.tex", "w") as f:
+    f.write(latex_code)

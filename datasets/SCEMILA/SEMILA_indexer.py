@@ -198,7 +198,7 @@ class SCEMILA_Indexer(Indexer):
 
     def get_image_path_from_ID_image_name(self,ID,image_name):
         label_folder_name = self.bag_meta_df.loc[ID,"bag_label"]
-        formated_image_name = f"{image_name.split('.')[0].zfill(3)}.tif"
+        formated_image_name = f"image_{image_name.split('.')[0]}.tif"#.zfill(3)
         return os.path.join(self.path_data,"image_data",label_folder_name,ID,formated_image_name)
 
     # Function to split a list into two parts
