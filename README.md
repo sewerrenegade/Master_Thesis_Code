@@ -1,6 +1,6 @@
 # Improving Topologically-Regularized Multiple Instance Learning on Single Cell Images
 
-This is the repository for Milad Bassil's Master's thesis conducted at [Technical University of Munich (TUM)](https://www.tum.de), under the supervision of **Salome Kazeminia** and the advisorship of **Carsten Marr** and **Bastian Rieck** as part of [Helmholtz Munich](https://www.helmholtz-munich.de/). 
+This is the repository for Milad Bassil's Master's thesis conducted at [Technical University of Munich (TUM)](https://www.tum.de), under the supervision of **Salome Kazeminia** and the advisorship of PIs **Carsten Marr** and **Bastian Rieck** of the groups MarrLab https://github.com/marrlab and AIDOS https://github.com/aidos-lab as part of [Helmholtz Munich](https://www.helmholtz-munich.de/). 
 
 The thesis, titled *Improving Topologically-Regularized Multiple Instance Learning on Single Cell Images*, details the work done in this project, which can be found here: [Insert link later].
 
