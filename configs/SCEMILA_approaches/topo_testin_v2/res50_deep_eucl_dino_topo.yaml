@@ -5,7 +5,7 @@ defaults:
 model_params:
   name: 'TopoSCEMILA'
   config:
-    aggregator_type: "avg"
+    #aggregator_type: "avg"
     topological_regularizer_settings:
       method: "deep" #=["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"] "og_moor"
       multithreading: True
@@ -47,5 +47,5 @@ trainer_params:
 
 logging_params:
   save_dir: "logs/topo_dino_image_input_experiment/"
-  name: "res18_avg_8worker_16prec_opt_deep"
+  name: "res18_8worker_16prec_opt_deep"
   manual_seed: 1265
