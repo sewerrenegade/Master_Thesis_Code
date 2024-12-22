@@ -15,6 +15,7 @@ class ConnectivityEncoderCalculator:
         self.persistence_pairs = None
         self.scales = None
         self.distance_of_persistence_pairs = None
+        self.pers_pair_importance_score = [1.0]*(self.n_vertices-1)
         # self.sanity_checker = []
         #self.topo_progression_stats= [np.unique(zero_scale_topo, return_counts=True)]
     def get_component_birthed_at_index(self,index):
@@ -31,13 +32,15 @@ class ConnectivityEncoderCalculator:
         nb_of_sets = len(set_dict)
         set_to_edge_mapping = {}
         index_keys = {index:set_name for index,set_name in enumerate(set_dict.keys())}
+        if nb_of_sets == 1:
+            pass
         dist_mat = np.zeros((nb_of_sets, nb_of_sets))
         for i in range(nb_of_sets):
             for j in range(i+1,nb_of_sets):
                 edge,distance = self.get_shortest_distance_between_2_sets_ignoring_all_other_points(set_dict[index_keys[i]],set_dict[index_keys[j]])
                 dist_mat[i,j] = distance
                 dist_mat[j,i] = distance
-                set_to_edge_mapping[(i,j)] = (int(edge[0]),int(edge[1]))
+                set_to_edge_mapping[(i,j)] = (int(edge[0]),int(edge[1])) if int(edge[0])<int(edge[1]) else  (int(edge[1]),int(edge[0])) 
         smaller_homology_problem = ConnectivityEncoderCalculator(distance_mat=dist_mat)
         smaller_homology_problem.calculate_connectivity()
         pers_pairs = smaller_homology_problem.persistence_pairs
@@ -68,6 +71,8 @@ class ConnectivityEncoderCalculator:
 
         persistence_pairs = []
         edge_distances = []
+        pers_pair_importance_score = []
+        
 
         for edge_index, edge_weight in zip(edge_indices, edge_weights[edge_indices]):
 
@@ -76,12 +81,15 @@ class ConnectivityEncoderCalculator:
 
             u_group = self.get_point_current_group(u)
             v_group = self.get_point_current_group(v)
+            
             if u_group == v_group :
                 continue # no 0 order topological feature created since connectivity remains unchanged
 
-            self.merge_groups(u_group, v_group)
+            members_of_u_group ,  members_of_v_group = self.merge_groups(u_group, v_group)
+            importance = min(len(members_of_u_group),len(members_of_v_group)) #(len(members_of_u_group)*len(members_of_v_group))**0.5
             persistence_pairs.append((min(u, v), max(u, v)))
             edge_distances.append(edge_weight)
+            pers_pair_importance_score.append(importance)
             self.save_current_topo_enc()
             if len(persistence_pairs) == self.n_vertices -1:
                 break
@@ -89,6 +97,8 @@ class ConnectivityEncoderCalculator:
         self.distance_of_persistence_pairs = edge_distances
         self.persistence_pairs = persistence_pairs
         self.topo_scale_evolution = np.vstack(self.topo_scale_evolution)
+        avg_importance = sum(pers_pair_importance_score)/len(pers_pair_importance_score)
+        self.pers_pair_importance_score = [imp/avg_importance for imp in pers_pair_importance_score]
 
 
     def save_current_topo_enc(self):
@@ -106,13 +116,15 @@ class ConnectivityEncoderCalculator:
         return self._current_topology[u]
 
     def merge_groups(self, u_group, v_group):
+        members_of_v_group , members_of_u_group = np.where(self._current_topology == v_group),np.where(self._current_topology == u_group)
         if u_group > v_group:
-            self._current_topology[np.where(self._current_topology == v_group)] = u_group
+            self._current_topology[members_of_v_group] = u_group
         elif u_group < v_group:
-            self._current_topology[np.where(self._current_topology == u_group)] = v_group
+            self._current_topology[members_of_u_group] = v_group
         else:
             print("WTF u doing idiot")
             assert u_group != v_group
+        return members_of_u_group[0] ,  members_of_v_group[0]
     def what_connected_these_two_points_try(self, u, v):
     # Find where `u` and `v` are connected
         are_connected = self.topo_scale_evolution[:, u] == self.topo_scale_evolution[:, v]

@@ -11,7 +11,7 @@ def disable_plt_interactive_gui():
     
 class GlobalConfig:
     block_useless_warnings()
-    disable_plt_interactive_gui()
+    #disable_plt_interactive_gui()
     HTMLStart = "<HTML><HEAD><TITLE>{0}</TITLE></HEAD><BODY style=\"background-color:#888888\"><CENTER>{1}<BR><IMG SRC=\"../extras/images/large-crisis-blackadder.jpg\" ALIGN=\"BOTTOM\"> </CENTER><HR>"
     HTMLEnd = "<HR></BODY></HTML>"
     ColoredLog = "<p style=\"color:{0}\">"
@@ -34,6 +34,7 @@ class GlobalConfig:
     EMBEDDING_DATA_FOLDER_PATH = "data/EMBEDDING/v1/"
     RESULTS_DATA_FOLDER_PATH = "results/data/v2/"
     RESULTS_FOLDER_PATH = "results/"
+    CONNECTIVITY_DP_VID_PATH = "connectivity_dp_viz/"
     MNIST_INTER_CLASS_DIST = "MNIST_interinstance_distances/"
     FashionMNIST_INTER_CLASS_DIST = "FashionMNIST_interinstance_distances/"
     EMBEDDING_RESULTS = "embedding_results"

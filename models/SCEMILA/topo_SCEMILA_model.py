@@ -66,7 +66,7 @@ class TopoAMiL(nn.Module):
         self.to(torch.device(self.device_name))
 
     def get_topo_regularizer(self):
-        if self.topo_reg_settings.get("method",None)== "og_moor":
+        if self.topo_reg_settings.get("method",None) == "og_moor":
             return TopologicalSignatureDistance(match_edges='symmetric',to_gpu=self.device_name!="cpu")
         else:
             return TopologicalZeroOrderLoss(**self.topo_reg_settings)
