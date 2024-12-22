@@ -5,6 +5,7 @@ models/DinoBloom/DinoBloom
 results/temp_results/
 junk/
 results/data
+results/connectivity_dp_viz
 wandb/
 .hydra/
 .vscode/
