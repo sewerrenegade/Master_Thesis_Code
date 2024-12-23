@@ -110,9 +110,9 @@ class SCEMILA_Indexer(Indexer):
     
     
     def convert_from_int_to_label_instance_level(self,int_or_label):
-        if type(int_or_label) is int:
+        if isinstance(int_or_label,int):
             return self.instance_classes[int_or_label]
-        elif type(int_or_label) is str:
+        elif isinstance(int_or_label,str):
             return self.instance_classes.index(int_or_label)
         
     def convert_from_int_to_label_bag_level(self,int_or_label):#TODO HANDLE multiple inputs
