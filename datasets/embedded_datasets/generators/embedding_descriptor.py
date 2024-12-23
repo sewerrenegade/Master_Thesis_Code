@@ -48,7 +48,7 @@ class EmbeddingDescriptor:
                 embedding_function = None
                 
             embeddings,labels,stats_dic = generate_embeddings_for_dataset(self.name,self.dataset,embedding_function)
-            results_manager.save_results(descriptor=self ,results= {"embedding":embeddings,"embedding_label" : labels,"embedding_stats" : stats_dic})
+            results_manager.save_results(descriptor=self ,results= {"embedding":embeddings, "embedding_label" : labels, "embedding_stats" : stats_dic})
         embeddings_ds = EmbeddingBaseDataset(self)
         return embeddings_ds
 
