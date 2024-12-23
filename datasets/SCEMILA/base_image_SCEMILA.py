@@ -252,8 +252,12 @@ class SCEMILA_MIL_base(BaseMILDataset):
         return x
     
     def get_single_tiff_image_using_path(self, img_path,label):
-        image = self.transforms(self.preload_transforms(img_path))        
-        return self.to_gpu_transform(image),label
+        image = self.transforms(self.preload_transforms(img_path))   
+        image = self.to_gpu_transform(image)     
+        if self.encode_with_dino_bloom:
+            trans = self.get_dino_bloom_transform()
+            image = trans(image)
+        return image,label
     
     def get_single_tiff_bag_using_path(self, bag_path,label):
         #if idx not in self.loaded_data:
