@@ -9,18 +9,19 @@ import json
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from moviepy import ImageSequenceClip
+import matplotlib.gridspec as gridspec
 
 sys.path.append("C:/Users\MiladBassil/Desktop/Master_Thesis/code\Master_Thesis_Code")
 
 from models.topology_models.custom_topo_tools.connectivity_topo_regularizer import (
     TopologicalZeroOrderLoss,
 )
+from adan_pytorch import Adan
 
 
 # Define the custom loss function
 class DistanceMatrixLoss(nn.Module):
     def forward(self, original_distances, projected_distances):
-        # Mean Squared Error between the distance matrices
         return torch.mean((original_distances - projected_distances) ** 2)
 
 
@@ -31,14 +32,14 @@ class ConnectivityDP:
         n_components=2,
         n_iter=100,
         learning_rate=1,
-        optimizer_name = "sgd",
+        optimizer_name="sgd",
         normalize_input=False,
         initialization_scheme="random_uniform",
         weight_decay=0.0,
         loss_calculation_timeout=1.0,
         augmentation_scheme={},
-        importance_weighting = False,
-        take_top_p_scales = 1,
+        importance_calculation_strat=None,
+        take_top_p_scales=1,
         dev_settings={},
     ):
         self.n_iter = n_iter
@@ -51,16 +52,22 @@ class ConnectivityDP:
         self.weight_decay = weight_decay
         self.optimizer_name = optimizer_name
         self.augmentation_scheme = augmentation_scheme
-        self.importance_weighting = importance_weighting
+        self.importance_calculation_strat = importance_calculation_strat
         self.dev_settings = dev_settings
         method = "deep"
         if "moor_method" in self.dev_settings:
             method = "moor_method"
 
         self.loss_fn = TopologicalZeroOrderLoss(
-            method=method, timeout=self.loss_calculation_timeout, take_top_p_scales=self.take_top_p_scales,importance_weighting= importance_weighting
+            method=method,
+            timeout=self.loss_calculation_timeout,
+            take_top_p_scales=self.take_top_p_scales,
+            importance_calculation_strat=importance_calculation_strat,
         )
-        
+        self.opt_loss = -1.0
+        self.opt_embedding = None
+        self.opt_epoch = -1
+
     def fit_transform(self, X):
         """
         Downproject the input nxd space to 2D by minimizing the distance matrix loss.
@@ -96,12 +103,17 @@ class ConnectivityDP:
                 {
                     "Loss": loss.item(),
                     "%_calc": log.get("percentage_toporeg_calc_2_on_1", 100.0),
-                } 
+                }
             )
+            if loss.item() < self.opt_loss or self.opt_loss == -1:
+                self.opt_loss = loss.item()
+                self.opt_embedding = target_embedding.detach().numpy()
+                self.opt_epoch = int(i)
+                
         if "create_vid" in self.dev_settings:
             self.create_update_video(None, None, None, -1)
-        return target_embedding.detach().numpy()
-    
+        return self.opt_embedding
+
     def get_initial_embedding(self, X):
         np.random.seed(42)
         if self.initialization_scheme == "PCA":
@@ -145,11 +157,11 @@ class ConnectivityDP:
                 return input_distance_matrix * symmetric_matrix
         else:
             return input_distance_matrix
-        
-    def normalize_perfeature_input(self,X):
+
+    def normalize_perfeature_input(self, X):
         return (X - X.mean(dim=1, keepdim=True)) / X.std(dim=1, keepdim=True)
 
-    def get_optimizer(self,opt_domain):
+    def get_optimizer(self, opt_domain):
         if self.optimizer_name == "SGD" or self.optimizer_name == "sgd":
             return torch.optim.SGD(
                 [opt_domain], lr=self.learning_rate, weight_decay=self.weight_decay
@@ -158,15 +170,24 @@ class ConnectivityDP:
             return torch.optim.Adam(
                 [opt_domain], lr=self.learning_rate, weight_decay=self.weight_decay
             )
-    
-
+        elif self.optimizer_name == "adamw" or self.optimizer_name == "adamW" or self.optimizer_name == "ADAMW":
+            return torch.optim.AdamW(
+                [opt_domain], lr=self.learning_rate, weight_decay=self.weight_decay
+            )
+        elif self.optimizer_name == "adan"  or self.optimizer_name == "ADAN":
+            return Adan(
+                [opt_domain],
+                lr = self.learning_rate,                  # learning rate (can be much higher than Adam, up to 5-10x)
+                betas = (0.02, 0.08, 0.01), # beta 1-2-3 as described in paper - author says most sensitive to beta3 tuning
+                weight_decay = self.weight_decay       # weight decay 0.02 is optimal per author
+            )
     def create_update_video(self, target_embedding, loss, log, it):
         if it == -1:
             fps = 10
             frames = sorted(
                 [
-                    os.path.join(self.vid_folder_path, f)
-                    for f in os.listdir(self.vid_folder_path)
+                    os.path.join(self.imgs_folder_path, f)
+                    for f in os.listdir(self.imgs_folder_path)
                     if f.endswith(".png")
                 ]
             )
@@ -185,28 +206,152 @@ class ConnectivityDP:
                 + GlobalConfig.CONNECTIVITY_DP_VID_PATH
                 + f"{formatted_time}/"
             )
+            self.imgs_folder_path = (
+                GlobalConfig.RESULTS_FOLDER_PATH
+                + GlobalConfig.CONNECTIVITY_DP_VID_PATH
+                + f"{formatted_time}/"
+                + "images/"
+            )
             if os.path.exists(self.vid_folder_path):
                 print(
                     f"WARNING: overwriting old data in folder: {self.vid_folder_path}"
                 )
             else:
                 os.makedirs(self.vid_folder_path)
+                os.makedirs(self.imgs_folder_path)
+        self.create_and_save_plot(target_embedding, loss, log, it)
 
-        plt.figure(figsize=(8, 8))
+    def create_and_save_plot(self, target_embedding, loss, log, it):
+        nb_bins = 10
         embedding = target_embedding.detach().cpu().numpy()
-        plt.scatter(
-            embedding[:, 0],
-            embedding[:, 1],
-            c=self.dev_settings["labels"],
-            cmap="tab10",
-            s=50,
+        scale_loss_info = log.get("scale_loss_info_2_on_1", [(0.0, 0.0, 0.0)])
+        scales, pull_losses, push_losses = zip(*scale_loss_info)
+
+        # Bin edges for scales
+        bins = np.linspace(0, 1, nb_bins)  # Adjust as needed
+
+        # Calculate average pull and push losses for each bin
+        bin_indices = np.digitize(scales, bins) - 1
+        num_bins = len(bins) - 1
+        average_pull_losses = [
+            (
+                np.mean(
+                    [pull_losses[i] for i in range(len(scales)) if bin_indices[i] == j]
+                )
+                if np.sum(bin_indices == j) > 0
+                else 0
+            )
+            for j in range(num_bins)
+        ]
+        average_push_losses = [
+            (
+                np.mean(
+                    [push_losses[i] for i in range(len(scales)) if bin_indices[i] == j]
+                )
+                if np.sum(bin_indices == j) > 0
+                else 0
+            )
+            for j in range(num_bins)
+        ]
+
+        # Create the figure and GridSpec
+        fig = plt.figure(figsize=(16, 8))
+        spec = gridspec.GridSpec(2, 2, width_ratios=[2, 1], height_ratios=[1, 1])
+
+        # Scatter plot (big plot on the left)
+        ax_scatter = fig.add_subplot(spec[:, 0])
+        marker_styles = ['o', 's', 'D', 'v', '^', '<', '>', 'p', '*', 'X', 'h', 'H', '8', '|', '_', '.', ',']
+        colors = plt.cm.tab20.colors + plt.cm.tab20b.colors + plt.cm.tab20c.colors  # Combines multiple color maps for 60+ colors
+
+        # Ensure you have enough unique combinations of colors and markers
+        num_classes = len(set(self.dev_settings["labels"]))  # Total number of classes
+        unique_labels = sorted(set(self.dev_settings["labels"]))  # Sort labels for consistent ordering
+        if num_classes > len(colors) * len(marker_styles):
+            raise ValueError("Not enough combinations of colors and markers for all classes!")
+
+        # Create scatter plot with combined color and marker coding
+        for idx, label in enumerate(unique_labels):
+            color = colors[idx % len(colors)]
+            marker = marker_styles[idx // len(colors) % len(marker_styles)]
+            subset = embedding[np.array(self.dev_settings["labels"]) == label]
+            ax_scatter.scatter(
+                subset[:, 0],
+                subset[:, 1],
+                color=color,
+                marker=marker,
+                label=f"{label}",
+                s=50,
+            )
+
+        # Add legend for clarity
+        ax_scatter.legend(
+            title="Classes",
+            bbox_to_anchor=(1.05, 1),
+            loc="upper left",
+            borderaxespad=0.0,
+            fontsize=8,
         )
-        plt.title(f"Iteration {it}, Loss: {loss.item():.4f}")
-        plt.savefig(f"{self.vid_folder_path}/frame_{it:05d}.png")
+        # scatter = ax_scatter.scatter(
+        #     embedding[:, 0],
+        #     embedding[:, 1],
+        #     c=self.dev_settings["labels"],
+        #     cmap="tab10",
+        #     s=50,
+        # )
+        ax_scatter.set_title("Labeled Embedding")
+        ax_scatter.set_xlabel("Component 1")
+        ax_scatter.set_ylabel("Component 2")
+        #plt.colorbar(scatter, ax=ax_scatter, label="Label")
+
+        # First histogram: Counts in each scale bin
+        ax_hist1 = fig.add_subplot(spec[0, 1])
+        ax_hist1.hist(scales, bins=bins, color="gray", edgecolor="black")
+        ax_hist1.set_title("Number of Persistent Edges in Each Scale Bracket")
+        ax_hist1.set_xlabel("Scale")
+        ax_hist1.set_ylabel("Count")
+
+        # Second histogram: Average losses
+        ax_hist2 = fig.add_subplot(spec[1, 1])
+        bar_width = 0.35
+        x = np.arange(num_bins)
+        ax_hist2.bar(
+            x - bar_width / 2,
+            average_pull_losses,
+            width=bar_width,
+            color="blue",
+            label="Pull Loss",
+        )
+        ax_hist2.bar(
+            x + bar_width / 2,
+            average_push_losses,
+            width=bar_width,
+            color="red",
+            label="Push Loss",
+        )
+        ax_hist2.set_xticks(x)
+        ax_hist2.set_xticklabels(
+            [f"{bins[i]:.2f}-{bins[i+1]:.2f}" for i in range(num_bins)], rotation=45
+        )
+        ax_hist2.set_title("Average Losses in Scale Bracket")
+        ax_hist2.set_xlabel("Scale Bin")
+        ax_hist2.set_ylabel("Average Loss")
+        ax_hist2.legend()
+
+        fig.subplots_adjust(top=0.9)
+        fig.suptitle(
+            f"Dataset: {self.dev_settings.get('dataset_name','Unknown')} ,Iteration {it}, Loss: {loss.item():.4f}, Iteration Time: {float(log.get('topo_time_taken_2_on_1', -1)):.4f} s, Total Pull Loss: {sum(pull_losses):.4f}, Total Push Loss: {sum(push_losses):.4f}, Loss Percentage Calculated: {log.get('percentage_toporeg_calc_2_on_1', 100):.3f}%",
+            fontsize=12,
+        )
+
+        # Save and close the figure
+        plt.tight_layout()
+        plt.savefig(f"{self.imgs_folder_path}/frame_{it:05d}.png")
         plt.close()
 
 
-    def write_iteration_data(file_path, iteration, embedding, loss, histogram, heatmap_stats):
+    def write_iteration_data(
+        file_path, iteration, embedding, loss, histogram, heatmap_stats
+    ):
         """Append iteration data to a JSON file in JSON Lines format."""
         # Construct the data to save (ensure minimal size)
         data = {
@@ -214,13 +359,13 @@ class ConnectivityDP:
             "embedding": [round(float(e), 4) for e in embedding],  # truncate precision
             "loss": round(float(loss), 6),
             "histogram": histogram,  # e.g., bins or summary stats
-            "heatmap": heatmap_stats  # e.g., min, max, mean values
+            "heatmap": heatmap_stats,  # e.g., min, max, mean values
         }
-        
+
         # Append to the JSON Lines file
         with open(file_path, "a") as f:
-            f.write(json.dumps(data) + "\n") 
-            
+            f.write(json.dumps(data) + "\n")
+
     def read_iteration_data(file_path):
         """Read data line-by-line from a JSON Lines file."""
         with open(file_path, "r") as f:
@@ -228,20 +373,11 @@ class ConnectivityDP:
                 data = json.loads(line)  # Deserialize line into a dictionary
                 yield data
 
-# # Example usage
-# for iteration_data in read_iteration_data("iterations.jsonl"):
-#     print(f"Iteration {iteration_data['iteration']} - Loss: {iteration_data['loss']}")
-# Example Usage
 if __name__ == "__main__":
-    # Generate random input data (nxd)
     n, d = 100, 10
     X = np.random.rand(n, d)
-
-    # Create and fit the downprojection tool
     tool = ConnectivityDP(n_iter=100, learning_rate=0.01)
     embedding = tool.fit_transform(X)
-
-    # Plot the result (requires matplotlib)
     import matplotlib.pyplot as plt
 
     plt.scatter(embedding[:, 0], embedding[:, 1], s=10, alpha=0.8)

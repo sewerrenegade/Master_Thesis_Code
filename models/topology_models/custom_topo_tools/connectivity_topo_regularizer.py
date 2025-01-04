@@ -74,7 +74,7 @@ class TopologicalZeroOrderLoss(nn.Module):
     LOSS_ORDERS = [1,2]
     PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS =["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"]
 
-    def __init__(self,method="match_scale_distribution",p=2,timeout = 5,multithreading = True,take_top_p_scales=1.0,importance_weighting = False):
+    def __init__(self,method="match_scale_distribution",p=2,timeout = 5,multithreading = True,take_top_p_scales=1.0,importance_calculation_strat = None):
         """Topological signature computation.
 
         Args:
@@ -90,7 +90,7 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.topo_feature_loss = self.get_topo_feature_approach(method)
         self.take_top_p_scales = take_top_p_scales
         self.calculate_all_losses = False
-        self.importance_weighting = importance_weighting
+        self.importance_calculation_strat = importance_calculation_strat
         self.timeout = timeout
         self.multithreading= multithreading
         if self.multithreading and method == "deep":
@@ -180,19 +180,14 @@ class TopologicalZeroOrderLoss(nn.Module):
                     pull_loss_at_this_scale = abs(pull_selected_diff_distances - scale) ** self.p
                     pull_loss_at_this_scale = pull_loss_at_this_scale.sum()
                     scale_demographic_info[1] = float(pull_loss_at_this_scale.item())
-                    if self.importance_weighting:
-                        pull_loss = pull_loss + pull_loss_at_this_scale*topo_encoding_space_1.pers_pair_importance_score[scale_index]
-                    else:
-                        pull_loss = pull_loss + pull_loss_at_this_scale                        
+                    pull_loss = pull_loss + pull_loss_at_this_scale*topo_encoding_space_1.component_total_importance_score[scale_index]                     
                 if len(push_edges) != 0:
                     push_selected_diff_distances = distances2[push_important_pairs_tensor[:, 0], push_important_pairs_tensor[:, 1]] / topo_encoding_space_2.distance_of_persistence_pairs[-1]
                     push_loss_at_this_scale = abs(push_selected_diff_distances - scale) ** self.p
                     push_loss_at_this_scale = push_loss_at_this_scale.sum()
                     scale_demographic_info[2] = float(push_loss_at_this_scale.item())
-                    if self.importance_weighting:
-                        push_loss = push_loss + push_loss_at_this_scale*topo_encoding_space_1.pers_pair_importance_score[scale_index]
-                    else:
-                        push_loss = push_loss + push_loss_at_this_scale
+                    push_loss = push_loss + push_loss_at_this_scale*topo_encoding_space_1.component_total_importance_score[scale_index]
+
                 scale_demographic_infos.append(scale_demographic_info)
                 pairwise_distances_influenced = pairwise_distances_influenced + len(all_edges)
                 nb_pulled_edges = nb_pulled_edges + len(pull_edges)

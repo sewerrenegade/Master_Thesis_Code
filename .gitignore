@@ -6,6 +6,7 @@ results/temp_results/
 junk/
 results/data
 results/connectivity_dp_viz
+results/dp_sweep_results
 wandb/
 .hydra/
 .vscode/

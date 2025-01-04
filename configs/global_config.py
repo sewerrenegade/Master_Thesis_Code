@@ -35,6 +35,7 @@ class GlobalConfig:
     RESULTS_DATA_FOLDER_PATH = "results/data/v2/"
     RESULTS_FOLDER_PATH = "results/"
     CONNECTIVITY_DP_VID_PATH = "connectivity_dp_viz/"
+    CONNECTIVITY_DP_SWEEPER_PATH = RESULTS_FOLDER_PATH + "dp_sweep_results/"
     MNIST_INTER_CLASS_DIST = "MNIST_interinstance_distances/"
     FashionMNIST_INTER_CLASS_DIST = "FashionMNIST_interinstance_distances/"
     EMBEDDING_RESULTS = "embedding_results"

@@ -1,4 +1,4 @@
-from pointcloud_generator import calculate_distance_matrix_for_pointcloud
+from models.topology_models.custom_topo_tools.multiscale_cluster_generator import calculate_distance_matrix_for_pointcloud
 from topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
 
 
