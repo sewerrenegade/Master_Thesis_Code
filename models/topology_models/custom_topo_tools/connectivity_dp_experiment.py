@@ -9,7 +9,6 @@ from models.topology_models.custom_topo_tools.multiscale_cluster_generator impor
     create_point_cloud_branching_clusters,
 )
 from sklearn.datasets import fetch_openml, make_swiss_roll
-
 DATASETS = ["MNIST", "SWISS_ROLL", "DinoBloom", "CLUSTERS"]
 
 class ConnectivityHyperParamExperiment:
@@ -35,7 +34,7 @@ class ConnectivityHyperParamExperiment:
         self.X, self.y = self.get_dataset()
         self.connectivity_dp = ConnectivityDP(
             n_components=2,
-            n_iter=1000,
+            n_iter=10,
             learning_rate=self.LR,
             optimizer_name=self.optimizer_name,
             normalize_input=self.normalize_input,
@@ -44,34 +43,64 @@ class ConnectivityHyperParamExperiment:
             augmentation_scheme={"name": "uniform", "p": self.augmentation_strength},
             importance_calculation_strat=self.importance_weighting_strat,
         )
-    def produce_2d_plot_of_embeddings(self,X,labels):
-        fig = plt.figure(figsize=(16, 8))
-        spec = gridspec.GridSpec(2, 2, width_ratios=[2, 1], height_ratios=[1, 1])
+        
+    def produce_2d_plot_of_embeddings(self, X, labels):
+        """
+        Creates a scatter plot with color and marker coding for different classes.
 
-        # Scatter plot (big plot on the left)
-        ax_scatter = fig.add_subplot(spec[:, 0])
+        Parameters:
+        X (numpy.ndarray): A 2D array of shape (n_samples, 2), containing the points to plot.
+        labels (list or numpy.ndarray): Class labels corresponding to the rows of `X`.
+        """
+        if X.shape[1] != 2:
+            raise ValueError("Input data X must have exactly 2 columns for a 2D scatter plot.")
+
+        # Create the figure and scatter plot
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        ax.set_title("Scatter Plot with Class Labels")
+        ax.set_xlabel("Feature 1")
+        ax.set_ylabel("Feature 2")
+
+        # Define marker styles and colors
         marker_styles = ['o', 's', 'D', 'v', '^', '<', '>', 'p', '*', 'X', 'h', 'H', '8', '|', '_', '.', ',']
-        colors = plt.cm.tab20.colors + plt.cm.tab20b.colors + plt.cm.tab20c.colors  # Combines multiple color maps for 60+ colors
+        colors = plt.cm.tab20.colors + plt.cm.tab20b.colors + plt.cm.tab20c.colors  # Combined color maps
 
-        # Ensure you have enough unique combinations of colors and markers
-        num_classes = len(set(labels))  # Total number of classes
-        unique_labels = sorted(set(labels))  # Sort labels for consistent ordering
+        # Ensure unique combinations of colors and markers
+        num_classes = len(set(labels))
+        unique_labels = sorted(set(labels))
         if num_classes > len(colors) * len(marker_styles):
             raise ValueError("Not enough combinations of colors and markers for all classes!")
 
-        # Create scatter plot with combined color and marker coding
+        # Plot each class with unique color and marker
         for idx, label in enumerate(unique_labels):
             color = colors[idx % len(colors)]
             marker = marker_styles[idx // len(colors) % len(marker_styles)]
             subset = X[np.array(labels) == label]
-            ax_scatter.scatter(
+            ax.scatter(
                 subset[:, 0],
                 subset[:, 1],
                 color=color,
                 marker=marker,
                 label=f"{label}",
                 s=50,
+                alpha=0.8,
+                edgecolors="k",  # Optional edge color for better visibility
             )
+
+        # Add legend outside the plot
+        ax.legend(
+            title="Classes",
+            loc='upper left',
+            bbox_to_anchor=(1.05, 1),  # Adjusts the legend position outside the plot
+            borderaxespad=0
+        )
+
+        # Show the plot
+        plt.tight_layout()
+        return fig
+
+
     def run_experiment(self):
         connectivity_embedding = self.connectivity_dp.fit_transform(self.X)
         distance_matrix =  cdist(connectivity_embedding, connectivity_embedding)
@@ -82,8 +111,13 @@ class ConnectivityHyperParamExperiment:
                               "best_epoc": self.connectivity_dp.opt_epoch,
                               "best_loss": self.connectivity_dp.opt_loss
                               }
-        
-        return metric_of_interest
+        try: 
+            fig = self.produce_2d_plot_of_embeddings(connectivity_embedding,self.y)
+        except Exception as e:
+            fig = None
+            print(f"Failed to produce the scatter plot visualization; {e}")
+            
+        return metric_of_interest, fig
     def get_dataset(self):
         if self.dataset_name == DATASETS[0]:
             print("Loading MNIST dataset...")

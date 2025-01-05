@@ -99,7 +99,11 @@ class ConnectivityDPHyperparameterSweeper:
         print(f"Running connectivity down projection with the following parameters:{params}")
         exp = ConnectivityHyperParamExperiment(**params)
         return exp.run_experiment()
-
+    
+    def _save_experiment_figure(self,fig,index):
+        viz_path = f"{self.folder_path}vizualizations/{index}.png"
+        fig.savefig(viz_path, format=format, bbox_inches="tight")
+        print(f"Plot saved as {viz_path}")
     def sweep(self):
         """
         Executes the hyperparameter sweep and saves the results after every iteration.
@@ -113,14 +117,15 @@ class ConnectivityDPHyperparameterSweeper:
                 params = dict(zip(self.columns, param_set))
 
                 # Run the experiment
-                output = self.run_experiment(**params)
+                result_metrics, fig = self.run_experiment(**params)
 
                 # Combine input and output for storage
-                result_entry = {**params, **output}
+                result_entry = {**params, **result_metrics}
                 self.results.append(result_entry)
 
                 # Save results and progress
                 self._save_results()
+                self._save_experiment_figure(fig,i)
                 self._save_progress(i)
 
             except Exception as e:
