@@ -59,7 +59,7 @@ class ConnectivityDPHyperparameterSweeper:
         Saves the current results to a CSV file.
         """
         results_df = pd.DataFrame(self.results)
-        results_df.to_csv(self.results_file, index=False)
+        results_df.to_csv(self.results_file, index=True)
         print(f"Results saved to {self.results_file}")
 
     def _save_progress(self, completed_idx):

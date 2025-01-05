@@ -1,3 +1,4 @@
+from matplotlib import gridspec, pyplot as plt
 from distance_functions.distance_function_metrics.static_distance_matrix_metrics import StaticDistanceMatrixMetricCalculator
 import numpy as np
 np.random.seed(42)
@@ -34,7 +35,7 @@ class ConnectivityHyperParamExperiment:
         self.X, self.y = self.get_dataset()
         self.connectivity_dp = ConnectivityDP(
             n_components=2,
-            n_iter=10,
+            n_iter=1000,
             learning_rate=self.LR,
             optimizer_name=self.optimizer_name,
             normalize_input=self.normalize_input,
@@ -43,7 +44,34 @@ class ConnectivityHyperParamExperiment:
             augmentation_scheme={"name": "uniform", "p": self.augmentation_strength},
             importance_calculation_strat=self.importance_weighting_strat,
         )
+    def produce_2d_plot_of_embeddings(self,X,labels):
+        fig = plt.figure(figsize=(16, 8))
+        spec = gridspec.GridSpec(2, 2, width_ratios=[2, 1], height_ratios=[1, 1])
 
+        # Scatter plot (big plot on the left)
+        ax_scatter = fig.add_subplot(spec[:, 0])
+        marker_styles = ['o', 's', 'D', 'v', '^', '<', '>', 'p', '*', 'X', 'h', 'H', '8', '|', '_', '.', ',']
+        colors = plt.cm.tab20.colors + plt.cm.tab20b.colors + plt.cm.tab20c.colors  # Combines multiple color maps for 60+ colors
+
+        # Ensure you have enough unique combinations of colors and markers
+        num_classes = len(set(labels))  # Total number of classes
+        unique_labels = sorted(set(labels))  # Sort labels for consistent ordering
+        if num_classes > len(colors) * len(marker_styles):
+            raise ValueError("Not enough combinations of colors and markers for all classes!")
+
+        # Create scatter plot with combined color and marker coding
+        for idx, label in enumerate(unique_labels):
+            color = colors[idx % len(colors)]
+            marker = marker_styles[idx // len(colors) % len(marker_styles)]
+            subset = X[np.array(labels) == label]
+            ax_scatter.scatter(
+                subset[:, 0],
+                subset[:, 1],
+                color=color,
+                marker=marker,
+                label=f"{label}",
+                s=50,
+            )
     def run_experiment(self):
         connectivity_embedding = self.connectivity_dp.fit_transform(self.X)
         distance_matrix =  cdist(connectivity_embedding, connectivity_embedding)
@@ -70,7 +98,7 @@ class ConnectivityHyperParamExperiment:
             X, y = make_swiss_roll(n_samples=self.size_of_data, random_state=42)
         elif self.dataset_name == DATASETS[2]:
             print("Loading AML dataset...")
-            data = np.load(r"C:\Users\MiladBassil\Desktop\dinbloomS_labeled1.npz")
+            data = np.load(r"data/SCEMILA/dinbloomS_labeled1.npz")
             X = data["embedding"]
             y_string = data["labels"]
             indices = np.arange(1500)
