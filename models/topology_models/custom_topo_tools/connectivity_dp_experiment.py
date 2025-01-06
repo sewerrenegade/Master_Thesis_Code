@@ -34,13 +34,14 @@ class ConnectivityHyperParamExperiment:
         self.X, self.y = self.get_dataset()
         self.connectivity_dp = ConnectivityDP(
             n_components=2,
-            n_iter=10,
+            n_iter=1000,
             learning_rate=self.LR,
             optimizer_name=self.optimizer_name,
             normalize_input=self.normalize_input,
             weight_decay=self.weight_decay,
             loss_calculation_timeout=10,
             augmentation_scheme={"name": "uniform", "p": self.augmentation_strength},
+            show_progress_bar=False,
             importance_calculation_strat=self.importance_weighting_strat,
         )
         
@@ -130,6 +131,7 @@ class ConnectivityHyperParamExperiment:
         elif self.dataset_name == DATASETS[1]:
             print("Generating Swiss Roll dataset...")
             X, y = make_swiss_roll(n_samples=self.size_of_data, random_state=42)
+            y = np.floor(y).astype(int)
         elif self.dataset_name == DATASETS[2]:
             print("Loading AML dataset...")
             data = np.load(r"data/SCEMILA/dinbloomS_labeled1.npz")

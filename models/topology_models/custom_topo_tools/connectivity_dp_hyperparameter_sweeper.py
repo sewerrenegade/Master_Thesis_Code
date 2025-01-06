@@ -101,8 +101,10 @@ class ConnectivityDPHyperparameterSweeper:
         return exp.run_experiment()
     
     def _save_experiment_figure(self,fig,index):
-        viz_path = f"{self.folder_path}vizualizations/{index}.png"
-        fig.savefig(viz_path, format=format, bbox_inches="tight")
+        viz_folder_path = f"{self.folder_path}vizualizations/"
+        os.makedirs(viz_folder_path, exist_ok=True)
+        viz_path = viz_folder_path+f"{index}.png"
+        fig.savefig(viz_path, format='png', bbox_inches="tight")
         print(f"Plot saved as {viz_path}")
     def sweep(self):
         """
@@ -130,4 +132,7 @@ class ConnectivityDPHyperparameterSweeper:
 
             except Exception as e:
                 print(f"Error occurred at iteration {i}: {e}")
+                import traceback
+                print("Complete trace:")
+                traceback.print_exc()
                 break

@@ -40,6 +40,7 @@ class ConnectivityDP:
         augmentation_scheme={},
         importance_calculation_strat=None,
         take_top_p_scales=1,
+        show_progress_bar = True,
         dev_settings={},
     ):
         self.n_iter = n_iter
@@ -47,6 +48,7 @@ class ConnectivityDP:
         self.initialization_scheme = initialization_scheme
         self.learning_rate = learning_rate
         self.normalize_input = normalize_input
+        self.show_progress_bar = show_progress_bar
         self.loss_calculation_timeout = loss_calculation_timeout
         self.take_top_p_scales = take_top_p_scales
         self.weight_decay = weight_decay
@@ -86,7 +88,7 @@ class ConnectivityDP:
 
         optimizer = self.get_optimizer(target_embedding)
 
-        progress_bar = tqdm(range(self.n_iter), desc="CDP Progress", unit="step")
+        progress_bar = tqdm(range(self.n_iter), desc="CDP Progress", unit="step") if self.show_progress_bar else range(self.n_iter)
         if "create_vid" in self.dev_settings:
             self.create_update_video(initial_embedding, torch.tensor(-1.0), {}, 0)
         for i in progress_bar:
@@ -99,12 +101,13 @@ class ConnectivityDP:
             optimizer.step()
             if "create_vid" in self.dev_settings:
                 self.create_update_video(target_embedding, loss, log, i + 1)
-            progress_bar.set_postfix(
-                {
-                    "Loss": loss.item(),
-                    "%_calc": log.get("percentage_toporeg_calc_2_on_1", 100.0),
-                }
-            )
+            if self.show_progress_bar:
+                progress_bar.set_postfix(
+                    {
+                        "Loss": loss.item(),
+                        "%_calc": log.get("percentage_toporeg_calc_2_on_1", 100.0),
+                    }
+                )
             if loss.item() < self.opt_loss or self.opt_loss == -1:
                 self.opt_loss = loss.item()
                 self.opt_embedding = target_embedding.detach().numpy()
