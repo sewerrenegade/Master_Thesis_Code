@@ -23,7 +23,7 @@ class ConnectivityEncoderCalculator:
         self.distance_of_persistence_pairs = None
         self.component_size_importance_score = None
         self.component_persistence_importance_score = None
-        self.component_total_importance_score = None
+        self.component_total_importance_score = [1.0] * (self.n_vertices-1)
         self.persistence_of_components = None
         # self.sanity_checker = []
         #self.topo_progression_stats= [np.unique(zero_scale_topo, return_counts=True)]
@@ -117,12 +117,12 @@ class ConnectivityEncoderCalculator:
                 assert lifetime_of_components[-1] == None
                 lifetime_of_components[-1] = 0.0
                 break
-        self.scales = [edge_distance/edge_distances[-1] for edge_distance in edge_distances]
+        self.scales = [edge_distance/edge_distances[-1] for edge_distance in edge_distances] if edge_distances[-1] != 0 else edge_distances
         self.distance_of_persistence_pairs = edge_distances
         self.persistence_pairs = persistence_pairs
         self.topo_scale_evolution = np.vstack(self.topo_scale_evolution)
         if calculate_importance:
-            self.persistence_of_components = [lifetime_of_component/edge_distances[-1] for lifetime_of_component in lifetime_of_components]
+            self.persistence_of_components = [lifetime_of_component/edge_distances[-1] for lifetime_of_component in lifetime_of_components]if edge_distances[-1] != 0 else lifetime_of_components
             self.component_persistence_importance_score = self.normalize_score([lifetime_of_component/(self.scales[index]+self.scales[int(len(self.scales)*0.3)]) for index,lifetime_of_component in enumerate(self.persistence_of_components)])
             self.component_size_importance_score = self.normalize_score(component_size_importance_score)
 

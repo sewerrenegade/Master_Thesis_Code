@@ -13,7 +13,46 @@ ALL_PERUMTAIONS = {
     "size_of_data": [100, 200],
     "weight_decay": [0.0, 0.01],
 }
-
+OPT_PERMUTATIONS_MNSIT = {
+    "dataset_name": [DATASETS[0]], #["MNIST", "SWISS_ROLL", "DinoBloom", "CLUSTERS"]
+    "optimizer_name": ["sgd", "adam","adamw"],
+    "LR": [1.0,0.5,0.1],
+    "normalize_input": [True, False],
+    "importance_weighting_strat": ["none", "min",'component_persistence','component_size','multiplication'],
+    "augmentation_strength": [1.0,0.5,0.1],
+    "size_of_data": [200,300],
+    "weight_decay": [0.001,0.005],
+}
+OPT_PERMUTATIONS_SWISS = {
+    "dataset_name": [DATASETS[1]], #["MNIST", "SWISS_ROLL", "DinoBloom", "CLUSTERS"]
+    "optimizer_name": ["sgd", "adam","adamw"],
+    "LR": [1.0,0.5,0.1],
+    "normalize_input": [True, False],
+    "importance_weighting_strat": ["none", "min",'component_persistence','component_size','multiplication'],
+    "augmentation_strength": [1.0,0.5,0.1],
+    "size_of_data": [200,300],
+    "weight_decay": [0.001,0.005],
+}
+OPT_PERMUTATIONS_DINO = {
+    "dataset_name": [DATASETS[2]], #["MNIST", "SWISS_ROLL", "DinoBloom", "CLUSTERS"]
+    "optimizer_name": ["sgd", "adam","adamw"],
+    "LR": [1.0,0.5,0.1],
+    "normalize_input": [True, False],
+    "importance_weighting_strat": ["none", "min",'component_persistence','component_size','multiplication'],
+    "augmentation_strength": [1.0,0.5,0.1],
+    "size_of_data": [200,300],
+    "weight_decay": [0.001,0.005],
+}
+OPT_PERMUTATIONS_CLUSTERS = {
+    "dataset_name": [DATASETS[3]], #["MNIST", "SWISS_ROLL", "DinoBloom", "CLUSTERS"]
+    "optimizer_name": ["sgd", "adam","adamw"],
+    "LR": [1.0,0.5,0.1],
+    "normalize_input": [True, False],
+    "importance_weighting_strat": ["none", "min",'component_persistence','component_size','multiplication'],
+    "augmentation_strength": [1.0,0.5,0.1],
+    "size_of_data": [200,300],
+    "weight_decay": [0.001,0.005],
+}
 LR_OPTIMIZER_SWEEP =  {
     "dataset_name": DATASETS, #["MNIST", "SWISS_ROLL", "DinoBloom", "CLUSTERS"]
     "optimizer_name": ["sgd", "adam","adamw","adan"],

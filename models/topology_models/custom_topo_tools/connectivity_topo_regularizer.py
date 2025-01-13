@@ -8,6 +8,7 @@ from random import shuffle
 from concurrent.futures import ProcessPoolExecutor,as_completed,TimeoutError
 from math import ceil,floor
 from models.topology_models.custom_topo_tools.topo_encoder import ConnectivityEncoderCalculator
+import random
 # topo function
 
 class Timer:
@@ -74,7 +75,7 @@ class TopologicalZeroOrderLoss(nn.Module):
     LOSS_ORDERS = [1,2]
     PER_FEATURE_LOSS_SCALE_ESTIMATION_METHODS =["match_scale_order","match_scale_distribution","moor_method","modified_moor_method","deep"]
 
-    def __init__(self,method="match_scale_distribution",p=2,timeout = 5,multithreading = True,take_top_p_scales=1.0,importance_calculation_strat = None):
+    def __init__(self,method="deep",p=2,timeout = 5,multithreading = True,importance_scale_fraction_taken=1.0,importance_calculation_strat = None):
         """Topological signature computation.
 
         Args:
@@ -88,7 +89,7 @@ class TopologicalZeroOrderLoss(nn.Module):
         self.signature_calculator = ConnectivityEncoderCalculator
         self.loss_fnc = self.get_torch_p_order_function()
         self.topo_feature_loss = self.get_topo_feature_approach(method)
-        self.take_top_p_scales = take_top_p_scales
+        self.importance_scale_fraction_taken = importance_scale_fraction_taken
         self.calculate_all_losses = False
         self.importance_calculation_strat = importance_calculation_strat
         self.timeout = timeout
@@ -112,7 +113,23 @@ class TopologicalZeroOrderLoss(nn.Module):
             self.multithreading = False
             self.stop_event = Timer(self.timeout)
         print(f"Available threads : {self.available_threads}")
-        
+    
+    def get_top_p_indices(self,topo_encoding_space: ConnectivityEncoderCalculator):
+        n_top = int(len(topo_encoding_space.component_total_importance_score) * self.importance_scale_fraction_taken)
+        values_array = np.array(topo_encoding_space.component_total_importance_score)
+
+        sorted_indices = np.argsort(values_array)[::-1]
+
+        cutoff_value = values_array[sorted_indices[n_top - 1]]
+        eligible_indices = [i for i, v in enumerate(topo_encoding_space.component_total_importance_score) if v == cutoff_value]
+
+        good_indices = [i for i, v in enumerate(topo_encoding_space.component_total_importance_score) if v > cutoff_value]
+        if len(eligible_indices) > n_top:
+            random_subsmaple_of_eligible_indices = random.sample(eligible_indices, n_top - len(good_indices))
+        else:
+            random_subsmaple_of_eligible_indices = eligible_indices
+        good_indices.extend(random_subsmaple_of_eligible_indices)
+        return list(good_indices)
         
         
 
@@ -121,7 +138,7 @@ class TopologicalZeroOrderLoss(nn.Module):
         if distances2.requires_grad or self.calculate_all_losses:            
             self.stop_event.clear()
             nb_of_persistent_pairs = len(topo_encoding_space_1.persistence_pairs)
-            shuffled_indices_of_topo_features = list(range(nb_of_persistent_pairs))[-int(self.take_top_p_scales*nb_of_persistent_pairs):]
+            shuffled_indices_of_topo_features = self.get_top_p_indices(topo_encoding_space_1)
             shuffle(shuffled_indices_of_topo_features)
             k, m = divmod(len(shuffled_indices_of_topo_features), self.available_threads + 1)
             subdivided_list = [shuffled_indices_of_topo_features[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(self.available_threads + 1)]

@@ -34,7 +34,7 @@ class ConnectivityHyperParamExperiment:
         self.X, self.y = self.get_dataset()
         self.connectivity_dp = ConnectivityDP(
             n_components=2,
-            n_iter=1000,
+            n_iter=2000,
             learning_rate=self.LR,
             optimizer_name=self.optimizer_name,
             normalize_input=self.normalize_input,

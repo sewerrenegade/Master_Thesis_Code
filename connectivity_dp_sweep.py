@@ -1,14 +1,18 @@
 from models.topology_models.custom_topo_tools.connectivity_dp_hyperparameter_sweeper import ConnectivityDPHyperparameterSweeper
 from models.topology_models.custom_topo_tools.connectivity_dp_sweep_configs import (ALL_PERUMTAIONS, LR_OPTIMIZER_SWEEP,
                                                                                     IMPORTANCE_STRAT_SWEEP,NORMALIZE_INPUT_SWEEP,
-                                                                                    WEIGHT_DECAY_SWEEP, AUGMENTATION_STRENGTH_SWEEP)
+                                                                                    WEIGHT_DECAY_SWEEP, AUGMENTATION_STRENGTH_SWEEP,OPT_PERMUTATIONS_CLUSTERS,OPT_PERMUTATIONS_DINO,OPT_PERMUTATIONS_MNSIT,OPT_PERMUTATIONS_SWISS)
 
 SWEEP_CONFIGS ={
     "lr_optimizer_sweep": LR_OPTIMIZER_SWEEP,
     "importance_strat_sweep": IMPORTANCE_STRAT_SWEEP,
     "normalize_input_sweep": NORMALIZE_INPUT_SWEEP,
     "weight_decay_sweep": WEIGHT_DECAY_SWEEP,
-    "augmentation_strength_sweep": AUGMENTATION_STRENGTH_SWEEP
+    "augmentation_strength_sweep": AUGMENTATION_STRENGTH_SWEEP,
+    "opt_MNIST": OPT_PERMUTATIONS_MNSIT,
+    "opt_swiss": OPT_PERMUTATIONS_SWISS,
+    "opt_dino": OPT_PERMUTATIONS_DINO,
+    "opt_clusters": OPT_PERMUTATIONS_CLUSTERS,
 }
 if __name__ == "__main__":
     from argparse import ArgumentParser

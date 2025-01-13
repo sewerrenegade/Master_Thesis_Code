@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 import sys
 import os
+
 from configs.global_config import GlobalConfig
 import json
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ from models.topology_models.custom_topo_tools.connectivity_topo_regularizer impo
     TopologicalZeroOrderLoss,
 )
 from adan_pytorch import Adan
-
+from models.topology_models.topo_tools.moor_topo_reg import TopologicalSignatureDistance
 
 # Define the custom loss function
 class DistanceMatrixLoss(nn.Module):
@@ -60,12 +61,16 @@ class ConnectivityDP:
         if "moor_method" in self.dev_settings:
             method = "moor_method"
 
-        self.loss_fn = TopologicalZeroOrderLoss(
-            method=method,
-            timeout=self.loss_calculation_timeout,
-            take_top_p_scales=self.take_top_p_scales,
-            importance_calculation_strat=importance_calculation_strat,
-        )
+
+        if method == "moor_method":
+            self.loss_fn = TopologicalSignatureDistance(match_edges = 'symmetric',to_gpu=False)
+        else:
+            self.loss_fn = TopologicalZeroOrderLoss(
+                method=method,
+                timeout=self.loss_calculation_timeout,
+                importance_scale_fraction_taken=self.take_top_p_scales,
+                importance_calculation_strat=importance_calculation_strat,
+            )
         self.opt_loss = -1.0
         self.opt_embedding = None
         self.opt_epoch = -1
