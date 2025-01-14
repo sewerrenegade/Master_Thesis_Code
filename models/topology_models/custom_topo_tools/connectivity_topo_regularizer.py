@@ -299,7 +299,7 @@ class TopologicalZeroOrderLoss(nn.Module):
             raise ValueError(f"Scale matching methode {scale_matching_method} does not exist")
         
     def calulate_space_connectivity_encoding(self,distance_matrix):
-        topo_encoder = self.signature_calculator(distance_matrix)
+        topo_encoder = self.signature_calculator(distance_matrix,importance_calculation_strat=self.importance_calculation_strat)
         topo_encoder.calculate_connectivity()
         return topo_encoder
 
