@@ -1,0 +1,3 @@
+[submodule "models/topology_models/prop_topo_tools"]
+	path = models/topology_models/prop_topo_tools
+	url = git@github.com:sewerrenegade/MsC_Loss.git
