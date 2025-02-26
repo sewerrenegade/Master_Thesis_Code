@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
-from models.topology_models.custom_topo_tools.connectivity_topo_regularizer import TopologicalZeroOrderLoss
+from models.topology_models.prop_topo_tools.connectivity_topo_regularizer import TopologicalZeroOrderLoss
 from models.topology_models.topo_tools.moor_topo_reg import TopologicalSignatureDistance
 
 

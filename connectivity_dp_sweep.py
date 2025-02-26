@@ -1,5 +1,5 @@
-from models.topology_models.custom_topo_tools.connectivity_dp_hyperparameter_sweeper import ConnectivityDPHyperparameterSweeper
-from models.topology_models.custom_topo_tools.connectivity_dp_sweep_configs import (ALL_PERUMTAIONS, LR_OPTIMIZER_SWEEP,
+from models.topology_models.prop_topo_tools.connectivity_dp_hyperparameter_sweeper import ConnectivityDPHyperparameterSweeper
+from models.topology_models.prop_topo_tools.connectivity_dp_sweep_configs import (ALL_PERUMTAIONS, LR_OPTIMIZER_SWEEP,
                                                                                     IMPORTANCE_STRAT_SWEEP,NORMALIZE_INPUT_SWEEP,
                                                                                     WEIGHT_DECAY_SWEEP, AUGMENTATION_STRENGTH_SWEEP,OPT_PERMUTATIONS_CLUSTERS,
                                                                                     OPT_PERMUTATIONS_DINO,OPT_PERMUTATIONS_MNSIT,
