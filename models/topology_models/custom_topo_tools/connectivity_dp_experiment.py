@@ -19,9 +19,10 @@ class ConnectivityHyperParamExperiment:
         LR=1.0,
         normalize_input=True,
         importance_weighting_strat="none",
-        augmentation_strength=0.01,
+        augmentation_strength=0.00,
         size_of_data=200,
         weight_decay=0.0,
+        p_importance_filter = 1.0
     ):
         self.dataset_name = dataset_name
         self.optimizer_name = optimizer_name
@@ -41,7 +42,7 @@ class ConnectivityHyperParamExperiment:
             weight_decay=self.weight_decay,
             loss_calculation_timeout=10,
             augmentation_scheme={"name": "uniform", "p": self.augmentation_strength},
-            show_progress_bar=False,
+            show_progress_bar=False,take_top_p_scales=p_importance_filter,
             importance_calculation_strat=self.importance_weighting_strat,
         )
         
@@ -110,15 +111,16 @@ class ConnectivityHyperParamExperiment:
                               "silhouette_score":metrics["silhouette_score"],
                               "loocv_knn_acc":metrics["loocv_knn_acc"],
                               "best_epoc": self.connectivity_dp.opt_epoch,
-                              "best_loss": self.connectivity_dp.opt_loss
+                              "best_loss": self.connectivity_dp.opt_loss,
+                              "fit_time": self.connectivity_dp.fit_time
                               }
         try: 
             fig = self.produce_2d_plot_of_embeddings(connectivity_embedding,self.y)
         except Exception as e:
             fig = None
             print(f"Failed to produce the scatter plot visualization; {e}")
-            
-        return metric_of_interest, fig
+        loss_curve_epoch = self.connectivity_dp.loss_per_epoch
+        return metric_of_interest, fig, loss_curve_epoch
     def get_dataset(self):
         if self.dataset_name == DATASETS[0]:
             print("Loading MNIST dataset...")

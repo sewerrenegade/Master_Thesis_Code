@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from moviepy import ImageSequenceClip
 import matplotlib.gridspec as gridspec
-
+import time
 sys.path.append("C:/Users\MiladBassil/Desktop/Master_Thesis/code\Master_Thesis_Code")
 
 from models.topology_models.custom_topo_tools.connectivity_topo_regularizer import (
@@ -74,6 +74,8 @@ class ConnectivityDP:
         self.opt_loss = -1.0
         self.opt_embedding = None
         self.opt_epoch = -1
+        self.loss_per_epoch = []
+        self.fit_time = -1.0
 
     def fit_transform(self, X):
         """
@@ -83,6 +85,7 @@ class ConnectivityDP:
         Returns:
             Optimized 2D embedding of shape (n, n_componenets).
         """
+        start_time = time.time()
         if isinstance(X, np.ndarray):
             X = torch.tensor(X, dtype=torch.float32)
         if self.normalize_input:
@@ -113,6 +116,7 @@ class ConnectivityDP:
                         "%_calc": log.get("percentage_toporeg_calc_2_on_1", 100.0),
                     }
                 )
+            self.loss_per_epoch.append(loss.item())
             if loss.item() < self.opt_loss or self.opt_loss == -1:
                 self.opt_loss = loss.item()
                 self.opt_embedding = target_embedding.detach().numpy()
@@ -120,6 +124,7 @@ class ConnectivityDP:
                 
         if "create_vid" in self.dev_settings:
             self.create_update_video(None, None, None, -1)
+        self.fit_time = time.time() - start_time
         return self.opt_embedding
 
     def get_initial_embedding(self, X):
